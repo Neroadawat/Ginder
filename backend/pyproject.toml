@@ -1,0 +1,73 @@
+[project]
+name = "ginder-backend"
+version = "0.1.0"
+description = "Ginder - Restaurant discovery app backend"
+requires-python = ">=3.11,<3.14"
+dependencies = [
+    "fastapi==0.115.6",
+    "uvicorn[standard]==0.34.0",
+    "sqlalchemy[asyncio]==2.0.36",
+    "asyncpg==0.30.0",
+    "alembic==1.14.0",
+    "psycopg2-binary==2.9.10",
+    "pydantic[email]==2.10.4",
+    "pydantic-settings==2.7.0",
+    "python-jose[cryptography]==3.3.0",
+    "passlib==1.7.4",
+    # Pinned below 4.1: passlib 1.7.4 reads bcrypt.__about__, which newer
+    # bcrypt removed, producing a noisy error on every hash call.
+    "bcrypt==4.0.1",
+    "python-multipart==0.0.20",
+    "redis[hiredis]==5.2.1",
+    "celery[redis]==5.4.0",
+    "firebase-admin==6.6.0",
+    "httpx==0.28.1",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest==8.3.4",
+    "pytest-asyncio==0.25.0",
+    "ruff==0.8.4",
+    "mypy==1.14.0",
+]
+
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.build_meta"
+
+# Only "app" is importable; alembic/ and scripts/ are run as files, not imported
+# as packages. Without this, setuptools auto-discovery fails on the extra
+# top-level directories.
+[tool.setuptools]
+packages = ["app"]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+extend-exclude = ["alembic/versions"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "W", "UP", "B"]
+
+[tool.ruff.lint.flake8-bugbear]
+# FastAPI's dependency injection is built on calling these in argument
+# defaults, so B008 would flag every single route handler.
+extend-immutable-calls = [
+    "fastapi.Depends",
+    "fastapi.Query",
+    "fastapi.Path",
+    "fastapi.Body",
+    "fastapi.Header",
+    "fastapi.File",
+    "fastapi.Form",
+]
+
+[tool.mypy]
+python_version = "3.11"
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+testpaths = ["tests"]

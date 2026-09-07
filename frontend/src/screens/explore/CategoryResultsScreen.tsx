@@ -1,0 +1,101 @@
+/**
+ * Category Results Screen — Shows restaurants filtered by a specific category.
+ */
+
+import React from 'react';
+import {View, Text, TouchableOpacity, StyleSheet, FlatList, ActivityIndicator} from 'react-native';
+import {useRoute, useNavigation, RouteProp} from '@react-navigation/native';
+
+import RestaurantListItem from '@/components/RestaurantListItem';
+import {useSoloDeck} from '@/hooks/useRestaurants';
+import {useFilterStore} from '@/stores/filterStore';
+import {ExploreStackParamList} from '@/navigation/types';
+
+type RouteProps = RouteProp<ExploreStackParamList, 'CategoryResults'>;
+
+const CategoryResultsScreen = () => {
+  const route = useRoute<RouteProps>();
+  const navigation = useNavigation();
+  const filters = useFilterStore();
+  const {data: deck, isLoading} = useSoloDeck({...filters, category: route.params.category});
+
+  return (
+    <View style={styles.container}>
+      <View style={styles.header}>
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          accessibilityRole="button">
+          <Text style={styles.backText}>← Back</Text>
+        </TouchableOpacity>
+        <Text style={styles.title}>{route.params.category}</Text>
+        <Text style={styles.count}>
+          {deck?.total ?? 0} restaurants
+        </Text>
+      </View>
+
+      {isLoading ? (
+        <View style={styles.centered}>
+          <ActivityIndicator size="large" color="#FF6B6B" />
+        </View>
+      ) : (
+        <FlatList
+          data={deck?.restaurants ?? []}
+          renderItem={({item}) => <RestaurantListItem restaurant={item} />}
+          keyExtractor={item => item.id}
+          contentContainerStyle={styles.list}
+          ListEmptyComponent={
+            <View style={styles.empty}>
+              <Text style={styles.emptyText}>No restaurants found in this category</Text>
+            </View>
+          }
+        />
+      )}
+    </View>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#F5F5F5',
+  },
+  header: {
+    paddingHorizontal: 20,
+    paddingTop: 60,
+    paddingBottom: 16,
+    backgroundColor: '#FFF',
+  },
+  backText: {
+    fontSize: 16,
+    color: '#FF6B6B',
+    marginBottom: 8,
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#333',
+  },
+  count: {
+    fontSize: 14,
+    color: '#666',
+    marginTop: 4,
+  },
+  list: {
+    padding: 16,
+  },
+  centered: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  empty: {
+    padding: 40,
+    alignItems: 'center',
+  },
+  emptyText: {
+    fontSize: 16,
+    color: '#999',
+  },
+});
+
+export default CategoryResultsScreen;
