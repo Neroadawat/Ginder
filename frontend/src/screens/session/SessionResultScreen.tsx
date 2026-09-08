@@ -19,6 +19,7 @@ import {useSessionResult} from '@/hooks/useSessions';
 import {useSessionStore} from '@/stores/sessionStore';
 import {RESOLUTION_LABELS} from '@/constants/resolution';
 import {SessionStackParamList} from '@/navigation/types';
+import {COLORS} from '@/constants/theme';
 
 type RouteProps = RouteProp<SessionStackParamList, 'SessionResult'>;
 
@@ -27,7 +28,11 @@ const SessionResultScreen = () => {
   const navigation = useNavigation();
   const clearSession = useSessionStore(state => state.clearSession);
 
-  const {data: result, isLoading, isError} = useSessionResult(route.params.sessionId);
+  const {
+    data: result,
+    isLoading,
+    isError,
+  } = useSessionResult(route.params.sessionId);
 
   const handleBackHome = () => {
     // The session is over, so the Likes tab should switch back to solo history.
@@ -75,10 +80,8 @@ const SessionResultScreen = () => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.emoji}>{hasWinner ? '🎊' : '🤷'}</Text>
-      <Text style={styles.title}>
-        {hasWinner ? 'Session complete!' : 'No restaurant found'}
-      </Text>
+      <Text style={styles.kicker}>{hasWinner ? 'It’s a' : 'Session'}</Text>
+      <Text style={styles.title}>{hasWinner ? 'Match' : 'Complete'}</Text>
       <Text style={styles.subtitle}>
         {RESOLUTION_LABELS[result.resolution_type] ?? result.resolution_type}
       </Text>
@@ -110,46 +113,51 @@ const SessionResultScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFF',
+    backgroundColor: COLORS.accentDark,
     justifyContent: 'center',
     alignItems: 'center',
     padding: 32,
   },
-  emoji: {
-    fontSize: 76,
-    marginBottom: 16,
+  emoji: {fontSize: 64},
+  kicker: {
+    fontSize: 58,
+    color: '#FF1717',
+    fontWeight: '900',
   },
   title: {
-    fontSize: 26,
-    fontWeight: '700',
-    color: '#333',
+    fontSize: 62,
+    fontStyle: 'italic',
+    fontWeight: '900',
+    color: '#FF1717',
     marginBottom: 6,
     textAlign: 'center',
   },
   subtitle: {
     fontSize: 15,
-    color: '#666',
+    color: '#FFF',
     marginBottom: 28,
     textAlign: 'center',
   },
   resultCard: {
-    backgroundColor: '#FFF0F0',
+    backgroundColor: 'rgba(0,0,0,0.18)',
     borderRadius: 20,
     padding: 24,
     width: '100%',
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: '#FF6B6B',
+    borderColor: 'rgba(255,255,255,0.35)',
     marginBottom: 24,
   },
   restaurantName: {
     fontSize: 22,
     fontWeight: '700',
-    color: '#333',
+    color: '#FFF',
     textAlign: 'center',
   },
   mapsButton: {
-    backgroundColor: '#FF6B6B',
+    backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderColor: '#FFF',
     borderRadius: 12,
     paddingVertical: 16,
     paddingHorizontal: 32,
@@ -166,7 +174,7 @@ const styles = StyleSheet.create({
     padding: 12,
   },
   homeText: {
-    color: '#999',
+    color: '#FFF',
     fontSize: 16,
   },
 });

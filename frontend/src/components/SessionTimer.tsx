@@ -16,7 +16,9 @@ const SessionTimer = ({sessionId}: Props) => {
   const [remaining, setRemaining] = useState<number>(0);
 
   useEffect(() => {
-    if (!lobby?.session.ends_at) return;
+    if (!lobby?.session.ends_at) {
+      return;
+    }
 
     const endsAt = new Date(lobby.session.ends_at).getTime();
 
@@ -51,12 +53,12 @@ const styles = StyleSheet.create({
     paddingTop: 60,
     paddingBottom: 12,
     alignItems: 'center',
-    backgroundColor: '#FFF',
+    backgroundColor: '#080808',
   },
   timer: {
     fontSize: 28,
     fontWeight: '700',
-    color: '#333',
+    color: '#FFF',
   },
   timerLow: {
     color: '#E53E3E',

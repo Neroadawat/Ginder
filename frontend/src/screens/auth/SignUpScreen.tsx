@@ -30,6 +30,7 @@ const SignUpScreen = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [displayName, setDisplayName] = useState('');
+  const [validationError, setValidationError] = useState('');
 
   // Terms were accepted on the consent screen, which gates this screen. The
   // flag is forwarded so the server has a record tied to the account
@@ -37,10 +38,37 @@ const SignUpScreen = () => {
   const hasConsented = useConsentStore(state => state.hasConsented);
 
   const handleSignUp = () => {
+    const normalizedEmail = email.trim().toLowerCase();
+    const normalizedName = displayName.trim();
+
+    if (!normalizedName) {
+      setValidationError('Please enter a display name.');
+      return;
+    }
+    if (!normalizedEmail || !/^\S+@\S+\.\S+$/.test(normalizedEmail)) {
+      setValidationError('Please enter a valid email address.');
+      return;
+    }
+    if (password.length < 8) {
+      setValidationError('Password must be at least 8 characters.');
+      return;
+    }
+    if (password.length > 128) {
+      setValidationError('Password must be no more than 128 characters.');
+      return;
+    }
+    if (!hasConsented) {
+      setValidationError(
+        'You must accept the Terms of Service and Privacy Policy.',
+      );
+      return;
+    }
+
+    setValidationError('');
     signUpMutation.mutate({
-      email,
+      email: normalizedEmail,
       password,
-      display_name: displayName,
+      display_name: normalizedName,
       accepted_terms: hasConsented,
     });
   };
@@ -53,7 +81,7 @@ const SignUpScreen = () => {
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled">
         <View style={styles.header}>
-          <Text style={styles.title}>Create Account</Text>
+          <Text style={styles.title}>Register</Text>
           <Text style={styles.subtitle}>Join Ginder and find great food</Text>
         </View>
 
@@ -87,9 +115,25 @@ const SignUpScreen = () => {
             accessibilityLabel="Password input"
           />
 
-          {signUpMutation.isError && (
+          <View style={styles.requirements}>
+            <Text style={styles.requirementsTitle}>
+              Registration requirements
+            </Text>
+            <Text style={styles.requirement}>• Display name is required</Text>
+            <Text style={styles.requirement}>• Use a valid email address</Text>
+            <Text style={styles.requirement}>
+              • Password must be 8–128 characters
+            </Text>
+            <Text style={styles.requirement}>
+              • Accept the Terms of Service and Privacy Policy
+            </Text>
+          </View>
+
+          {(validationError || signUpMutation.isError) && (
             <Text style={styles.errorText}>
-              {signUpMutation.error?.message || 'Sign up failed'}
+              {validationError ||
+                signUpMutation.error?.message ||
+                'Registration failed'}
             </Text>
           )}
 
@@ -98,11 +142,11 @@ const SignUpScreen = () => {
             onPress={handleSignUp}
             disabled={signUpMutation.isPending}
             accessibilityRole="button"
-            accessibilityLabel="Sign up">
+            accessibilityLabel="Register">
             {signUpMutation.isPending ? (
               <ActivityIndicator color="#FFF" />
             ) : (
-              <Text style={styles.buttonText}>Sign Up</Text>
+              <Text style={styles.buttonText}>Register</Text>
             )}
           </TouchableOpacity>
         </View>
@@ -112,7 +156,7 @@ const SignUpScreen = () => {
           <TouchableOpacity
             onPress={() => navigation.navigate('Login')}
             accessibilityRole="button">
-            <Text style={styles.footerLink}>Log In</Text>
+            <Text style={styles.footerLink}>Login</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -162,6 +206,25 @@ const styles = StyleSheet.create({
     padding: 16,
     alignItems: 'center',
     marginTop: 8,
+  },
+  requirements: {
+    padding: 14,
+    borderRadius: 12,
+    backgroundColor: '#FFF4F4',
+    borderWidth: 1,
+    borderColor: '#FFD4D4',
+    gap: 5,
+  },
+  requirementsTitle: {
+    color: '#333',
+    fontSize: 14,
+    fontWeight: '700',
+    marginBottom: 2,
+  },
+  requirement: {
+    color: '#666',
+    fontSize: 13,
+    lineHeight: 18,
   },
   buttonText: {
     color: '#FFF',

@@ -28,9 +28,25 @@ const LoginScreen = () => {
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [validationError, setValidationError] = useState('');
 
   const handleLogin = () => {
-    loginMutation.mutate({email, password});
+    const normalizedEmail = email.trim().toLowerCase();
+    if (!normalizedEmail) {
+      setValidationError('Please enter your email address.');
+      return;
+    }
+    if (!/^\S+@\S+\.\S+$/.test(normalizedEmail)) {
+      setValidationError('Please enter a valid email address.');
+      return;
+    }
+    if (!password) {
+      setValidationError('Please enter your password.');
+      return;
+    }
+
+    setValidationError('');
+    loginMutation.mutate({email: normalizedEmail, password});
   };
 
   return (
@@ -67,9 +83,11 @@ const LoginScreen = () => {
             accessibilityLabel="Password input"
           />
 
-          {loginMutation.isError && (
+          {(validationError || loginMutation.isError) && (
             <Text style={styles.errorText}>
-              {loginMutation.error?.message || 'Login failed'}
+              {validationError ||
+                loginMutation.error?.message ||
+                'Login failed'}
             </Text>
           )}
 
@@ -78,11 +96,11 @@ const LoginScreen = () => {
             onPress={handleLogin}
             disabled={loginMutation.isPending}
             accessibilityRole="button"
-            accessibilityLabel="Log in">
+            accessibilityLabel="Login">
             {loginMutation.isPending ? (
               <ActivityIndicator color="#FFF" />
             ) : (
-              <Text style={styles.buttonText}>Log In</Text>
+              <Text style={styles.buttonText}>Login</Text>
             )}
           </TouchableOpacity>
 
@@ -98,7 +116,7 @@ const LoginScreen = () => {
           <TouchableOpacity
             onPress={() => navigation.navigate('SignUp')}
             accessibilityRole="button">
-            <Text style={styles.footerLink}>Sign Up</Text>
+            <Text style={styles.footerLink}>Register</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>

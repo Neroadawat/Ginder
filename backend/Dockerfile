@@ -8,12 +8,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libpq-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Python dependencies
-COPY pyproject.toml ./
-RUN pip install --no-cache-dir -e ".[dev]"
-
-# Copy application code
+# Copy application code before installing the editable package.  Setuptools
+# needs the app/ package to be present while it builds package metadata.
 COPY . .
+RUN pip install --no-cache-dir -e ".[dev]"
 
 EXPOSE 8000
 

@@ -3,7 +3,7 @@
  * Host can kick players, start session, and share invite link.
  */
 
-import React from 'react';
+import React, {useEffect} from 'react';
 import {
   View,
   Text,
@@ -18,9 +18,14 @@ import {useNavigation} from '@react-navigation/native';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 
 import LobbyPlayerItem from '@/components/LobbyPlayerItem';
-import {useSession, useStartSession, useKickParticipant} from '@/hooks/useSessions';
+import {
+  useSession,
+  useStartSession,
+  useKickParticipant,
+} from '@/hooks/useSessions';
 import {useAuthStore} from '@/stores/authStore';
 import {SessionStackParamList} from '@/navigation/types';
+import {useSessionWebSocket} from '@/hooks/useWebSocket';
 
 type RouteProps = RouteProp<SessionStackParamList, 'Lobby'>;
 type NavigationProp = NativeStackNavigationProp<SessionStackParamList, 'Lobby'>;
@@ -32,11 +37,23 @@ const LobbyScreen = () => {
   const {data: lobby, isLoading} = useSession(route.params.sessionId);
   const startMutation = useStartSession();
   const kickMutation = useKickParticipant();
+  const {lastEvent} = useSessionWebSocket(route.params.sessionId);
 
   const isHost = lobby?.session.host_id === userId;
 
+  useEffect(() => {
+    if (
+      lobby?.session.status === 'active' ||
+      lastEvent?.event === 'session_started'
+    ) {
+      navigation.replace('SessionSwipe', {sessionId: route.params.sessionId});
+    }
+  }, [lastEvent, lobby?.session.status, navigation, route.params.sessionId]);
+
   const handleShare = async () => {
-    if (!lobby) return;
+    if (!lobby) {
+      return;
+    }
     try {
       await Share.share({
         message: `Join my Ginder session! 🍽️\nginder://session/join?code=${lobby.session.invite_code}`,
@@ -74,7 +91,8 @@ const LobbyScreen = () => {
       <View style={styles.header}>
         <Text style={styles.title}>🏠 Lobby</Text>
         <Text style={styles.info}>
-          Radius: {lobby.session.radius_km} km • Timer: {lobby.session.duration_seconds / 60} min
+          Radius: {lobby.session.radius_km} km • Timer:{' '}
+          {lobby.session.duration_seconds / 60} min
         </Text>
       </View>
 

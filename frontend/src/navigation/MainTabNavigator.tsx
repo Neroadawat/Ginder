@@ -11,32 +11,61 @@ import LikesScreen from '@/screens/likes/LikesScreen';
 import HistoryScreen from '@/screens/history/HistoryScreen';
 import ProfileNavigator from './stacks/ProfileStack';
 import {MainTabParamList} from './types';
+import AppIcon, {AppIconName} from '@/components/AppIcon';
+import {COLORS} from '@/constants/theme';
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
 
+const ICONS: Record<keyof MainTabParamList, AppIconName> = {
+  HomeTab: 'swipe',
+  ExploreTab: 'explore',
+  LikesTab: 'heart',
+  HistoryTab: 'history',
+  ProfileTab: 'profile',
+};
+
+const tabScreenOptions = ({
+  route,
+}: {
+  route: {name: keyof MainTabParamList};
+}) => ({
+  headerShown: false,
+  sceneContainerStyle: {backgroundColor: COLORS.background},
+  tabBarIcon: ({color, focused}: {color: string; focused: boolean}) => (
+    <AppIcon
+      name={ICONS[route.name]}
+      color={color}
+      filled={focused && route.name === 'LikesTab'}
+    />
+  ),
+  tabBarActiveTintColor: COLORS.text,
+  tabBarInactiveTintColor: '#D6D1D1',
+  tabBarActiveBackgroundColor: '#4A4747',
+  tabBarStyle: {
+    position: 'absolute' as const,
+    left: 16,
+    right: 16,
+    bottom: 12,
+    backgroundColor: '#171616',
+    borderTopWidth: 1,
+    borderColor: '#3A3636',
+    borderRadius: 30,
+    height: 58,
+    paddingBottom: 4,
+    overflow: 'hidden' as const,
+  },
+  tabBarLabelStyle: {fontSize: 12, fontWeight: '600' as const},
+  tabBarItemStyle: {borderRadius: 28},
+  tabBarHideOnKeyboard: true,
+});
+
 const MainTabNavigator = () => {
   return (
-    <Tab.Navigator
-      screenOptions={{
-        headerShown: false,
-        tabBarActiveTintColor: '#FF6B6B',
-        tabBarInactiveTintColor: '#999',
-        tabBarStyle: {
-          backgroundColor: '#FFF',
-          borderTopWidth: 1,
-          borderTopColor: '#EEE',
-          paddingBottom: 5,
-          height: 60,
-        },
-        tabBarLabelStyle: {
-          fontSize: 12,
-          fontWeight: '600',
-        },
-      }}>
+    <Tab.Navigator screenOptions={tabScreenOptions}>
       <Tab.Screen
         name="HomeTab"
         component={HomeNavigator}
-        options={{tabBarLabel: 'Home'}}
+        options={{tabBarLabel: 'Swipe'}}
       />
       <Tab.Screen
         name="ExploreTab"

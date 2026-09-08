@@ -111,9 +111,9 @@ const styles = StyleSheet.create({
     width: 220,
     height: 220,
     borderRadius: 110,
-    backgroundColor: '#FFF0F0',
+    backgroundColor: '#D9D9D9',
     borderWidth: 4,
-    borderColor: '#FF6B6B',
+    borderColor: '#F2F2F2',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -130,7 +130,7 @@ const styles = StyleSheet.create({
   },
   pointerText: {
     fontSize: 26,
-    color: '#FF6B6B',
+    color: '#FFF',
   },
   legend: {
     marginTop: 24,
@@ -150,7 +150,7 @@ const styles = StyleSheet.create({
   legendText: {
     flex: 1,
     fontSize: 14,
-    color: '#444',
+    color: '#FFF',
   },
   legendMore: {
     fontSize: 13,

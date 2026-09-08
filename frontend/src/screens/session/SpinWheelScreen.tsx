@@ -14,9 +14,13 @@ import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import SpinWheel from '@/components/SpinWheel';
 import {useSessionDeck} from '@/hooks/useRestaurants';
 import {SessionStackParamList} from '@/navigation/types';
+import {COLORS} from '@/constants/theme';
 
 type RouteProps = RouteProp<SessionStackParamList, 'SpinWheel'>;
-type NavigationProp = NativeStackNavigationProp<SessionStackParamList, 'SpinWheel'>;
+type NavigationProp = NativeStackNavigationProp<
+  SessionStackParamList,
+  'SpinWheel'
+>;
 
 /** Time the result stays on screen before moving to the summary. */
 const RESULT_LINGER_MS = 3500;
@@ -35,7 +39,9 @@ const SpinWheelScreen = () => {
       return candidateIds.map((_, index) => `Option ${index + 1}`);
     }
     const byId = new Map(deck.restaurants.map(r => [r.id, r.name]));
-    return candidateIds.map((id, index) => byId.get(id) ?? `Option ${index + 1}`);
+    return candidateIds.map(
+      (id, index) => byId.get(id) ?? `Option ${index + 1}`,
+    );
   }, [candidateIds, deck]);
 
   const winnerIndex = useMemo(() => {
@@ -53,11 +59,11 @@ const SpinWheelScreen = () => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>🎡 Spinning</Text>
+      <Text style={styles.title}>Lucky draw</Text>
       <Text style={styles.subtitle}>
         {candidateIds.length > 1
-          ? `Breaking a tie between ${candidateIds.length} restaurants`
-          : 'Picking your restaurant'}
+          ? 'Your most likes has more than 1. The wheel will choose.'
+          : 'The wheel is choosing your restaurant.'}
       </Text>
 
       <View style={styles.wheelContainer}>
@@ -74,7 +80,7 @@ const SpinWheelScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFF',
+    backgroundColor: '#121111',
     alignItems: 'center',
     justifyContent: 'center',
     padding: 32,
@@ -82,11 +88,11 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 30,
     fontWeight: '700',
-    color: '#333',
+    color: COLORS.text,
   },
   subtitle: {
     fontSize: 15,
-    color: '#666',
+    color: COLORS.text,
     marginTop: 6,
     marginBottom: 32,
     textAlign: 'center',
@@ -99,7 +105,7 @@ const styles = StyleSheet.create({
     marginTop: 28,
     fontSize: 20,
     fontWeight: '700',
-    color: '#FF6B6B',
+    color: COLORS.text,
     textAlign: 'center',
   },
 });

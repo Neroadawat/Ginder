@@ -3,9 +3,18 @@
  */
 
 import React from 'react';
-import {View, Text, TouchableOpacity, StyleSheet, Modal} from 'react-native';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  Modal,
+  Image,
+} from 'react-native';
 
 import {RestaurantCard} from '@/types/restaurant';
+import {getPlaceholderImage} from '@/constants/placeholders';
+import AppIcon from './AppIcon';
 
 interface Props {
   restaurant: RestaurantCard;
@@ -14,25 +23,40 @@ interface Props {
 
 const MatchPopup = ({restaurant, onDismiss}: Props) => {
   return (
-    <Modal
-      transparent
-      animationType="fade"
-      visible
-      onRequestClose={onDismiss}>
+    <Modal transparent animationType="fade" visible onRequestClose={onDismiss}>
       <View style={styles.overlay}>
+        <TouchableOpacity style={styles.close} onPress={onDismiss}>
+          <AppIcon name="close" size={28} />
+        </TouchableOpacity>
         <View style={styles.content}>
-          <Text style={styles.emoji}>🎉</Text>
-          <Text style={styles.title}>It's a Match!</Text>
-          <Text style={styles.subtitle}>Everyone agreed on</Text>
-          <Text style={styles.restaurantName}>{restaurant.name}</Text>
-          <Text style={styles.category}>{restaurant.primary_category}</Text>
+          <Text style={styles.title}>It’s a</Text>
+          <View style={styles.photos}>
+            <Image
+              source={{
+                uri:
+                  restaurant.photo_url ||
+                  getPlaceholderImage(restaurant.primary_category),
+              }}
+              style={[styles.photo, styles.photoLeft]}
+            />
+            <Image
+              source={{
+                uri:
+                  restaurant.photo_url ||
+                  getPlaceholderImage(restaurant.primary_category),
+              }}
+              style={[styles.photo, styles.photoRight]}
+            />
+          </View>
+          <Text style={styles.match}>Match</Text>
+          <Text style={styles.subtitle}>You matched at {restaurant.name}</Text>
 
           <TouchableOpacity
             style={styles.button}
             onPress={onDismiss}
             accessibilityRole="button"
             accessibilityLabel="Continue to results">
-            <Text style={styles.buttonText}>See Results →</Text>
+            <Text style={styles.buttonText}>Click to see location</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -43,54 +67,71 @@ const MatchPopup = ({restaurant, onDismiss}: Props) => {
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    backgroundColor: '#790016',
     justifyContent: 'center',
     alignItems: 'center',
   },
   content: {
-    backgroundColor: '#FFF',
-    borderRadius: 24,
-    padding: 40,
+    flex: 1,
+    width: '100%',
+    paddingHorizontal: 24,
     alignItems: 'center',
-    width: '85%',
-  },
-  emoji: {
-    fontSize: 72,
-    marginBottom: 16,
+    justifyContent: 'center',
   },
   title: {
-    fontSize: 32,
+    fontSize: 64,
     fontWeight: '800',
-    color: '#FF6B6B',
-    marginBottom: 8,
+    color: '#FF1717',
+    marginBottom: 2,
   },
   subtitle: {
-    fontSize: 16,
-    color: '#666',
-    marginBottom: 4,
-  },
-  restaurantName: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#333',
+    fontSize: 13,
+    color: '#FFF',
     textAlign: 'center',
-    marginBottom: 4,
-  },
-  category: {
-    fontSize: 14,
-    color: '#999',
-    marginBottom: 28,
+    marginTop: 20,
+    marginBottom: 30,
   },
   button: {
-    backgroundColor: '#FF6B6B',
-    borderRadius: 14,
-    paddingVertical: 14,
-    paddingHorizontal: 36,
+    borderWidth: 1,
+    borderColor: '#FFF',
+    borderRadius: 20,
+    paddingVertical: 10,
+    paddingHorizontal: 30,
   },
   buttonText: {
     color: '#FFF',
-    fontSize: 18,
+    fontSize: 12,
     fontWeight: '700',
+  },
+  close: {
+    position: 'absolute',
+    top: 55,
+    left: 14,
+    zIndex: 2,
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    borderWidth: 1,
+    borderColor: '#FFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  photos: {width: 290, height: 245, marginTop: 2},
+  photo: {
+    position: 'absolute',
+    width: 170,
+    height: 220,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.35)',
+  },
+  photoLeft: {left: 12, top: 5, transform: [{rotate: '-14deg'}]},
+  photoRight: {right: 8, top: 20, transform: [{rotate: '12deg'}]},
+  match: {
+    fontSize: 62,
+    lineHeight: 70,
+    fontStyle: 'italic',
+    fontWeight: '900',
+    color: '#FF1717',
   },
 });
 

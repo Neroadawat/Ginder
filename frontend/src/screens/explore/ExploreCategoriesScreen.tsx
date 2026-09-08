@@ -17,8 +17,12 @@ import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import {useCategories} from '@/hooks/useRestaurants';
 import {getCategoryEmoji} from '@/constants/placeholders';
 import {ExploreStackParamList} from '@/navigation/types';
+import {COLORS} from '@/constants/theme';
 
-type NavigationProp = NativeStackNavigationProp<ExploreStackParamList, 'ExploreCategories'>;
+type NavigationProp = NativeStackNavigationProp<
+  ExploreStackParamList,
+  'ExploreCategories'
+>;
 
 const ExploreCategoriesScreen = () => {
   const navigation = useNavigation<NavigationProp>();
@@ -47,7 +51,9 @@ const ExploreCategoriesScreen = () => {
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>Explore</Text>
-        <Text style={styles.subtitle}>Browse by category</Text>
+        <Text style={styles.subtitle}>
+          Find restaurant in category that you want
+        </Text>
       </View>
 
       <FlatList
@@ -65,51 +71,48 @@ const ExploreCategoriesScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F5F5F5',
+    backgroundColor: COLORS.background,
   },
   header: {
-    paddingHorizontal: 20,
-    paddingTop: 60,
-    paddingBottom: 16,
-    backgroundColor: '#FFF',
+    paddingHorizontal: 8,
+    paddingTop: 58,
+    paddingBottom: 10,
   },
   title: {
     fontSize: 28,
     fontWeight: '700',
-    color: '#333',
+    color: COLORS.text,
   },
   subtitle: {
     fontSize: 14,
-    color: '#666',
+    color: '#E5E1E1',
     marginTop: 4,
   },
   list: {
-    padding: 12,
+    paddingHorizontal: 2,
+    paddingBottom: 92,
   },
   row: {
     justifyContent: 'space-between',
   },
   categoryCard: {
     flex: 1,
-    backgroundColor: '#FFF',
-    borderRadius: 16,
-    padding: 20,
-    margin: 6,
-    alignItems: 'center',
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: {width: 0, height: 1},
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    height: 226,
+    backgroundColor: COLORS.surfaceElevated,
+    borderRadius: 17,
+    padding: 14,
+    margin: 5,
+    justifyContent: 'space-between',
   },
   categoryEmoji: {
-    fontSize: 40,
-    marginBottom: 8,
+    fontSize: 78,
+    textAlign: 'center',
+    marginTop: 54,
   },
   categoryName: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#333',
+    color: COLORS.text,
   },
   centered: {
     flex: 1,

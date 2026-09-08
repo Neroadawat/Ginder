@@ -1,3 +1,5 @@
+import type {NavigatorScreenParams} from '@react-navigation/native';
+
 /**
  * Navigation type definitions for all navigators.
  */
@@ -7,7 +9,7 @@ export type RootStackParamList = {
   Auth: undefined;
   PermissionGate: undefined;
   Main: undefined;
-  Session: {sessionId?: string; inviteCode?: string};
+  Session: NavigatorScreenParams<SessionStackParamList>;
 };
 
 export type AuthStackParamList = {
@@ -38,6 +40,7 @@ export type ExploreStackParamList = {
 
 export type SessionStackParamList = {
   CreateSession: undefined;
+  JoinSession: {code: string};
   Lobby: {sessionId: string};
   SessionSwipe: {sessionId: string};
   SessionResult: {sessionId: string};
@@ -56,4 +59,5 @@ export type ProfileStackParamList = {
   Settings: undefined;
   FriendList: undefined;
   Notifications: undefined;
+  History: undefined;
 };

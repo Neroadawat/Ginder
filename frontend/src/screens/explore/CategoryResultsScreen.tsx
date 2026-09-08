@@ -3,13 +3,21 @@
  */
 
 import React from 'react';
-import {View, Text, TouchableOpacity, StyleSheet, FlatList, ActivityIndicator} from 'react-native';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  FlatList,
+  ActivityIndicator,
+} from 'react-native';
 import {useRoute, useNavigation, RouteProp} from '@react-navigation/native';
 
 import RestaurantListItem from '@/components/RestaurantListItem';
 import {useSoloDeck} from '@/hooks/useRestaurants';
 import {useFilterStore} from '@/stores/filterStore';
 import {ExploreStackParamList} from '@/navigation/types';
+import {COLORS} from '@/constants/theme';
 
 type RouteProps = RouteProp<ExploreStackParamList, 'CategoryResults'>;
 
@@ -39,9 +47,7 @@ const CategoryResultsScreen = () => {
           <Text style={styles.backText}>← Back</Text>
         </TouchableOpacity>
         <Text style={styles.title}>{route.params.category}</Text>
-        <Text style={styles.count}>
-          {deck?.total ?? 0} restaurants
-        </Text>
+        <Text style={styles.count}>{deck?.total ?? 0} restaurants</Text>
       </View>
 
       {isLoading ? (
@@ -56,7 +62,9 @@ const CategoryResultsScreen = () => {
           contentContainerStyle={styles.list}
           ListEmptyComponent={
             <View style={styles.empty}>
-              <Text style={styles.emptyText}>No restaurants found in this category</Text>
+              <Text style={styles.emptyText}>
+                No restaurants found in this category
+              </Text>
             </View>
           }
         />
@@ -68,31 +76,32 @@ const CategoryResultsScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F5F5F5',
+    backgroundColor: COLORS.background,
   },
   header: {
     paddingHorizontal: 20,
     paddingTop: 60,
     paddingBottom: 16,
-    backgroundColor: '#FFF',
+    backgroundColor: COLORS.background,
   },
   backText: {
     fontSize: 16,
-    color: '#FF6B6B',
+    color: COLORS.text,
     marginBottom: 8,
   },
   title: {
     fontSize: 24,
     fontWeight: '700',
-    color: '#333',
+    color: COLORS.text,
   },
   count: {
     fontSize: 14,
-    color: '#666',
+    color: COLORS.textMuted,
     marginTop: 4,
   },
   list: {
     padding: 16,
+    paddingBottom: 92,
   },
   centered: {
     flex: 1,
@@ -105,7 +114,7 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 16,
-    color: '#999',
+    color: COLORS.textMuted,
   },
 });
 

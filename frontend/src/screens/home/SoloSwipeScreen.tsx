@@ -3,7 +3,13 @@
  */
 
 import React, {useCallback} from 'react';
-import {View, Text, TouchableOpacity, StyleSheet, ActivityIndicator} from 'react-native';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  ActivityIndicator,
+} from 'react-native';
 import {useNavigation} from '@react-navigation/native';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 
@@ -13,8 +19,13 @@ import {useSoloLike} from '@/hooks/useVotes';
 import {useFilterStore} from '@/stores/filterStore';
 import {HomeStackParamList} from '@/navigation/types';
 import {RestaurantCard} from '@/types/restaurant';
+import AppIcon from '@/components/AppIcon';
+import {COLORS} from '@/constants/theme';
 
-type NavigationProp = NativeStackNavigationProp<HomeStackParamList, 'SoloSwipe'>;
+type NavigationProp = NativeStackNavigationProp<
+  HomeStackParamList,
+  'SoloSwipe'
+>;
 
 const SoloSwipeScreen = () => {
   const navigation = useNavigation<NavigationProp>();
@@ -55,15 +66,20 @@ const SoloSwipeScreen = () => {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>🍽️ Ginder</Text>
+      <View style={styles.topControls}>
         <TouchableOpacity
           onPress={() => navigation.navigate('FilterSettings')}
-          style={styles.filterButton}
+          style={styles.circleButton}
           accessibilityRole="button"
           accessibilityLabel="Open filter settings">
-          <Text style={styles.filterIcon}>⚙️</Text>
+          <AppIcon name="filter" />
         </TouchableOpacity>
+        <View style={styles.modePill}>
+          <Text style={styles.modeText}>Solo</Text>
+        </View>
+        <View style={styles.deckPill}>
+          <Text style={styles.deckText}>{deck?.total ?? 0} places</Text>
+        </View>
       </View>
 
       <View style={styles.cardContainer}>
@@ -96,27 +112,45 @@ const SoloSwipeScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F5F5F5',
+    backgroundColor: COLORS.background,
   },
-  header: {
+  topControls: {
+    position: 'absolute',
+    top: 42,
+    left: 14,
+    right: 14,
+    zIndex: 30,
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingTop: 60,
-    paddingBottom: 16,
-    backgroundColor: '#FFF',
+    gap: 8,
   },
+  circleButton: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: 'rgba(5,5,5,0.82)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modePill: {
+    backgroundColor: '#101010',
+    borderRadius: 18,
+    paddingHorizontal: 15,
+    paddingVertical: 9,
+  },
+  modeText: {color: '#FFF', fontSize: 13, fontWeight: '700'},
+  deckPill: {
+    marginLeft: 'auto',
+    backgroundColor: 'rgba(5,5,5,0.72)',
+    borderRadius: 18,
+    paddingHorizontal: 13,
+    paddingVertical: 8,
+  },
+  deckText: {color: '#DDD', fontSize: 12, fontWeight: '600'},
   title: {
     fontSize: 24,
     fontWeight: '700',
-    color: '#FF6B6B',
-  },
-  filterButton: {
-    padding: 8,
-  },
-  filterIcon: {
-    fontSize: 24,
+    color: COLORS.text,
   },
   cardContainer: {
     flex: 1,
@@ -127,12 +161,12 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#F5F5F5',
+    backgroundColor: COLORS.background,
   },
   loadingText: {
     marginTop: 12,
     fontSize: 16,
-    color: '#666',
+    color: COLORS.textMuted,
   },
   emptyState: {
     alignItems: 'center',
@@ -145,17 +179,17 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 20,
     fontWeight: '600',
-    color: '#333',
+    color: COLORS.text,
     marginBottom: 8,
   },
   emptySubtitle: {
     fontSize: 14,
-    color: '#666',
+    color: COLORS.textMuted,
     textAlign: 'center',
     marginBottom: 24,
   },
   retryButton: {
-    backgroundColor: '#FF6B6B',
+    backgroundColor: COLORS.accent,
     borderRadius: 12,
     paddingVertical: 12,
     paddingHorizontal: 32,

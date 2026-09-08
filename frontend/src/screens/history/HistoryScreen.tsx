@@ -15,6 +15,7 @@ import {
 
 import {useHistory} from '@/hooks/useHistory';
 import {RESOLUTION_LABELS_SHORT} from '@/constants/resolution';
+import {COLORS} from '@/constants/theme';
 
 const HistoryScreen = () => {
   const {data, isLoading} = useHistory();
@@ -28,7 +29,7 @@ const HistoryScreen = () => {
   if (isLoading) {
     return (
       <View style={styles.centered}>
-        <ActivityIndicator size="large" color="#FF6B6B" />
+        <ActivityIndicator size="large" color={COLORS.accent} />
       </View>
     );
   }
@@ -36,8 +37,8 @@ const HistoryScreen = () => {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>📋 History</Text>
-        <Text style={styles.subtitle}>{data?.total ?? 0} past sessions</Text>
+        <Text style={styles.title}>History</Text>
+        <Text style={styles.subtitle}>Restaurants from your past matches</Text>
       </View>
 
       <FlatList
@@ -49,7 +50,8 @@ const HistoryScreen = () => {
                 {item.restaurant_name}
               </Text>
               <Text style={styles.resolution}>
-                {RESOLUTION_LABELS_SHORT[item.resolution_type] ?? item.resolution_type}
+                {RESOLUTION_LABELS_SHORT[item.resolution_type] ??
+                  item.resolution_type}
               </Text>
             </View>
             <Text style={styles.date}>
@@ -70,8 +72,10 @@ const HistoryScreen = () => {
         contentContainerStyle={styles.list}
         ListEmptyComponent={
           <View style={styles.empty}>
-            <Text style={styles.emptyEmoji}>📭</Text>
             <Text style={styles.emptyText}>No history yet</Text>
+            <Text style={styles.emptyHint}>
+              Your matched restaurants will appear here.
+            </Text>
           </View>
         }
       />
@@ -82,37 +86,36 @@ const HistoryScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F5F5F5',
+    backgroundColor: COLORS.background,
   },
   header: {
     paddingHorizontal: 20,
-    paddingTop: 60,
-    paddingBottom: 16,
-    backgroundColor: '#FFF',
+    paddingTop: 64,
+    paddingBottom: 14,
+    backgroundColor: COLORS.background,
   },
   title: {
     fontSize: 24,
     fontWeight: '700',
-    color: '#333',
+    color: COLORS.text,
   },
   subtitle: {
     fontSize: 14,
-    color: '#666',
-    marginTop: 4,
+    color: COLORS.textMuted,
+    marginTop: 8,
   },
   list: {
-    padding: 16,
+    paddingHorizontal: 12,
+    paddingTop: 8,
+    paddingBottom: 90,
   },
   card: {
-    backgroundColor: '#FFF',
-    borderRadius: 16,
+    backgroundColor: COLORS.surface,
+    borderRadius: 18,
     padding: 16,
     marginBottom: 12,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: {width: 0, height: 1},
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    borderWidth: 1,
+    borderColor: COLORS.border,
   },
   cardHeader: {
     flexDirection: 'row',
@@ -122,22 +125,22 @@ const styles = StyleSheet.create({
   restaurantName: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#333',
+    color: COLORS.text,
     flex: 1,
   },
   resolution: {
     fontSize: 12,
-    color: '#FF6B6B',
+    color: COLORS.accent,
     fontWeight: '500',
   },
   date: {
     fontSize: 12,
-    color: '#999',
+    color: COLORS.textMuted,
     marginTop: 4,
   },
   mapsButton: {
     marginTop: 12,
-    backgroundColor: '#F0F0F0',
+    backgroundColor: COLORS.surfaceElevated,
     borderRadius: 8,
     padding: 10,
     alignItems: 'center',
@@ -145,7 +148,7 @@ const styles = StyleSheet.create({
   mapsText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#333',
+    color: COLORS.text,
   },
   centered: {
     flex: 1,
@@ -156,13 +159,16 @@ const styles = StyleSheet.create({
     padding: 40,
     alignItems: 'center',
   },
-  emptyEmoji: {
-    fontSize: 48,
-    marginBottom: 12,
-  },
   emptyText: {
-    fontSize: 16,
-    color: '#999',
+    fontSize: 20,
+    fontWeight: '700',
+    color: COLORS.text,
+  },
+  emptyHint: {
+    marginTop: 10,
+    fontSize: 14,
+    color: COLORS.textMuted,
+    textAlign: 'center',
   },
 });
 

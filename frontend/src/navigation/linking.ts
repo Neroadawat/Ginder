@@ -12,9 +12,12 @@ export const linking: LinkingOptions<RootStackParamList> = {
   config: {
     screens: {
       Session: {
-        path: 'session/join',
-        parse: {
-          inviteCode: (code: string) => code,
+        path: 'session',
+        screens: {
+          JoinSession: {
+            path: 'join',
+            parse: {code: (code: string) => code},
+          },
         },
       },
       Main: {

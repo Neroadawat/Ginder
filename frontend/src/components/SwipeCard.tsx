@@ -4,11 +4,14 @@
  */
 
 import React, {useCallback, useState} from 'react';
-import {View, Text, Image, StyleSheet, Dimensions} from 'react-native';
 import {
-  GestureDetector,
-  Gesture,
-} from 'react-native-gesture-handler';
+  View,
+  Text,
+  StyleSheet,
+  Dimensions,
+  TouchableOpacity,
+} from 'react-native';
+import {GestureDetector, Gesture} from 'react-native-gesture-handler';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -20,6 +23,7 @@ import Animated, {
 
 import {RestaurantCard as RestaurantCardType} from '@/types/restaurant';
 import RestaurantCardContent from './RestaurantCardContent';
+import AppIcon from './AppIcon';
 
 const {width: SCREEN_WIDTH} = Dimensions.get('window');
 const SWIPE_THRESHOLD = SCREEN_WIDTH * 0.3;
@@ -78,10 +82,7 @@ const SwipeCard = ({restaurants, onSwipe, onDeckEmpty}: SwipeCardProps) => {
       Extrapolation.CLAMP,
     );
     return {
-      transform: [
-        {translateX: translateX.value},
-        {rotate: `${rotate}deg`},
-      ],
+      transform: [{translateX: translateX.value}, {rotate: `${rotate}deg`}],
     };
   });
 
@@ -114,20 +115,37 @@ const SwipeCard = ({restaurants, onSwipe, onDeckEmpty}: SwipeCardProps) => {
       <GestureDetector gesture={gesture}>
         <Animated.View style={[styles.card, animatedStyle]}>
           {/* Like / Skip overlays */}
-          <Animated.View style={[styles.overlay, styles.likeOverlay, likeOpacity]}>
+          <Animated.View
+            style={[styles.overlay, styles.likeOverlay, likeOpacity]}>
             <Text style={styles.overlayText}>LIKE ❤️</Text>
           </Animated.View>
-          <Animated.View style={[styles.overlay, styles.skipOverlay, skipOpacity]}>
+          <Animated.View
+            style={[styles.overlay, styles.skipOverlay, skipOpacity]}>
             <Text style={styles.overlayText}>SKIP ✕</Text>
           </Animated.View>
 
           <RestaurantCardContent restaurant={currentRestaurant} />
         </Animated.View>
       </GestureDetector>
-
-      <Text style={styles.counter}>
-        {currentIndex + 1} / {restaurants.length}
-      </Text>
+      <View style={styles.actions}>
+        <TouchableOpacity
+          style={[styles.actionButton, styles.skipButton]}
+          onPress={() => handleSwipeComplete(false)}
+          accessibilityLabel="Skip restaurant">
+          <AppIcon name="close" size={34} />
+        </TouchableOpacity>
+        <View style={styles.counterPill}>
+          <Text style={styles.counter}>
+            {currentIndex + 1} of {restaurants.length}
+          </Text>
+        </View>
+        <TouchableOpacity
+          style={[styles.actionButton, styles.likeButton]}
+          onPress={() => handleSwipeComplete(true)}
+          accessibilityLabel="Like restaurant">
+          <AppIcon name="heart" size={28} color="#FFF" filled />
+        </TouchableOpacity>
+      </View>
     </View>
   );
 };
@@ -135,20 +153,13 @@ const SwipeCard = ({restaurants, onSwipe, onDeckEmpty}: SwipeCardProps) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
     width: '100%',
+    backgroundColor: '#050505',
   },
   card: {
-    width: SCREEN_WIDTH * 0.9,
-    height: SCREEN_WIDTH * 1.2,
-    backgroundColor: '#FFF',
-    borderRadius: 20,
-    elevation: 5,
-    shadowColor: '#000',
-    shadowOffset: {width: 0, height: 2},
-    shadowOpacity: 0.15,
-    shadowRadius: 10,
+    flex: 1,
+    width: '100%',
+    backgroundColor: '#111',
     overflow: 'hidden',
   },
   overlay: {
@@ -176,9 +187,38 @@ const styles = StyleSheet.create({
     color: '#333',
   },
   counter: {
-    marginTop: 16,
-    fontSize: 14,
-    color: '#999',
+    fontSize: 12,
+    color: '#D8D2D2',
+  },
+  actions: {
+    position: 'absolute',
+    left: 16,
+    right: 16,
+    bottom: 78,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    zIndex: 20,
+  },
+  actionButton: {
+    width: 58,
+    height: 58,
+    borderRadius: 29,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#353131',
+    elevation: 5,
+  },
+  skipButton: {backgroundColor: '#090909'},
+  likeButton: {backgroundColor: '#E52B2F'},
+  counterPill: {
+    backgroundColor: 'rgba(5,5,5,0.78)',
+    borderWidth: 1,
+    borderColor: '#3A3636',
+    borderRadius: 22,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
   },
 });
 
