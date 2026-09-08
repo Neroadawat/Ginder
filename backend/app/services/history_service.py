@@ -30,7 +30,7 @@ class HistoryService:
             MatchHistoryEntry(
                 session_id=match.session_id,
                 restaurant_name=match.restaurant_name,
-                restaurant_image_url=restaurant.image_url if restaurant else None,
+                photo_url=restaurant.photo_url if restaurant else None,
                 resolution_type=match.resolution_type.value,
                 google_maps_url=restaurant.google_maps_url if restaurant else None,
                 created_at=match.created_at,

@@ -1,31 +1,39 @@
-"""Vote schemas."""
+"""Vote schemas — swipes and the Likes tab."""
 
 import uuid
 
 from pydantic import BaseModel
 
+from app.schemas.restaurant import RestaurantCardResponse
+
 
 class SwipeRequest(BaseModel):
     restaurant_id: uuid.UUID
-    liked: bool  # True = Like (swipe right), False = Skip (swipe left)
+    # True = swiped right (Like), False = swiped left (Skip).
+    liked: bool
 
 
 class SwipeResponse(BaseModel):
     success: bool
+
+    # Set when this swipe completed a unanimous match, which ends the session
+    # immediately (requirement 8.10).
     unanimous_match: bool = False
     matched_restaurant_id: uuid.UUID | None = None
 
 
 class LikeEntry(BaseModel):
+    """One participant's like, for the in-session Likes tab."""
+
     user_id: uuid.UUID
     display_name: str
-    restaurant_id: uuid.UUID
-    restaurant_name: str
+
+    # The full card so the row can show detail and open navigation
+    # (requirement 11.3).
+    restaurant: RestaurantCardResponse
 
 
 class SessionLikesResponse(BaseModel):
-    """Real-time likes from all participants in a session."""
-
     session_id: uuid.UUID
     likes: list[LikeEntry]
 
@@ -35,8 +43,7 @@ class SoloLikeRequest(BaseModel):
 
 
 class SoloLikeResponse(BaseModel):
-    id: uuid.UUID
-    restaurant_id: uuid.UUID
-    restaurant_name: str
+    """A restaurant saved from solo mode."""
 
-    model_config = {"from_attributes": True}
+    id: uuid.UUID
+    restaurant: RestaurantCardResponse

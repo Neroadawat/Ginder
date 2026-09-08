@@ -13,12 +13,12 @@ import {
   Platform,
   ScrollView,
   ActivityIndicator,
-  Switch,
 } from 'react-native';
 import {useNavigation} from '@react-navigation/native';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 
 import {useSignUp} from '@/hooks/useAuth';
+import {useConsentStore} from '@/stores/consentStore';
 import {AuthStackParamList} from '@/navigation/types';
 
 type NavigationProp = NativeStackNavigationProp<AuthStackParamList, 'SignUp'>;
@@ -30,14 +30,18 @@ const SignUpScreen = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [displayName, setDisplayName] = useState('');
-  const [acceptedTerms, setAcceptedTerms] = useState(false);
+
+  // Terms were accepted on the consent screen, which gates this screen. The
+  // flag is forwarded so the server has a record tied to the account
+  // (requirement 2.4) rather than asking the same question twice.
+  const hasConsented = useConsentStore(state => state.hasConsented);
 
   const handleSignUp = () => {
     signUpMutation.mutate({
       email,
       password,
       display_name: displayName,
-      accepted_terms: acceptedTerms,
+      accepted_terms: hasConsented,
     });
   };
 
@@ -83,19 +87,6 @@ const SignUpScreen = () => {
             accessibilityLabel="Password input"
           />
 
-          <View style={styles.termsRow}>
-            <Switch
-              value={acceptedTerms}
-              onValueChange={setAcceptedTerms}
-              trackColor={{false: '#DDD', true: '#FF6B6B'}}
-              thumbColor="#FFF"
-              accessibilityLabel="Accept terms and conditions"
-            />
-            <Text style={styles.termsText}>
-              I agree to the Terms of Service and Privacy Policy
-            </Text>
-          </View>
-
           {signUpMutation.isError && (
             <Text style={styles.errorText}>
               {signUpMutation.error?.message || 'Sign up failed'}
@@ -103,9 +94,9 @@ const SignUpScreen = () => {
           )}
 
           <TouchableOpacity
-            style={[styles.button, !acceptedTerms && styles.buttonDisabled]}
+            style={styles.button}
             onPress={handleSignUp}
-            disabled={!acceptedTerms || signUpMutation.isPending}
+            disabled={signUpMutation.isPending}
             accessibilityRole="button"
             accessibilityLabel="Sign up">
             {signUpMutation.isPending ? (
@@ -165,25 +156,12 @@ const styles = StyleSheet.create({
     color: '#333',
     backgroundColor: '#F9F9F9',
   },
-  termsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  termsText: {
-    flex: 1,
-    fontSize: 14,
-    color: '#666',
-  },
   button: {
     backgroundColor: '#FF6B6B',
     borderRadius: 12,
     padding: 16,
     alignItems: 'center',
     marginTop: 8,
-  },
-  buttonDisabled: {
-    backgroundColor: '#CCC',
   },
   buttonText: {
     color: '#FFF',

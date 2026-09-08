@@ -3,6 +3,7 @@
  */
 
 export type RootStackParamList = {
+  Consent: undefined;
   Auth: undefined;
   PermissionGate: undefined;
   Main: undefined;
@@ -40,7 +41,14 @@ export type SessionStackParamList = {
   Lobby: {sessionId: string};
   SessionSwipe: {sessionId: string};
   SessionResult: {sessionId: string};
-  SpinWheel: {sessionId: string};
+  SpinWheel: {
+    sessionId: string;
+    /** Restaurants that went on the wheel, in a stable order. */
+    candidateIds: string[];
+    /** Winner chosen by the server, so every client lands on the same slice. */
+    winnerId: string;
+    winnerName: string;
+  };
 };
 
 export type ProfileStackParamList = {

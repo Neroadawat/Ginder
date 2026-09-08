@@ -12,6 +12,31 @@ import {PermissionStatus, useLocationStore} from '@/stores/locationStore';
 import {useFilterStore} from '@/stores/filterStore';
 
 /**
+ * Check whether location access has already been granted, without prompting.
+ *
+ * Used at startup: showing a bare system dialog before the user has seen any
+ * explanation is poor practice, so the prompt is deferred to the gate screen
+ * (requirement 3.3).
+ */
+export async function checkLocationPermission(): Promise<PermissionStatus> {
+  const {setPermissionStatus} = useLocationStore.getState();
+
+  if (Platform.OS !== 'android') {
+    // iOS is out of scope for this phase.
+    setPermissionStatus('blocked');
+    return 'blocked';
+  }
+
+  const granted = await PermissionsAndroid.check(
+    PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
+  );
+
+  const status: PermissionStatus = granted ? 'granted' : 'unknown';
+  setPermissionStatus(status);
+  return status;
+}
+
+/**
  * Ask for foreground location permission and record the outcome.
  *
  * Distinguishes "denied" (can ask again) from "blocked" (user selected
@@ -21,7 +46,6 @@ export async function requestLocationPermission(): Promise<PermissionStatus> {
   const {setPermissionStatus} = useLocationStore.getState();
 
   if (Platform.OS !== 'android') {
-    // iOS is out of scope for this phase (see requirement header).
     setPermissionStatus('blocked');
     return 'blocked';
   }

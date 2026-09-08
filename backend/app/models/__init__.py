@@ -5,6 +5,7 @@ from app.models.match_result import MatchResult
 from app.models.notification import Notification
 from app.models.restaurant import Restaurant
 from app.models.session import Session, SessionParticipant
+from app.models.session_deck import SessionDeck
 from app.models.user import User
 from app.models.vote import Vote
 
@@ -13,6 +14,7 @@ __all__ = [
     "Friendship",
     "Session",
     "SessionParticipant",
+    "SessionDeck",
     "Restaurant",
     "Vote",
     "MatchResult",

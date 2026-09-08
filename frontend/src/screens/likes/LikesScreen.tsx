@@ -1,58 +1,46 @@
 /**
- * Likes Screen — Shows solo likes or session real-time likes depending on context.
+ * Likes Screen — context-aware (requirement 11).
  *
- * - Not in session → solo mode personal likes history
- * - In active session → real-time likes from all participants
+ * In an active session it shows everyone's likes in real time; otherwise it
+ * shows the user's own solo-mode likes. Either way, tapping a row opens
+ * navigation to that restaurant (requirement 11.3).
  */
 
 import React from 'react';
-import {View, Text, StyleSheet, FlatList, ActivityIndicator} from 'react-native';
+import {ActivityIndicator, FlatList, StyleSheet, Text, View} from 'react-native';
 
 import RestaurantListItem from '@/components/RestaurantListItem';
+import {useSessionLikes, useSoloLikes} from '@/hooks/useVotes';
 import {useSessionStore} from '@/stores/sessionStore';
-import {useSoloLikes, useSessionLikes} from '@/hooks/useVotes';
 
 const LikesScreen = () => {
   const activeSessionId = useSessionStore(state => state.activeSessionId);
 
-  if (activeSessionId) {
-    return <SessionLikesView sessionId={activeSessionId} />;
-  }
-  return <SoloLikesView />;
+  return activeSessionId ? (
+    <SessionLikesView sessionId={activeSessionId} />
+  ) : (
+    <SoloLikesView />
+  );
 };
 
 const SoloLikesView = () => {
   const {data: likes, isLoading} = useSoloLikes();
 
   if (isLoading) {
-    return (
-      <View style={styles.centered}>
-        <ActivityIndicator size="large" color="#FF6B6B" />
-      </View>
-    );
+    return <Loading />;
   }
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>❤️ Likes</Text>
-        <Text style={styles.subtitle}>Your liked restaurants</Text>
-      </View>
+      <Header title="❤️ Likes" subtitle="Restaurants you saved" />
 
       <FlatList
-        data={likes}
-        renderItem={({item}) => (
-          <View style={styles.likeItem}>
-            <Text style={styles.likeName}>{item.restaurant_name}</Text>
-          </View>
-        )}
+        data={likes ?? []}
+        renderItem={({item}) => <RestaurantListItem restaurant={item.restaurant} />}
         keyExtractor={item => item.id}
         contentContainerStyle={styles.list}
         ListEmptyComponent={
-          <View style={styles.empty}>
-            <Text style={styles.emptyEmoji}>💭</Text>
-            <Text style={styles.emptyText}>No likes yet. Start swiping!</Text>
-          </View>
+          <Empty emoji="💭" text="No likes yet. Start swiping!" />
         }
       />
     </View>
@@ -60,43 +48,55 @@ const SoloLikesView = () => {
 };
 
 const SessionLikesView = ({sessionId}: {sessionId: string}) => {
-  const {data: likesData, isLoading} = useSessionLikes(sessionId);
+  const {data, isLoading} = useSessionLikes(sessionId);
 
   if (isLoading) {
-    return (
-      <View style={styles.centered}>
-        <ActivityIndicator size="large" color="#FF6B6B" />
-      </View>
-    );
+    return <Loading />;
   }
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>❤️ Session Likes</Text>
-        <Text style={styles.subtitle}>Real-time likes from your group</Text>
-      </View>
+      <Header title="❤️ Session Likes" subtitle="What your group is liking" />
 
       <FlatList
-        data={likesData?.likes ?? []}
+        data={data?.likes ?? []}
         renderItem={({item}) => (
-          <View style={styles.likeItem}>
-            <Text style={styles.likeUser}>{item.display_name}</Text>
-            <Text style={styles.likeArrow}> liked </Text>
-            <Text style={styles.likeName}>{item.restaurant_name}</Text>
+          <View style={styles.entry}>
+            <Text style={styles.byline}>
+              <Text style={styles.bylineName}>{item.display_name}</Text> liked
+            </Text>
+            <RestaurantListItem restaurant={item.restaurant} />
           </View>
         )}
-        keyExtractor={(item, index) => `${item.user_id}-${item.restaurant_id}-${index}`}
-        contentContainerStyle={styles.list}
-        ListEmptyComponent={
-          <View style={styles.empty}>
-            <Text style={styles.emptyText}>No likes yet from the group</Text>
-          </View>
+        keyExtractor={(item, index) =>
+          `${item.user_id}-${item.restaurant.id}-${index}`
         }
+        contentContainerStyle={styles.list}
+        ListEmptyComponent={<Empty emoji="🤔" text="No likes from the group yet" />}
       />
     </View>
   );
 };
+
+const Header = ({title, subtitle}: {title: string; subtitle: string}) => (
+  <View style={styles.header}>
+    <Text style={styles.title}>{title}</Text>
+    <Text style={styles.subtitle}>{subtitle}</Text>
+  </View>
+);
+
+const Loading = () => (
+  <View style={styles.centered}>
+    <ActivityIndicator size="large" color="#FF6B6B" accessibilityLabel="Loading likes" />
+  </View>
+);
+
+const Empty = ({emoji, text}: {emoji: string; text: string}) => (
+  <View style={styles.empty}>
+    <Text style={styles.emptyEmoji}>{emoji}</Text>
+    <Text style={styles.emptyText}>{text}</Text>
+  </View>
+);
 
 const styles = StyleSheet.create({
   container: {
@@ -122,33 +122,24 @@ const styles = StyleSheet.create({
   list: {
     padding: 16,
   },
-  likeItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFF',
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 8,
+  entry: {
+    marginBottom: 4,
   },
-  likeUser: {
-    fontSize: 14,
+  byline: {
+    fontSize: 13,
+    color: '#999',
+    marginBottom: 6,
+    marginLeft: 4,
+  },
+  bylineName: {
     fontWeight: '600',
     color: '#FF6B6B',
-  },
-  likeArrow: {
-    fontSize: 14,
-    color: '#999',
-  },
-  likeName: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#333',
-    flex: 1,
   },
   centered: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: '#F5F5F5',
   },
   empty: {
     padding: 40,

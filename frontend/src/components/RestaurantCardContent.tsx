@@ -1,35 +1,23 @@
 /**
- * RestaurantCardContent — Content displayed inside a swipe card.
- * Shows: image, name, category, distance, price, rating.
+ * RestaurantCardContent — what a swipe card shows.
+ *
+ * Requirement 8.5 fixes the field list: one photo, name, category, distance,
+ * price range and rating. Nothing else, to keep the card readable at a glance.
  */
 
 import React from 'react';
-import {View, Text, Image, StyleSheet} from 'react-native';
+import {Image, StyleSheet, Text, View} from 'react-native';
 
 import {RestaurantCard} from '@/types/restaurant';
-
-const PLACEHOLDER_IMAGES: Record<string, string> = {
-  Thai: 'https://via.placeholder.com/400x300/FF6B6B/FFF?text=Thai',
-  Japanese: 'https://via.placeholder.com/400x300/FF6B6B/FFF?text=Japanese',
-  Korean: 'https://via.placeholder.com/400x300/FF6B6B/FFF?text=Korean',
-  'Fast Food': 'https://via.placeholder.com/400x300/FF6B6B/FFF?text=Fast+Food',
-  Cafe: 'https://via.placeholder.com/400x300/FF6B6B/FFF?text=Cafe',
-  Dessert: 'https://via.placeholder.com/400x300/FF6B6B/FFF?text=Dessert',
-};
-
-const PRICE_LABELS: Record<number, string> = {
-  1: '฿',
-  2: '฿฿',
-  3: '฿฿฿',
-};
+import {getPlaceholderImage} from '@/constants/placeholders';
 
 interface Props {
   restaurant: RestaurantCard;
 }
 
 const RestaurantCardContent = ({restaurant}: Props) => {
-  const imageUri =
-    restaurant.image_url || PLACEHOLDER_IMAGES[restaurant.category] || PLACEHOLDER_IMAGES['Cafe'];
+  // Requirement 8.7: fall back to a category-specific placeholder.
+  const imageUri = restaurant.photo_url || getPlaceholderImage(restaurant.primary_category);
 
   return (
     <View style={styles.container}>
@@ -46,20 +34,22 @@ const RestaurantCardContent = ({restaurant}: Props) => {
         </Text>
 
         <View style={styles.metaRow}>
-          <Text style={styles.category}>{restaurant.category}</Text>
+          <Text style={styles.category}>{restaurant.primary_category}</Text>
           {restaurant.distance_km != null && (
             <Text style={styles.distance}>📍 {restaurant.distance_km} km</Text>
           )}
         </View>
 
         <View style={styles.metaRow}>
-          {restaurant.price_level != null && (
+          {/* Rendered from the server-provided symbol so the 0-4 to ฿ mapping
+              lives in exactly one place. */}
+          {restaurant.price_symbol && (
             <View style={styles.badge}>
-              <Text style={styles.badgeText}>
-                {PRICE_LABELS[restaurant.price_level] || '฿'}
-              </Text>
+              <Text style={styles.badgeText}>{restaurant.price_symbol}</Text>
             </View>
           )}
+
+          {/* Requirement 8.6: hide the rating entirely when unknown. */}
           {restaurant.rating != null && (
             <View style={styles.badge}>
               <Text style={styles.badgeText}>⭐ {restaurant.rating.toFixed(1)}</Text>

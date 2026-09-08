@@ -18,8 +18,17 @@ type NavigationProp = NativeStackNavigationProp<HomeStackParamList, 'SoloSwipe'>
 
 const SoloSwipeScreen = () => {
   const navigation = useNavigation<NavigationProp>();
-  const filters = useFilterStore();
-  const {data: deck, isLoading, refetch} = useSoloDeck(filters);
+  const category = useFilterStore(state => state.category);
+  const priceLevel = useFilterStore(state => state.priceLevel);
+  const minRating = useFilterStore(state => state.minRating);
+  const radiusKm = useFilterStore(state => state.radiusKm);
+  const openNow = useFilterStore(state => state.openNow);
+
+  const {
+    data: deck,
+    isLoading,
+    refetch,
+  } = useSoloDeck({category, priceLevel, minRating, radiusKm, openNow});
   const soloLikeMutation = useSoloLike();
 
   const handleSwipe = useCallback(

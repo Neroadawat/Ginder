@@ -1,6 +1,8 @@
 """Notification business logic — create, list, FCM push."""
 
+import asyncio
 import json
+import logging
 from uuid import UUID
 
 from sqlalchemy import select
@@ -12,6 +14,8 @@ from app.models.session import Session
 from app.models.user import User
 from app.schemas.auth import MessageResponse
 from app.schemas.notification import NotificationListResponse, NotificationResponse
+
+logger = logging.getLogger(__name__)
 
 
 class NotificationService:
@@ -82,16 +86,23 @@ class NotificationService:
             await self._send_fcm_push(to_user.fcm_token, notification)
 
     async def _send_fcm_push(self, fcm_token: str, notification: Notification) -> None:
-        """Send a push notification via Firebase Cloud Messaging."""
-        # TODO: Implement FCM push using firebase-admin SDK
-        # from firebase_admin import messaging
-        # message = messaging.Message(
-        #     notification=messaging.Notification(
-        #         title=notification.title,
-        #         body=notification.body,
-        #     ),
-        #     data={"payload": notification.data or ""},
-        #     token=fcm_token,
-        # )
-        # messaging.send(message)
-        pass
+        """Send a push notification via Firebase Cloud Messaging.
+
+        The in-app `Notification` row is already saved by the time this runs,
+        so a push failure (missing credentials, invalid token, FCM outage)
+        must not fail the request or roll back that row — the user still sees
+        the invite in the Notifications tab (requirement 13.4) even if the
+        push itself never arrives.
+        """
+        try:
+            from app.core.fcm import send_fcm_push
+
+            await asyncio.to_thread(
+                send_fcm_push,
+                token=fcm_token,
+                title=notification.title,
+                body=notification.body,
+                data={"payload": notification.data or ""},
+            )
+        except Exception:
+            logger.exception("Failed to send FCM push to token ending in ...%s", fcm_token[-6:])

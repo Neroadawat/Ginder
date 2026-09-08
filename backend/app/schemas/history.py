@@ -1,4 +1,4 @@
-"""History schemas — match history for a user."""
+"""History schemas — a user's past session results."""
 
 import uuid
 from datetime import datetime
@@ -8,8 +8,13 @@ from pydantic import BaseModel
 
 class MatchHistoryEntry(BaseModel):
     session_id: uuid.UUID
+
+    # Denormalised on the result row, so history survives the restaurant being
+    # purged from the cache.
     restaurant_name: str
-    restaurant_image_url: str | None
+
+    photo_url: str | None
+    # unanimous | majority | spin_wheel_tie | spin_wheel_no_match
     resolution_type: str
     google_maps_url: str | None
     created_at: datetime

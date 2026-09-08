@@ -25,7 +25,7 @@ const MatchPopup = ({restaurant, onDismiss}: Props) => {
           <Text style={styles.title}>It's a Match!</Text>
           <Text style={styles.subtitle}>Everyone agreed on</Text>
           <Text style={styles.restaurantName}>{restaurant.name}</Text>
-          <Text style={styles.category}>{restaurant.category}</Text>
+          <Text style={styles.category}>{restaurant.primary_category}</Text>
 
           <TouchableOpacity
             style={styles.button}

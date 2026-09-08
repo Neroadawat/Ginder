@@ -44,6 +44,16 @@ class Settings(BaseSettings):
     # ─── Session Defaults ───
     MAX_DECK_SIZE: int = 50
 
+    # ─── Search Radius (requirement 6) ───
+    # Capped for the Thammasat Rangsit launch: students walk or ride to eat, so
+    # a wider radius would fill the deck with places nobody visits.
+    MIN_RADIUS_KM: float = 0.5
+    MAX_RADIUS_KM: float = 3.0
+
+    # ─── Locale ───
+    # Opening hours are local time, so "open now" is evaluated here, not in UTC.
+    APP_TIMEZONE: str = "Asia/Bangkok"
+
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8", "case_sensitive": True}
 
 

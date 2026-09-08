@@ -19,11 +19,15 @@ import {getCurrentLocation, openAppSettings} from '@/services/location';
 import {useLocationStore} from '@/stores/locationStore';
 
 interface Props {
-  /** Re-runs the permission request and location fetch. */
-  onRetry: () => Promise<void>;
+  /**
+   * Triggers the system permission dialog and then fetches a fix. Called from
+   * the button here rather than at startup, so the user always sees the reason
+   * before the OS prompt appears (requirement 3.2, 3.3).
+   */
+  onRequestPermission: () => Promise<void>;
 }
 
-const PermissionGateScreen = ({onRetry}: Props) => {
+const PermissionGateScreen = ({onRequestPermission}: Props) => {
   const permissionStatus = useLocationStore(state => state.permissionStatus);
   const error = useLocationStore(state => state.error);
   const isLocating = useLocationStore(state => state.isLocating);
@@ -41,7 +45,7 @@ const PermissionGateScreen = ({onRetry}: Props) => {
       } else if (isLocationFailure) {
         await getCurrentLocation();
       } else {
-        await onRetry();
+        await onRequestPermission();
       }
     } finally {
       setIsBusy(false);

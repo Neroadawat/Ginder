@@ -21,13 +21,17 @@ celery_app.conf.update(
 
 # ─── Periodic Tasks (Beat Schedule) ───
 celery_app.conf.beat_schedule = {
+    # Expire TTL-backed cache rows at the end of each day (requirement 15.2).
+    # Permanent mock data is untouched.
     "cleanup-restaurant-cache-daily": {
         "task": "app.tasks.cleanup.cleanup_restaurant_cache",
-        "schedule": crontab(hour=0, minute=0),  # Every midnight UTC
+        "schedule": crontab(hour=0, minute=0),
     },
-    "cleanup-expired-sessions": {
-        "task": "app.tasks.cleanup.cleanup_expired_sessions",
-        "schedule": crontab(minute="*/5"),  # Every 5 minutes
+    # Frequent, because a session's countdown is authoritative server-side and
+    # must still resolve when every client has dropped off.
+    "resolve-expired-sessions": {
+        "task": "app.tasks.cleanup.resolve_expired_sessions",
+        "schedule": crontab(minute="*"),
     },
 }
 

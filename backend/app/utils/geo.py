@@ -71,7 +71,10 @@ def generate_cache_key(
     nearby sessions with similar settings share one cached result set,
     reducing external API calls.
 
-    Format: ``{grid_lat}_{grid_lng}_{radius_bucket}_{category}``
+    Format: ``{grid_cell}_{radius_bucket}_{category}`` (requirement 15.3),
+    where ``grid_cell`` packs both coordinates into one token so the key has
+    exactly three ``_``-separated parts as documented, rather than splitting
+    latitude and longitude into separate segments.
 
     Note: this is only used when fetching from an external provider. Locally
     seeded data is queried by distance instead — see
@@ -82,10 +85,11 @@ def generate_cache_key(
     grid_lat = round(latitude / grid_precision) * grid_precision
     grid_lng = round(longitude / grid_precision) * grid_precision
 
+    grid_cell = f"{grid_lat:.4f},{grid_lng:.4f}"
     radius_bucket = _bucket_radius(radius_km)
     cat = category or "all"
 
-    return f"{grid_lat:.4f}_{grid_lng:.4f}_{radius_bucket}_{cat}"
+    return f"{grid_cell}_{radius_bucket}_{cat}"
 
 
 def _bucket_radius(radius_km: float) -> str:

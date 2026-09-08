@@ -20,12 +20,25 @@ export const DEFAULT_RADIUS_KM = 1.5;
 /** Step used when widening the radius after the deck runs out. */
 export const RADIUS_STEP_KM = 0.5;
 
-export const PRICE_LEVELS = [
+/**
+ * Price chips. The values are display tiers, not Google's raw scale — the
+ * server expands tier 1 to price_level 0-1 and tier 3 to 3-4.
+ */
+export const PRICE_LEVELS: readonly {label: string; value: number | null}[] = [
   {label: 'Any', value: null},
   {label: '฿', value: 1},
   {label: '฿฿', value: 2},
   {label: '฿฿฿', value: 3},
-] as const;
+];
+
+/** Minimum-rating chips. */
+export const RATING_OPTIONS: readonly {label: string; value: number | null}[] = [
+  {label: 'Any', value: null},
+  {label: '3.0+', value: 3.0},
+  {label: '3.5+', value: 3.5},
+  {label: '4.0+', value: 4.0},
+  {label: '4.5+', value: 4.5},
+];
 
 export const SESSION_DURATION_OPTIONS = [
   {label: '1 min', value: 60},

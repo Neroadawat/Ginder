@@ -11,15 +11,33 @@ from app.schemas.auth import MessageResponse
 from app.schemas.restaurant import DeckResponse
 from app.schemas.session import (
     CreateSessionRequest,
+    DeckFinishedResponse,
     InviteFriendRequest,
     JoinSessionRequest,
     LobbyResponse,
+    ResolutionResponse,
     SessionResponse,
     StartSessionResponse,
 )
+from app.services.match_service import Resolution
 from app.services.session_service import SessionService
 
 router = APIRouter()
+
+
+def build_resolution_response(session_id: UUID, resolution: Resolution) -> ResolutionResponse:
+    """Shape a resolved session for the client."""
+    result = resolution.result
+    restaurant = result.restaurant
+
+    return ResolutionResponse(
+        session_id=session_id,
+        restaurant_id=result.restaurant_id,
+        restaurant_name=result.restaurant_name,
+        resolution_type=result.resolution_type.value,
+        google_maps_url=restaurant.google_maps_url if restaurant else None,
+        wheel_candidate_ids=resolution.wheel_candidates,
+    )
 
 
 @router.post("/", response_model=SessionResponse, status_code=201)
@@ -75,6 +93,40 @@ async def start_session(
     """Start the session (host only). Generates the deck and starts the timer."""
     service = SessionService(db)
     return await service.start_session(session_id, current_user)
+
+
+@router.get("/{session_id}/result", response_model=ResolutionResponse)
+async def get_session_result(
+    session_id: UUID,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get the finished session's winning restaurant."""
+    service = SessionService(db)
+    return await service.get_result(session_id, current_user)
+
+
+@router.post("/{session_id}/deck/finished", response_model=DeckFinishedResponse)
+async def report_deck_finished(
+    session_id: UUID,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Report that the caller has swiped their whole deck.
+
+    Puts them in the Waiting state and resolves the session if they were the
+    last one still swiping (requirement 9.2, 12.1).
+    """
+    service = SessionService(db)
+    resolution = await service.mark_participant_finished(session_id, current_user)
+
+    if resolution is None:
+        return DeckFinishedResponse(session_finished=False)
+
+    return DeckFinishedResponse(
+        session_finished=True,
+        resolution=build_resolution_response(session_id, resolution),
+    )
 
 
 @router.post("/{session_id}/kick/{user_id}", response_model=MessageResponse)

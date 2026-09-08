@@ -1,19 +1,22 @@
 /**
- * RestaurantListItem — Restaurant displayed in a list (Explore / Category results).
+ * RestaurantListItem — a restaurant row in Explore results or the Likes tab.
+ *
+ * Tapping it opens Google Maps navigation (requirement 11.3).
  */
 
 import React from 'react';
-import {View, Text, Image, StyleSheet, TouchableOpacity, Linking} from 'react-native';
+import {Image, Linking, StyleSheet, Text, TouchableOpacity, View} from 'react-native';
 
 import {RestaurantCard} from '@/types/restaurant';
-
-const PRICE_LABELS: Record<number, string> = {1: '฿', 2: '฿฿', 3: '฿฿฿'};
+import {getCategoryEmoji} from '@/constants/placeholders';
 
 interface Props {
   restaurant: RestaurantCard;
 }
 
 const RestaurantListItem = ({restaurant}: Props) => {
+  const canNavigate = Boolean(restaurant.google_maps_url);
+
   const handleNavigate = () => {
     if (restaurant.google_maps_url) {
       Linking.openURL(restaurant.google_maps_url);
@@ -24,17 +27,20 @@ const RestaurantListItem = ({restaurant}: Props) => {
     <TouchableOpacity
       style={styles.container}
       onPress={handleNavigate}
+      disabled={!canNavigate}
       accessibilityRole="button"
-      accessibilityLabel={`${restaurant.name}, ${restaurant.category}`}>
-      {restaurant.image_url ? (
-        <Image
-          source={{uri: restaurant.image_url}}
-          style={styles.image}
-          resizeMode="cover"
-        />
+      accessibilityLabel={
+        canNavigate
+          ? `Navigate to ${restaurant.name}, ${restaurant.primary_category}`
+          : `${restaurant.name}, ${restaurant.primary_category}`
+      }>
+      {restaurant.photo_url ? (
+        <Image source={{uri: restaurant.photo_url}} style={styles.image} resizeMode="cover" />
       ) : (
         <View style={styles.placeholderImage}>
-          <Text style={styles.placeholderEmoji}>🍽️</Text>
+          <Text style={styles.placeholderEmoji}>
+            {getCategoryEmoji(restaurant.primary_category)}
+          </Text>
         </View>
       )}
 
@@ -42,13 +48,11 @@ const RestaurantListItem = ({restaurant}: Props) => {
         <Text style={styles.name} numberOfLines={1}>
           {restaurant.name}
         </Text>
-        <Text style={styles.category}>{restaurant.category}</Text>
+        <Text style={styles.category}>{restaurant.primary_category}</Text>
 
         <View style={styles.metaRow}>
-          {restaurant.price_level != null && (
-            <Text style={styles.meta}>
-              {PRICE_LABELS[restaurant.price_level]}
-            </Text>
+          {restaurant.price_symbol && (
+            <Text style={styles.meta}>{restaurant.price_symbol}</Text>
           )}
           {restaurant.rating != null && (
             <Text style={styles.meta}>⭐ {restaurant.rating.toFixed(1)}</Text>
@@ -58,6 +62,8 @@ const RestaurantListItem = ({restaurant}: Props) => {
           )}
         </View>
       </View>
+
+      {canNavigate && <Text style={styles.navigateIcon}>📍</Text>}
     </TouchableOpacity>
   );
 };
@@ -65,6 +71,7 @@ const RestaurantListItem = ({restaurant}: Props) => {
 const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: '#FFF',
     borderRadius: 12,
     overflow: 'hidden',
@@ -112,6 +119,10 @@ const styles = StyleSheet.create({
   meta: {
     fontSize: 13,
     color: '#666',
+  },
+  navigateIcon: {
+    fontSize: 18,
+    paddingHorizontal: 14,
   },
 });
 

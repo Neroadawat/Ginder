@@ -2,6 +2,8 @@
  * Shared API type definitions.
  */
 
+import {RestaurantCard} from './restaurant';
+
 // ─── Auth ───
 export interface TokenResponse {
   access_token: string;
@@ -62,14 +64,16 @@ export interface CreateSessionRequest {
   radius_km: number;
   duration_seconds: number;
   category_filter?: string | null;
+  /** Display tier 1-3, expanded server-side to Google's 0-4. */
   price_filter?: number | null;
   rating_filter?: number | null;
+  open_now_filter?: boolean;
 }
 
 export interface SessionResponse {
   id: string;
+  status: 'lobby' | 'active' | 'finished';
   host_id: string;
-  status: string;
   latitude: number;
   longitude: number;
   radius_km: number;
@@ -78,15 +82,18 @@ export interface SessionResponse {
   category_filter: string | null;
   price_filter: number | null;
   rating_filter: number | null;
+  open_now_filter: boolean;
   started_at: string | null;
   ends_at: string | null;
   created_at: string;
 }
 
+export type ParticipantStatus = 'in_lobby' | 'swiping' | 'waiting' | 'disconnected';
+
 export interface ParticipantResponse {
   user_id: string;
   display_name: string;
-  status: string;
+  status: ParticipantStatus;
 }
 
 export interface LobbyResponse {
@@ -117,8 +124,7 @@ export interface SwipeResponse {
 export interface LikeEntry {
   user_id: string;
   display_name: string;
-  restaurant_id: string;
-  restaurant_name: string;
+  restaurant: RestaurantCard;
 }
 
 export interface SessionLikesResponse {
@@ -128,16 +134,37 @@ export interface SessionLikesResponse {
 
 export interface SoloLikeResponse {
   id: string;
-  restaurant_id: string;
+  restaurant: RestaurantCard;
+}
+
+// ─── Session resolution ───
+export type ResolutionType =
+  | 'unanimous'
+  | 'majority'
+  | 'spin_wheel_tie'
+  | 'spin_wheel_no_match';
+
+export interface ResolutionResponse {
+  session_id: string;
+  restaurant_id: string | null;
   restaurant_name: string;
+  resolution_type: ResolutionType;
+  google_maps_url: string | null;
+  /** Restaurants that went on the wheel. Empty when no wheel was needed. */
+  wheel_candidate_ids: string[];
+}
+
+export interface DeckFinishedResponse {
+  session_finished: boolean;
+  resolution: ResolutionResponse | null;
 }
 
 // ─── History ───
 export interface MatchHistoryEntry {
   session_id: string;
   restaurant_name: string;
-  restaurant_image_url: string | null;
-  resolution_type: string;
+  photo_url: string | null;
+  resolution_type: ResolutionType;
   google_maps_url: string | null;
   created_at: string;
 }

@@ -20,8 +20,9 @@ const queryClient = new QueryClient({
 });
 
 const App = () => {
-  // Restores the saved session and acquires a location fix before the UI loads.
-  const {isReady, retryLocation} = useAppBootstrap();
+  // Restores consent and auth state, and checks (without prompting) whether
+  // location was already granted.
+  const {isReady, requestLocation} = useAppBootstrap();
 
   return (
     <GestureHandlerRootView style={styles.container}>
@@ -31,7 +32,7 @@ const App = () => {
             <SplashScreen />
           ) : (
             <NavigationContainer linking={linking}>
-              <RootNavigator onRetryLocation={retryLocation} />
+              <RootNavigator onRequestLocation={requestLocation} />
             </NavigationContainer>
           )}
         </QueryClientProvider>

@@ -15,20 +15,10 @@ import {useNavigation} from '@react-navigation/native';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 
 import {useCategories} from '@/hooks/useRestaurants';
+import {getCategoryEmoji} from '@/constants/placeholders';
 import {ExploreStackParamList} from '@/navigation/types';
 
 type NavigationProp = NativeStackNavigationProp<ExploreStackParamList, 'ExploreCategories'>;
-
-const CATEGORY_EMOJIS: Record<string, string> = {
-  Thai: '🇹🇭',
-  Japanese: '🇯🇵',
-  Korean: '🇰🇷',
-  'Fast Food': '🍔',
-  Cafe: '☕',
-  Dessert: '🍰',
-  Italian: '🍝',
-  Chinese: '🥟',
-};
 
 const ExploreCategoriesScreen = () => {
   const navigation = useNavigation<NavigationProp>();
@@ -40,9 +30,7 @@ const ExploreCategoriesScreen = () => {
       onPress={() => navigation.navigate('CategoryResults', {category: item})}
       accessibilityRole="button"
       accessibilityLabel={`Browse ${item} restaurants`}>
-      <Text style={styles.categoryEmoji}>
-        {CATEGORY_EMOJIS[item] || '🍽️'}
-      </Text>
+      <Text style={styles.categoryEmoji}>{getCategoryEmoji(item)}</Text>
       <Text style={styles.categoryName}>{item}</Text>
     </TouchableOpacity>
   );

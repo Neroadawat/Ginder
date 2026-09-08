@@ -1,54 +1,105 @@
 /**
- * Session Result Screen — Shows the winning restaurant after session ends.
+ * Session Result Screen — the winning restaurant.
+ *
+ * Requirement 13.1: offers a Location button that opens Google Maps navigation.
  */
 
 import React from 'react';
-import {View, Text, TouchableOpacity, StyleSheet, Linking, ActivityIndicator} from 'react-native';
-import {useRoute, useNavigation, RouteProp} from '@react-navigation/native';
+import {
+  ActivityIndicator,
+  Linking,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import {RouteProp, useNavigation, useRoute} from '@react-navigation/native';
 
-import {useSession} from '@/hooks/useSessions';
+import {useSessionResult} from '@/hooks/useSessions';
+import {useSessionStore} from '@/stores/sessionStore';
+import {RESOLUTION_LABELS} from '@/constants/resolution';
+import {SessionStackParamList} from '@/navigation/types';
 
-type RouteProps = RouteProp<{SessionResult: {sessionId: string}}, 'SessionResult'>;
-
-const RESOLUTION_MESSAGES: Record<string, string> = {
-  unanimous: '🎉 Everyone agreed!',
-  majority: '🗳️ Most votes won',
-  spin_wheel_tie: '🎡 Decided by spin wheel',
-  spin_wheel_no_match: '🎡 Random pick from the wheel',
-  early_termination: '⏱️ Session ended early',
-};
+type RouteProps = RouteProp<SessionStackParamList, 'SessionResult'>;
 
 const SessionResultScreen = () => {
   const route = useRoute<RouteProps>();
   const navigation = useNavigation();
+  const clearSession = useSessionStore(state => state.clearSession);
 
-  // TODO: Fetch actual match result via dedicated hook
-  // For now, placeholder UI
+  const {data: result, isLoading, isError} = useSessionResult(route.params.sessionId);
+
+  const handleBackHome = () => {
+    // The session is over, so the Likes tab should switch back to solo history.
+    clearSession();
+    navigation.getParent()?.goBack();
+  };
+
+  const openMaps = () => {
+    if (result?.google_maps_url) {
+      Linking.openURL(result.google_maps_url);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <View style={styles.container}>
+        <ActivityIndicator
+          size="large"
+          color="#FF6B6B"
+          accessibilityLabel="Loading result"
+        />
+      </View>
+    );
+  }
+
+  if (isError || !result) {
+    return (
+      <View style={styles.container}>
+        <Text style={styles.emoji}>😕</Text>
+        <Text style={styles.title}>No result yet</Text>
+        <Text style={styles.subtitle}>
+          This session has not finished, or the result could not be loaded.
+        </Text>
+        <TouchableOpacity
+          style={styles.homeButton}
+          onPress={handleBackHome}
+          accessibilityRole="button">
+          <Text style={styles.homeText}>Back to Home</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
+  const hasWinner = result.restaurant_id !== null;
+
   return (
     <View style={styles.container}>
-      <Text style={styles.emoji}>🎊</Text>
-      <Text style={styles.title}>Session Complete!</Text>
-      <Text style={styles.subtitle}>Here's your result</Text>
+      <Text style={styles.emoji}>{hasWinner ? '🎊' : '🤷'}</Text>
+      <Text style={styles.title}>
+        {hasWinner ? 'Session complete!' : 'No restaurant found'}
+      </Text>
+      <Text style={styles.subtitle}>
+        {RESOLUTION_LABELS[result.resolution_type] ?? result.resolution_type}
+      </Text>
 
       <View style={styles.resultCard}>
-        <Text style={styles.restaurantName}>Restaurant Name</Text>
-        <Text style={styles.category}>Category • 1.2 km</Text>
-        <Text style={styles.resolution}>🗳️ Majority Vote</Text>
+        <Text style={styles.restaurantName}>{result.restaurant_name}</Text>
       </View>
 
-      <TouchableOpacity
-        style={styles.mapsButton}
-        onPress={() => {
-          // TODO: Open Google Maps with actual restaurant URL
-        }}
-        accessibilityRole="button"
-        accessibilityLabel="Navigate to restaurant">
-        <Text style={styles.mapsText}>📍 Open in Google Maps</Text>
-      </TouchableOpacity>
+      {result.google_maps_url && (
+        <TouchableOpacity
+          style={styles.mapsButton}
+          onPress={openMaps}
+          accessibilityRole="button"
+          accessibilityLabel={`Navigate to ${result.restaurant_name}`}>
+          <Text style={styles.mapsText}>📍 Open in Google Maps</Text>
+        </TouchableOpacity>
+      )}
 
       <TouchableOpacity
         style={styles.homeButton}
-        onPress={() => navigation.getParent()?.goBack()}
+        onPress={handleBackHome}
         accessibilityRole="button">
         <Text style={styles.homeText}>Back to Home</Text>
       </TouchableOpacity>
@@ -65,19 +116,21 @@ const styles = StyleSheet.create({
     padding: 32,
   },
   emoji: {
-    fontSize: 80,
+    fontSize: 76,
     marginBottom: 16,
   },
   title: {
-    fontSize: 28,
+    fontSize: 26,
     fontWeight: '700',
     color: '#333',
-    marginBottom: 8,
+    marginBottom: 6,
+    textAlign: 'center',
   },
   subtitle: {
-    fontSize: 16,
+    fontSize: 15,
     color: '#666',
-    marginBottom: 32,
+    marginBottom: 28,
+    textAlign: 'center',
   },
   resultCard: {
     backgroundColor: '#FFF0F0',
@@ -90,20 +143,10 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   restaurantName: {
-    fontSize: 24,
+    fontSize: 22,
     fontWeight: '700',
     color: '#333',
-    marginBottom: 8,
-  },
-  category: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 12,
-  },
-  resolution: {
-    fontSize: 14,
-    color: '#FF6B6B',
-    fontWeight: '500',
+    textAlign: 'center',
   },
   mapsButton: {
     backgroundColor: '#FF6B6B',

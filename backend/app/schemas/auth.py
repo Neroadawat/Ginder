@@ -2,13 +2,16 @@
 
 import uuid
 
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, Field
 
 
 class SignUpRequest(BaseModel):
     email: EmailStr
-    password: str
-    display_name: str
+    # Requirement 1.1: "valid format" for the password — enforced as a
+    # minimum length rather than a character-class regex, which would reject
+    # otherwise-strong passphrases for no real security benefit.
+    password: str = Field(min_length=8, max_length=128)
+    display_name: str = Field(min_length=1, max_length=100)
     accepted_terms: bool
 
 
@@ -33,7 +36,7 @@ class ForgotPasswordRequest(BaseModel):
 
 class ResetPasswordRequest(BaseModel):
     token: str
-    new_password: str
+    new_password: str = Field(min_length=8, max_length=128)
 
 
 class UserResponse(BaseModel):

@@ -1,20 +1,30 @@
 /**
  * App bootstrap — one-time startup work before the UI is usable.
  *
- * Restores the saved session from storage and acquires a location fix. Without
- * this, tokens persisted in MMKV are never read back (forcing a login on every
- * launch) and the deck queries stay disabled because coordinates are null.
+ * Restores persisted state (consent, auth tokens) and finds out whether
+ * location was already granted. It deliberately does **not** prompt for
+ * location: requirement 3.3 says the system dialog must be preceded by an
+ * explanation, which is the gate screen's job.
  */
 
 import {useCallback, useEffect, useState} from 'react';
 
-import {getCurrentLocation, requestLocationPermission} from '@/services/location';
+import {
+  checkLocationPermission,
+  getCurrentLocation,
+  requestLocationPermission,
+} from '@/services/location';
 import {useAuthStore} from '@/stores/authStore';
+import {useConsentStore} from '@/stores/consentStore';
 
 export const useAppBootstrap = () => {
   const [isReady, setIsReady] = useState(false);
 
-  const acquireLocation = useCallback(async () => {
+  /**
+   * Prompt for location and fetch a fix. Called from the gate screen, after
+   * the user has read why the app needs it.
+   */
+  const requestLocation = useCallback(async () => {
     const status = await requestLocationPermission();
     if (status === 'granted') {
       await getCurrentLocation();
@@ -25,10 +35,17 @@ export const useAppBootstrap = () => {
     let cancelled = false;
 
     const run = async () => {
-      // Restore tokens first so authenticated requests work straight away.
+      // Restore persisted state first so the navigator picks the right branch
+      // on the very first render.
+      useConsentStore.getState().hydrate();
       useAuthStore.getState().hydrate();
 
-      await acquireLocation();
+      // Only a silent check here. If permission survives from a previous run
+      // we can go straight for coordinates and skip the gate entirely.
+      const status = await checkLocationPermission();
+      if (status === 'granted') {
+        await getCurrentLocation();
+      }
 
       if (!cancelled) {
         setIsReady(true);
@@ -40,7 +57,7 @@ export const useAppBootstrap = () => {
     return () => {
       cancelled = true;
     };
-  }, [acquireLocation]);
+  }, []);
 
-  return {isReady, retryLocation: acquireLocation};
+  return {isReady, requestLocation};
 };

@@ -10,32 +10,45 @@ import {
   StyleSheet,
   ScrollView,
   ActivityIndicator,
-  TextInput,
+  Switch,
 } from 'react-native';
 import {useNavigation} from '@react-navigation/native';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 
 import {useCreateSession} from '@/hooks/useSessions';
+import {useCategories} from '@/hooks/useRestaurants';
 import {useLocationStore} from '@/stores/locationStore';
 import {SessionStackParamList} from '@/navigation/types';
 import {
   DEFAULT_RADIUS_KM,
+  PRICE_LEVELS,
   RADIUS_OPTIONS_KM,
+  RATING_OPTIONS,
   SESSION_DURATION_OPTIONS,
   formatRadius,
 } from '@/constants/filters';
 
 type NavigationProp = NativeStackNavigationProp<SessionStackParamList, 'CreateSession'>;
 
+const ALL_LABEL = 'All';
+
 const CreateSessionScreen = () => {
   const navigation = useNavigation<NavigationProp>();
   const latitude = useLocationStore(state => state.latitude);
   const longitude = useLocationStore(state => state.longitude);
   const createMutation = useCreateSession();
+  const {data: categories} = useCategories();
 
   const [radiusKm, setRadiusKm] = useState<number>(DEFAULT_RADIUS_KM);
   const [durationSeconds, setDurationSeconds] = useState(300);
   const [category, setCategory] = useState<string | null>(null);
+  // Same filter set as Solo Mode (requirement 5.5): price tier, minimum
+  // rating and "open now", on top of category and radius above.
+  const [priceLevel, setPriceLevel] = useState<number | null>(null);
+  const [minRating, setMinRating] = useState<number | null>(null);
+  const [openNow, setOpenNow] = useState(false);
+
+  const categoryOptions = [ALL_LABEL, ...(categories ?? [])];
 
   const handleCreate = () => {
     if (latitude === null || longitude === null) {
@@ -49,6 +62,9 @@ const CreateSessionScreen = () => {
         radius_km: radiusKm,
         duration_seconds: durationSeconds,
         category_filter: category,
+        price_filter: priceLevel,
+        rating_filter: minRating,
+        open_now_filter: openNow,
       },
       {
         onSuccess: data => {
@@ -78,6 +94,81 @@ const CreateSessionScreen = () => {
             </Text>
           </TouchableOpacity>
         ))}
+      </View>
+
+      {/* Category */}
+      <Text style={styles.sectionTitle}>Category</Text>
+      <View style={styles.chipRow}>
+        {categoryOptions.map(option => {
+          const selected = option === ALL_LABEL ? !category : category === option;
+          return (
+            <TouchableOpacity
+              key={option}
+              style={[styles.chip, selected && styles.chipActive]}
+              onPress={() => setCategory(option === ALL_LABEL ? null : option)}
+              accessibilityRole="button"
+              accessibilityState={{selected}}>
+              <Text style={[styles.chipText, selected && styles.chipTextActive]}>
+                {option}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+
+      {/* Price */}
+      <Text style={styles.sectionTitle}>Price Range</Text>
+      <View style={styles.chipRow}>
+        {PRICE_LEVELS.map(option => {
+          const selected = priceLevel === option.value;
+          return (
+            <TouchableOpacity
+              key={option.label}
+              style={[styles.chip, selected && styles.chipActive]}
+              onPress={() => setPriceLevel(option.value)}
+              accessibilityRole="button"
+              accessibilityState={{selected}}>
+              <Text style={[styles.chipText, selected && styles.chipTextActive]}>
+                {option.label}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+
+      {/* Rating */}
+      <Text style={styles.sectionTitle}>Minimum Rating</Text>
+      <View style={styles.chipRow}>
+        {RATING_OPTIONS.map(option => {
+          const selected = minRating === option.value;
+          return (
+            <TouchableOpacity
+              key={option.label}
+              style={[styles.chip, selected && styles.chipActive]}
+              onPress={() => setMinRating(option.value)}
+              accessibilityRole="button"
+              accessibilityState={{selected}}>
+              <Text style={[styles.chipText, selected && styles.chipTextActive]}>
+                {option.label}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+
+      {/* Open now */}
+      <View style={styles.switchRow}>
+        <View style={styles.switchLabel}>
+          <Text style={styles.sectionTitle}>Open now</Text>
+          <Text style={styles.sectionHint}>Only show places serving at this moment</Text>
+        </View>
+        <Switch
+          value={openNow}
+          onValueChange={setOpenNow}
+          trackColor={{false: '#DDD', true: '#FF6B6B'}}
+          thumbColor="#FFF"
+          accessibilityLabel="Only show places open now"
+        />
       </View>
 
       {/* Timer */}
@@ -144,6 +235,22 @@ const styles = StyleSheet.create({
     color: '#333',
     marginBottom: 12,
     marginTop: 20,
+  },
+  sectionHint: {
+    fontSize: 13,
+    color: '#999',
+    marginTop: -8,
+    marginBottom: 4,
+  },
+  switchRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 12,
+  },
+  switchLabel: {
+    flex: 1,
+    paddingRight: 16,
   },
   chipRow: {
     flexDirection: 'row',

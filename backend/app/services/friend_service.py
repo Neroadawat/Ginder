@@ -55,11 +55,12 @@ class FriendService:
         await self.db.flush()
 
     async def unfriend(self, user: User, friend_id: UUID) -> MessageResponse:
-        """Remove a friendship. Blocked if both are in the same active session."""
-        # Check if both are in the same active session
-        if await self._in_same_active_session(user.id, friend_id):
+        """Remove a friendship. Blocked if both are in the same open session."""
+        # Requirement 4.4 says "in the same Session", which covers the lobby
+        # as well as an active game — only a FINISHED session lifts the block.
+        if await self._in_same_open_session(user.id, friend_id):
             raise ForbiddenException(
-                "Cannot unfriend while both are in the same active session"
+                "Cannot unfriend while both are in the same session"
             )
 
         # Delete bidirectional friendship
@@ -90,13 +91,13 @@ class FriendService:
         )
         return list(result.scalars().all())
 
-    async def _in_same_active_session(self, user_id: UUID, other_id: UUID) -> bool:
-        """Check if two users are both participants in the same active session."""
+    async def _in_same_open_session(self, user_id: UUID, other_id: UUID) -> bool:
+        """Check if two users are both participants in the same LOBBY or ACTIVE session."""
         result = await self.db.execute(
             select(SessionParticipant.session_id)
             .join(Session, Session.id == SessionParticipant.session_id)
             .where(
-                Session.status == SessionStatus.ACTIVE,
+                Session.status.in_([SessionStatus.LOBBY, SessionStatus.ACTIVE]),
                 SessionParticipant.user_id == user_id,
             )
         )

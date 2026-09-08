@@ -15,6 +15,9 @@ venv/
 env/
 .env
 *.log
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
 
 # ==========================
 # Node / Frontend

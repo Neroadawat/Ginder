@@ -5,10 +5,12 @@
 import apiClient from './client';
 import {
   CreateSessionRequest,
-  SessionResponse,
+  DeckFinishedResponse,
   LobbyResponse,
-  StartSessionResponse,
   MessageResponse,
+  ResolutionResponse,
+  SessionResponse,
+  StartSessionResponse,
 } from '@/types/api';
 
 export const sessionApi = {
@@ -48,6 +50,17 @@ export const sessionApi = {
     const response = await apiClient.post(`/sessions/${sessionId}/invite`, {
       friend_id: friendId,
     });
+    return response.data;
+  },
+
+  /** Report that the caller has swiped their whole deck (requirement 12.1). */
+  reportDeckFinished: async (sessionId: string): Promise<DeckFinishedResponse> => {
+    const response = await apiClient.post(`/sessions/${sessionId}/deck/finished`);
+    return response.data;
+  },
+
+  getResult: async (sessionId: string): Promise<ResolutionResponse> => {
+    const response = await apiClient.get(`/sessions/${sessionId}/result`);
     return response.data;
   },
 };

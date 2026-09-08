@@ -14,14 +14,7 @@ import {
 } from 'react-native';
 
 import {useHistory} from '@/hooks/useHistory';
-
-const RESOLUTION_LABELS: Record<string, string> = {
-  unanimous: '🎉 Unanimous Match',
-  majority: '🗳️ Majority Vote',
-  spin_wheel_tie: '🎡 Spin Wheel (Tie)',
-  spin_wheel_no_match: '🎡 Spin Wheel',
-  early_termination: '⏱️ Early End',
-};
+import {RESOLUTION_LABELS_SHORT} from '@/constants/resolution';
 
 const HistoryScreen = () => {
   const {data, isLoading} = useHistory();
@@ -52,9 +45,11 @@ const HistoryScreen = () => {
         renderItem={({item}) => (
           <View style={styles.card}>
             <View style={styles.cardHeader}>
-              <Text style={styles.restaurantName}>{item.restaurant_name}</Text>
+              <Text style={styles.restaurantName} numberOfLines={1}>
+                {item.restaurant_name}
+              </Text>
               <Text style={styles.resolution}>
-                {RESOLUTION_LABELS[item.resolution_type] || item.resolution_type}
+                {RESOLUTION_LABELS_SHORT[item.resolution_type] ?? item.resolution_type}
               </Text>
             </View>
             <Text style={styles.date}>

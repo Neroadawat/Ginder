@@ -16,8 +16,19 @@ type RouteProps = RouteProp<ExploreStackParamList, 'CategoryResults'>;
 const CategoryResultsScreen = () => {
   const route = useRoute<RouteProps>();
   const navigation = useNavigation();
-  const filters = useFilterStore();
-  const {data: deck, isLoading} = useSoloDeck({...filters, category: route.params.category});
+
+  const priceLevel = useFilterStore(state => state.priceLevel);
+  const minRating = useFilterStore(state => state.minRating);
+  const radiusKm = useFilterStore(state => state.radiusKm);
+  const openNow = useFilterStore(state => state.openNow);
+
+  const {data: deck, isLoading} = useSoloDeck({
+    category: route.params.category,
+    priceLevel,
+    minRating,
+    radiusKm,
+    openNow,
+  });
 
   return (
     <View style={styles.container}>

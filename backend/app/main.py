@@ -8,15 +8,20 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.api.router import api_router
 from app.core.config import settings
 from app.core.database import engine
+from app.websocket.pubsub import start_pubsub_listener, stop_pubsub_listener
 from app.websocket.router import ws_router
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Startup and shutdown events."""
-    # Startup
+    # Startup: subscribe to the Redis channel that carries WS broadcasts, so
+    # events published by this or any other instance/worker reach clients
+    # connected here (requirement 15.6).
+    await start_pubsub_listener()
     yield
     # Shutdown
+    await stop_pubsub_listener()
     await engine.dispose()
 
 

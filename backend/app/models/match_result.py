@@ -12,13 +12,16 @@ from app.core.database import Base
 
 
 class ResolutionType(str, PyEnum):
-    """How the match was resolved."""
+    """How the winning restaurant was decided (requirement 9.7).
 
-    UNANIMOUS = "unanimous"       # Everyone liked the same restaurant
-    MAJORITY = "majority"         # Most votes
-    SPIN_WHEEL_TIE = "spin_wheel_tie"   # Tie-breaker spin
-    SPIN_WHEEL_NO_MATCH = "spin_wheel_no_match"  # No one liked anything
-    EARLY_TERMINATION = "early_termination"  # No unanimous match possible
+    There is deliberately no early-termination outcome: a session always runs
+    until everyone finishes their deck or the timer expires (requirement 9.1).
+    """
+
+    UNANIMOUS = "unanimous"  # Everyone liked the same restaurant
+    MAJORITY = "majority"  # Highest like count
+    SPIN_WHEEL_TIE = "spin_wheel_tie"  # Tie broken by the wheel
+    SPIN_WHEEL_NO_MATCH = "spin_wheel_no_match"  # Nobody liked anything
 
 
 class MatchResult(Base):

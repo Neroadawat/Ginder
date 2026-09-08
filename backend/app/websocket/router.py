@@ -1,4 +1,11 @@
-"""WebSocket route for real-time session communication."""
+"""WebSocket route for real-time session communication.
+
+Delivery is push-only from the server's perspective: the client can ping and
+will receive broadcast events, but it cannot originate session state (swipes,
+match results, etc.) over this channel. Those are all recorded through REST
+endpoints, which validate the request and then call
+``ConnectionManager.broadcast_to_session`` themselves.
+"""
 
 import json
 from uuid import UUID
@@ -7,13 +14,7 @@ from fastapi import APIRouter, Query, WebSocket, WebSocketDisconnect
 
 from app.core.security import decode_token
 from app.websocket.connection_manager import manager
-from app.websocket.events import (
-    EVENT_ERROR,
-    EVENT_LIKE,
-    EVENT_PING,
-    EVENT_PONG,
-    EVENT_SWIPE,
-)
+from app.websocket.events import EVENT_ERROR, EVENT_PING, EVENT_PONG
 
 ws_router = APIRouter()
 
@@ -45,32 +46,15 @@ async def session_websocket(
             try:
                 message = json.loads(raw)
                 event = message.get("event")
-                data = message.get("data", {})
 
                 if event == EVENT_PING:
-                    await manager.send_to_user(
-                        session_id, user_id, EVENT_PONG, {}
-                    )
-
-                elif event == EVENT_SWIPE:
-                    # Swipe events are handled via REST API for consistency,
-                    # but we broadcast the like to other participants via WS
-                    if data.get("liked"):
-                        await manager.broadcast_to_session(
-                            session_id,
-                            EVENT_LIKE,
-                            {
-                                "user_id": str(user_id),
-                                "restaurant_id": data.get("restaurant_id"),
-                            },
-                        )
-
+                    await manager.send_to_user(session_id, user_id, EVENT_PONG, {})
                 else:
                     await manager.send_to_user(
                         session_id,
                         user_id,
                         EVENT_ERROR,
-                        {"message": f"Unknown event: {event}"},
+                        {"message": f"Unknown or unsupported event: {event}"},
                     )
 
             except json.JSONDecodeError:

@@ -60,3 +60,26 @@ export const useKickParticipant = () => {
     },
   });
 };
+
+/**
+ * Tell the server this client has swiped its whole deck.
+ *
+ * The response says whether that was the last participant, in which case the
+ * session has already resolved (requirement 9.2).
+ */
+export const useReportDeckFinished = () => {
+  return useMutation({
+    mutationFn: (sessionId: string) => sessionApi.reportDeckFinished(sessionId),
+  });
+};
+
+export const useSessionResult = (sessionId: string, enabled = true) => {
+  return useQuery({
+    queryKey: ['session', sessionId, 'result'],
+    queryFn: () => sessionApi.getResult(sessionId),
+    enabled: enabled && !!sessionId,
+    // A finished result never changes.
+    staleTime: Infinity,
+    retry: 1,
+  });
+};

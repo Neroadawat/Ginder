@@ -16,9 +16,11 @@ export const useCategories = () => {
 
 interface SoloDeckFilters {
   category?: string | null;
+  /** Display tier 1-3, expanded server-side to Google's 0-4. */
   priceLevel?: number | null;
   minRating?: number | null;
   radiusKm: number;
+  openNow?: boolean;
   /** Overrides the user's current location. Rarely needed. */
   latitude?: number;
   longitude?: number;
@@ -42,6 +44,7 @@ export const useSoloDeck = (filters: SoloDeckFilters) => {
       filters.category ?? null,
       filters.priceLevel ?? null,
       filters.minRating ?? null,
+      filters.openNow ?? false,
     ],
     queryFn: () =>
       restaurantApi.getSoloDeck({
@@ -51,8 +54,11 @@ export const useSoloDeck = (filters: SoloDeckFilters) => {
         category: filters.category ?? undefined,
         price_level: filters.priceLevel ?? undefined,
         min_rating: filters.minRating ?? undefined,
+        open_now: filters.openNow ?? false,
       }),
     enabled: hasCoords,
+    // "Open now" is time-sensitive, so don't serve a stale cached deck.
+    staleTime: filters.openNow ? 0 : 1000 * 60 * 5,
   });
 };
 
