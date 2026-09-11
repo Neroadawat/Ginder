@@ -8,6 +8,7 @@ import {
   SwipeResponse,
   SessionLikesResponse,
   SoloLikeResponse,
+  VoteProgressResponse,
 } from '@/types/api';
 
 export const voteApi = {
@@ -23,6 +24,11 @@ export const voteApi = {
     const response = await apiClient.get(
       `/votes/sessions/${sessionId}/likes`,
     );
+    return response.data;
+  },
+
+  getProgress: async (sessionId: string): Promise<VoteProgressResponse> => {
+    const response = await apiClient.get(`/votes/sessions/${sessionId}/progress`);
     return response.data;
   },
 

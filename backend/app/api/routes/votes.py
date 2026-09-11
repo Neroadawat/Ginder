@@ -13,6 +13,7 @@ from app.schemas.vote import (
     SoloLikeResponse,
     SwipeRequest,
     SwipeResponse,
+    VoteProgressResponse,
 )
 from app.services.vote_service import VoteService
 
@@ -40,6 +41,17 @@ async def get_session_likes(
     """Get all likes from all participants in a session (real-time data)."""
     service = VoteService(db)
     return await service.get_session_likes(session_id, current_user)
+
+
+@router.get("/sessions/{session_id}/progress", response_model=VoteProgressResponse)
+async def get_vote_progress(
+    session_id: UUID,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get the caller's persisted progress for reconnect-safe swiping."""
+    service = VoteService(db)
+    return await service.get_progress(session_id, current_user)
 
 
 @router.post("/solo/like", response_model=SoloLikeResponse, status_code=201)

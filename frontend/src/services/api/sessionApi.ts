@@ -11,6 +11,7 @@ import {
   ResolutionResponse,
   SessionResponse,
   StartSessionResponse,
+  CurrentSessionResponse,
 } from '@/types/api';
 
 export const sessionApi = {
@@ -23,6 +24,11 @@ export const sessionApi = {
     const response = await apiClient.post('/sessions/join', {
       invite_code: inviteCode,
     });
+    return response.data;
+  },
+
+  getCurrent: async (): Promise<CurrentSessionResponse> => {
+    const response = await apiClient.get('/sessions/current');
     return response.data;
   },
 
@@ -40,6 +46,11 @@ export const sessionApi = {
     const response = await apiClient.post(
       `/sessions/${sessionId}/kick/${userId}`,
     );
+    return response.data;
+  },
+
+  leave: async (sessionId: string): Promise<MessageResponse> => {
+    const response = await apiClient.post(`/sessions/${sessionId}/leave`);
     return response.data;
   },
 

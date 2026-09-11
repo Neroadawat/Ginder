@@ -47,7 +47,12 @@ class Session(Base):
         UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
     )
     status: Mapped[SessionStatus] = mapped_column(
-        Enum(SessionStatus), default=SessionStatus.LOBBY, nullable=False
+        Enum(
+            SessionStatus,
+            values_callable=lambda enum_type: [item.value for item in enum_type],
+        ),
+        default=SessionStatus.LOBBY,
+        nullable=False,
     )
 
     # Location & search settings (Host's location)
@@ -113,7 +118,12 @@ class SessionParticipant(Base):
         UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
     )
     status: Mapped[ParticipantStatus] = mapped_column(
-        Enum(ParticipantStatus), default=ParticipantStatus.IN_LOBBY, nullable=False
+        Enum(
+            ParticipantStatus,
+            values_callable=lambda enum_type: [item.value for item in enum_type],
+        ),
+        default=ParticipantStatus.IN_LOBBY,
+        nullable=False,
     )
     joined_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(UTC)

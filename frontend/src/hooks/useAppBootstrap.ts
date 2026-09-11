@@ -16,6 +16,7 @@ import {
 } from '@/services/location';
 import {useAuthStore} from '@/stores/authStore';
 import {useConsentStore} from '@/stores/consentStore';
+import {useSessionStore} from '@/stores/sessionStore';
 
 export const useAppBootstrap = () => {
   const [isReady, setIsReady] = useState(false);
@@ -39,6 +40,7 @@ export const useAppBootstrap = () => {
       // on the very first render.
       useConsentStore.getState().hydrate();
       useAuthStore.getState().hydrate();
+      useSessionStore.getState().hydrate();
 
       // Only a silent check here. If permission survives from a previous run
       // we can go straight for coordinates and skip the gate entirely.

@@ -12,7 +12,7 @@
  */
 
 import React, {useCallback, useEffect, useRef, useState} from 'react';
-import {ActivityIndicator, StyleSheet, Text, View} from 'react-native';
+import {ActivityIndicator, Alert, StyleSheet, Text, TouchableOpacity, View} from 'react-native';
 import {RouteProp, useNavigation, useRoute} from '@react-navigation/native';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 
@@ -21,11 +21,12 @@ import SessionTimer from '@/components/SessionTimer';
 import SwipeCard from '@/components/SwipeCard';
 import {useSessionDeck} from '@/hooks/useRestaurants';
 import {useReportDeckFinished} from '@/hooks/useSessions';
-import {useSwipe} from '@/hooks/useVotes';
+import {useSwipe, useVoteProgress} from '@/hooks/useVotes';
 import {useSessionWebSocket} from '@/hooks/useWebSocket';
 import {SessionStackParamList} from '@/navigation/types';
 import {ResolutionResponse} from '@/types/api';
 import {RestaurantCard} from '@/types/restaurant';
+import {COLORS} from '@/constants/theme';
 
 type RouteProps = RouteProp<SessionStackParamList, 'SessionSwipe'>;
 type NavigationProp = NativeStackNavigationProp<SessionStackParamList, 'SessionSwipe'>;
@@ -36,12 +37,14 @@ const SessionSwipeScreen = () => {
   const {sessionId} = route.params;
 
   const {data: deck, isLoading} = useSessionDeck(sessionId);
+  const {data: progress, isLoading: isProgressLoading} = useVoteProgress(sessionId);
   const swipeMutation = useSwipe(sessionId);
   const reportFinished = useReportDeckFinished();
   const {lastEvent} = useSessionWebSocket(sessionId);
 
   const [matched, setMatched] = useState<RestaurantCard | null>(null);
   const [isWaiting, setIsWaiting] = useState(false);
+  const hasReportedEmpty = useRef(false);
 
   // Guards against double-navigating when a websocket event and a REST reply
   // both report the session ending.
@@ -108,22 +111,33 @@ const SessionSwipeScreen = () => {
 
   const handleSwipe = useCallback(
     (restaurant: RestaurantCard, liked: boolean) => {
-      swipeMutation.mutate(
-        {restaurant_id: restaurant.id, liked},
-        {
-          onSuccess: response => {
-            if (response.unanimous_match && response.matched_restaurant_id) {
-              setMatched(restaurant);
-            }
+      return new Promise<boolean>(resolve => {
+        swipeMutation.mutate(
+          {restaurant_id: restaurant.id, liked},
+          {
+            onSuccess: response => {
+              if (response.unanimous_match && response.matched_restaurant_id) {
+                setMatched(restaurant);
+              }
+              resolve(true);
+            },
+            onError: swipeError => {
+              Alert.alert('Swipe not saved', swipeError.message);
+              resolve(false);
+            },
           },
-        },
-      );
+        );
+      });
     },
     [swipeMutation],
   );
 
   // Deck exhausted: report it and wait for the others (requirement 12.1).
   const handleDeckEmpty = useCallback(() => {
+    if (hasReportedEmpty.current) {
+      return;
+    }
+    hasReportedEmpty.current = true;
     setIsWaiting(true);
 
     reportFinished.mutate(sessionId, {
@@ -135,12 +149,30 @@ const SessionSwipeScreen = () => {
     });
   }, [goToResolution, reportFinished, sessionId]);
 
+  const retryFinish = () => {
+    hasReportedEmpty.current = false;
+    reportFinished.reset();
+    handleDeckEmpty();
+  };
+
+  const completedIds = new Set(progress?.restaurant_ids ?? []);
+  const remainingRestaurants = deck?.restaurants.filter(
+    restaurant => !completedIds.has(restaurant.id),
+  ) ?? [];
+  const remainingCount = remainingRestaurants.length;
+
+  useEffect(() => {
+    if (!isLoading && !isProgressLoading && deck && remainingCount === 0) {
+      handleDeckEmpty();
+    }
+  }, [deck, handleDeckEmpty, isLoading, isProgressLoading, remainingCount]);
+
   const handleMatchDismiss = () => {
     setMatched(null);
     goToResult();
   };
 
-  if (isLoading) {
+  if (isLoading || isProgressLoading) {
     return (
       <View style={styles.centered}>
         <ActivityIndicator size="large" color="#FF6B6B" />
@@ -149,16 +181,16 @@ const SessionSwipeScreen = () => {
     );
   }
 
-  const hasCards = Boolean(deck && deck.restaurants.length > 0);
+  const hasCards = remainingCount > 0;
 
   return (
     <View style={styles.container}>
-      <SessionTimer sessionId={sessionId} />
+      <SessionTimer sessionId={sessionId} initialEndsAt={route.params.endsAt} />
 
       <View style={styles.cardContainer}>
         {hasCards && !isWaiting ? (
           <SwipeCard
-            restaurants={deck!.restaurants}
+            restaurants={remainingRestaurants}
             onSwipe={handleSwipe}
             onDeckEmpty={handleDeckEmpty}
           />
@@ -173,6 +205,11 @@ const SessionSwipeScreen = () => {
                 ? 'Waiting for the others to finish'
                 : 'Waiting for the session to wrap up'}
             </Text>
+            {reportFinished.isError && (
+              <TouchableOpacity style={styles.retryButton} onPress={retryFinish}>
+                <Text style={styles.retryText}>Retry connection</Text>
+              </TouchableOpacity>
+            )}
           </View>
         )}
       </View>
@@ -187,7 +224,7 @@ const SessionSwipeScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F5F5F5',
+    backgroundColor: COLORS.background,
   },
   cardContainer: {
     flex: 1,
@@ -198,12 +235,12 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#F5F5F5',
+    backgroundColor: COLORS.background,
   },
   loadingText: {
     marginTop: 12,
     fontSize: 16,
-    color: '#666',
+    color: COLORS.textMuted,
   },
   waiting: {
     alignItems: 'center',
@@ -216,14 +253,16 @@ const styles = StyleSheet.create({
   waitingTitle: {
     fontSize: 20,
     fontWeight: '600',
-    color: '#333',
+    color: COLORS.text,
     marginBottom: 6,
   },
   waitingText: {
     fontSize: 15,
-    color: '#666',
+    color: COLORS.textMuted,
     textAlign: 'center',
   },
+  retryButton: {marginTop: 20, borderRadius: 14, backgroundColor: COLORS.accent, paddingHorizontal: 20, paddingVertical: 11},
+  retryText: {color: '#FFF', fontSize: 13, fontWeight: '800'},
 });
 
 export default SessionSwipeScreen;

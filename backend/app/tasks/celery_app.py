@@ -9,6 +9,7 @@ celery_app = Celery(
     "ginder",
     broker=settings.REDIS_URL,
     backend=settings.REDIS_URL,
+    include=["app.tasks.cleanup"],
 )
 
 celery_app.conf.update(
@@ -34,6 +35,3 @@ celery_app.conf.beat_schedule = {
         "schedule": crontab(minute="*"),
     },
 }
-
-# Auto-discover tasks
-celery_app.autodiscover_tasks(["app.tasks"])

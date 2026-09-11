@@ -54,6 +54,16 @@ class FriendService:
         self.db.add(Friendship(user_id=friend_id, friend_id=user_id))
         await self.db.flush()
 
+    async def are_friends(self, user_id: UUID, friend_id: UUID) -> bool:
+        """Check the directed row used by the bidirectional friendship model."""
+        result = await self.db.execute(
+            select(Friendship.id).where(
+                Friendship.user_id == user_id,
+                Friendship.friend_id == friend_id,
+            )
+        )
+        return result.first() is not None
+
     async def unfriend(self, user: User, friend_id: UUID) -> MessageResponse:
         """Remove a friendship. Blocked if both are in the same open session."""
         # Requirement 4.4 says "in the same Session", which covers the lobby

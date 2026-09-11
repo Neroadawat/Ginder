@@ -4,6 +4,7 @@
 
 import {create} from 'zustand';
 import {MMKV} from 'react-native-mmkv';
+import {useSessionStore} from './sessionStore';
 
 const storage = new MMKV();
 
@@ -35,6 +36,7 @@ export const useAuthStore = create<AuthState>((set) => ({
     storage.delete('access_token');
     storage.delete('refresh_token');
     storage.delete('user_id');
+    useSessionStore.getState().clearSession();
     set({isAuthenticated: false, accessToken: null, refreshToken: null, userId: null});
   },
 

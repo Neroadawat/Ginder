@@ -30,6 +30,32 @@ export const useJoinSession = () => {
   });
 };
 
+export const useCurrentSession = () => {
+  const setActiveSession = useSessionStore(state => state.setActiveSession);
+  const clearSession = useSessionStore(state => state.clearSession);
+  return useQuery({
+    queryKey: ['session', 'current'],
+    queryFn: async () => {
+      const lobby = await sessionApi.getCurrent();
+      if (lobby) {
+        setActiveSession(lobby.session.id);
+      } else {
+        clearSession();
+      }
+      return lobby;
+    },
+    staleTime: 0,
+    retry: 1,
+  });
+};
+
+export const useInviteFriend = () => {
+  return useMutation({
+    mutationFn: ({sessionId, friendId}: {sessionId: string; friendId: string}) =>
+      sessionApi.inviteFriend(sessionId, friendId),
+  });
+};
+
 export const useSession = (sessionId: string) => {
   return useQuery({
     queryKey: ['session', sessionId],
@@ -61,6 +87,18 @@ export const useKickParticipant = () => {
   });
 };
 
+export const useLeaveSession = () => {
+  const clearSession = useSessionStore(state => state.clearSession);
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (sessionId: string) => sessionApi.leave(sessionId),
+    onSuccess: () => {
+      clearSession();
+      queryClient.invalidateQueries({queryKey: ['session']});
+    },
+  });
+};
+
 /**
  * Tell the server this client has swiped its whole deck.
  *
@@ -70,6 +108,7 @@ export const useKickParticipant = () => {
 export const useReportDeckFinished = () => {
   return useMutation({
     mutationFn: (sessionId: string) => sessionApi.reportDeckFinished(sessionId),
+    retry: 2,
   });
 };
 

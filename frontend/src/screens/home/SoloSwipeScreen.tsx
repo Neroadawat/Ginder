@@ -9,6 +9,7 @@ import {
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
+  Alert,
 } from 'react-native';
 import {useNavigation} from '@react-navigation/native';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
@@ -17,7 +18,7 @@ import SwipeCard from '@/components/SwipeCard';
 import {useSoloDeck} from '@/hooks/useRestaurants';
 import {useSoloLike} from '@/hooks/useVotes';
 import {useFilterStore} from '@/stores/filterStore';
-import {HomeStackParamList} from '@/navigation/types';
+import {HomeStackParamList, RootStackParamList} from '@/navigation/types';
 import {RestaurantCard} from '@/types/restaurant';
 import AppIcon from '@/components/AppIcon';
 import {COLORS} from '@/constants/theme';
@@ -41,6 +42,17 @@ const SoloSwipeScreen = () => {
     refetch,
   } = useSoloDeck({category, priceLevel, minRating, radiusKm, openNow});
   const soloLikeMutation = useSoloLike();
+
+  const openPartyMenu = () => {
+    const rootNavigation = navigation.getParent()?.getParent() as
+      | NativeStackNavigationProp<RootStackParamList>
+      | undefined;
+    Alert.alert('Play with friends', 'Create a new lobby or join with an invite code.', [
+      {text: 'Cancel', style: 'cancel'},
+      {text: 'Join', onPress: () => rootNavigation?.navigate('Session', {screen: 'JoinSession', params: {}})},
+      {text: 'Create', onPress: () => rootNavigation?.navigate('Session', {screen: 'CreateSession'})},
+    ]);
+  };
 
   const handleSwipe = useCallback(
     (restaurant: RestaurantCard, liked: boolean) => {
@@ -80,6 +92,13 @@ const SoloSwipeScreen = () => {
         <View style={styles.deckPill}>
           <Text style={styles.deckText}>{deck?.total ?? 0} places</Text>
         </View>
+        <TouchableOpacity
+          style={styles.partyButton}
+          onPress={openPartyMenu}
+          accessibilityRole="button"
+          accessibilityLabel="Play with friends">
+          <Text style={styles.partyText}>+</Text>
+        </TouchableOpacity>
       </View>
 
       <View style={styles.cardContainer}>
@@ -147,6 +166,8 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   deckText: {color: '#DDD', fontSize: 12, fontWeight: '600'},
+  partyButton: {width: 42, height: 42, borderRadius: 21, backgroundColor: '#151313', borderWidth: 1, borderColor: '#3A3535', alignItems: 'center', justifyContent: 'center'},
+  partyText: {color: '#FFF', fontSize: 28, lineHeight: 30, fontWeight: '300'},
   title: {
     fontSize: 24,
     fontWeight: '700',

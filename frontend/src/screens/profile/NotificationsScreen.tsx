@@ -1,6 +1,7 @@
 import React from 'react';
 import {
   ActivityIndicator,
+  Alert,
   FlatList,
   StyleSheet,
   Text,
@@ -9,7 +10,6 @@ import {
 } from 'react-native';
 import {useNavigation} from '@react-navigation/native';
 
-import AppIcon from '@/components/AppIcon';
 import {COLORS} from '@/constants/theme';
 import {useNotifications, useMarkAsRead} from '@/hooks/useNotifications';
 import {useJoinSession} from '@/hooks/useSessions';
@@ -30,6 +30,7 @@ const NotificationsScreen = () => {
       inviteCode = undefined;
     }
     if (!inviteCode) {
+      Alert.alert('Invite unavailable', 'This invitation does not contain a valid session code.');
       return;
     }
     joinSession.mutate(inviteCode, {
@@ -40,15 +41,24 @@ const NotificationsScreen = () => {
           params: {sessionId: lobby.session.id},
         });
       },
+      onError: joinError => {
+        if (/started|not found|invalid invite/i.test(joinError.message)) {
+          markRead.mutate(item.id);
+        }
+        Alert.alert('Could not join', joinError.message);
+      },
     });
   };
 
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>Notice</Text>
+        <TouchableOpacity onPress={() => navigation.goBack()} accessibilityLabel="Go back">
+          <Text style={styles.back}>‹ Back</Text>
+        </TouchableOpacity>
+        <Text style={styles.title}>Invitations</Text>
         <Text style={styles.subtitle}>
-          all your activities log will show here
+          Accept a friend's invitation to enter their lobby.
         </Text>
       </View>
       {isLoading ? (
@@ -74,24 +84,27 @@ const NotificationsScreen = () => {
               {!item.is_read && (
                 <View style={styles.actions}>
                   <TouchableOpacity
-                    style={styles.action}
+                    style={styles.rejectAction}
                     onPress={() => dismiss(item.id)}
                     accessibilityLabel="Dismiss invitation">
-                    <AppIcon name="close" size={18} />
+                    <Text style={styles.rejectText}>Decline</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
-                    style={styles.action}
+                    style={styles.acceptAction}
+                    disabled={joinSession.isPending}
                     onPress={() => accept(item)}
                     accessibilityLabel="Accept invitation">
-                    <Text style={styles.check}>✓</Text>
+                    <Text style={styles.acceptText}>{joinSession.isPending ? 'Joining…' : 'Accept'}</Text>
                   </TouchableOpacity>
                 </View>
               )}
+              {item.is_read && <Text style={styles.closed}>Closed</Text>}
             </View>
           )}
           ListEmptyComponent={
             <View style={styles.empty}>
-              <Text style={styles.emptyText}>No activities yet</Text>
+              <Text style={styles.emptyTitle}>No invitations</Text>
+              <Text style={styles.emptyText}>New party invites will appear here.</Text>
             </View>
           }
         />
@@ -123,6 +136,7 @@ function formatRelativeTime(value: string): string {
 const styles = StyleSheet.create({
   container: {flex: 1, backgroundColor: COLORS.background},
   header: {paddingHorizontal: 13, paddingTop: 60, paddingBottom: 10},
+  back: {fontSize: 14, color: COLORS.textMuted, marginBottom: 18},
   title: {fontSize: 26, fontWeight: '800', color: COLORS.text},
   subtitle: {fontSize: 13, color: '#EEE', marginTop: 14},
   list: {
@@ -161,20 +175,24 @@ const styles = StyleSheet.create({
     lineHeight: 17,
   },
   date: {color: '#8E8989', fontSize: 12, marginTop: 8},
-  actions: {flexDirection: 'row', gap: 8, marginLeft: 8},
-  action: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+  actions: {gap: 7, marginLeft: 8},
+  rejectAction: {
+    borderRadius: 10,
     borderWidth: 1,
-    borderColor: '#FFF',
+    borderColor: COLORS.border,
     alignItems: 'center',
     justifyContent: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
   },
-  check: {fontSize: 17, color: '#FFF'},
+  rejectText: {fontSize: 11, color: COLORS.textMuted, fontWeight: '700'},
+  acceptAction: {borderRadius: 10, backgroundColor: COLORS.accent, alignItems: 'center', paddingHorizontal: 10, paddingVertical: 7},
+  acceptText: {fontSize: 11, color: '#FFF', fontWeight: '800'},
+  closed: {fontSize: 10, color: '#696464', marginLeft: 8},
   centered: {flex: 1, justifyContent: 'center', alignItems: 'center'},
   empty: {paddingTop: 100, alignItems: 'center'},
-  emptyText: {color: COLORS.textMuted, fontSize: 15},
+  emptyTitle: {color: COLORS.text, fontSize: 18, fontWeight: '800'},
+  emptyText: {color: COLORS.textMuted, fontSize: 14, marginTop: 7},
   badge: {
     position: 'absolute',
     right: 102,

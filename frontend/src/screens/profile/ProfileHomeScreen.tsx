@@ -13,6 +13,8 @@ import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import AppIcon from '@/components/AppIcon';
 import {COLORS} from '@/constants/theme';
 import {useProfile, useDeleteAccount} from '@/hooks/useUser';
+import {useNotifications} from '@/hooks/useNotifications';
+import {useCurrentSession} from '@/hooks/useSessions';
 import {useAuthStore} from '@/stores/authStore';
 import {ProfileStackParamList, RootStackParamList} from '@/navigation/types';
 
@@ -28,6 +30,8 @@ const ProfileHomeScreen = () => {
   const {data: profile} = useProfile();
   const logout = useAuthStore(state => state.logout);
   const deleteAccount = useDeleteAccount();
+  const {data: notifications} = useNotifications();
+  const {data: currentSession} = useCurrentSession();
 
   const confirmLogout = () =>
     Alert.alert('Log out', 'Are you sure you want to log out?', [
@@ -74,9 +78,29 @@ const ProfileHomeScreen = () => {
         </View>
       </View>
       <Section title="Account">
+        {currentSession && (
+          <Row
+            label={currentSession.session.status === 'lobby' ? 'Resume party lobby' : 'Resume active session'}
+            onPress={() => {
+              if (currentSession.session.status === 'lobby') {
+                rootNav.navigate('Session', {screen: 'Lobby', params: {sessionId: currentSession.session.id}});
+              } else {
+                rootNav.navigate('Session', {screen: 'SessionSwipe', params: {sessionId: currentSession.session.id}});
+              }
+            }}
+          />
+        )}
         <Row
           label="Create party session"
           onPress={() => rootNav.navigate('Session', {screen: 'CreateSession'})}
+        />
+        <Row
+          label="Join with invite code"
+          onPress={() => rootNav.navigate('Session', {screen: 'JoinSession', params: {}})}
+        />
+        <Row
+          label={`Invitations${notifications?.unread_count ? ` (${notifications.unread_count})` : ''}`}
+          onPress={() => navigation.navigate('Notifications')}
         />
         <Row
           label="Friends"
@@ -85,10 +109,6 @@ const ProfileHomeScreen = () => {
         <Row
           label="Match history"
           onPress={() => navigation.navigate('History')}
-        />
-        <Row
-          label="Notification settings"
-          onPress={() => navigation.navigate('Settings')}
         />
       </Section>
       <Section title="About">

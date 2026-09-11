@@ -10,7 +10,8 @@ export const useNotifications = () => {
   return useQuery({
     queryKey: ['notifications'],
     queryFn: () => notificationApi.getNotifications(),
-    refetchInterval: 30000, // Poll every 30 seconds
+    refetchInterval: 5000,
+    refetchOnMount: 'always',
   });
 };
 

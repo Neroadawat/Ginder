@@ -54,6 +54,19 @@ class NotificationService:
 
         return MessageResponse(message="Notification marked as read")
 
+    async def expire_session_invites(self, session_id: UUID) -> None:
+        """Hide pending invitations once a lobby starts or is cancelled."""
+        result = await self.db.execute(
+            select(Notification).where(
+                Notification.type == NotificationType.SESSION_INVITE,
+                Notification.is_read.is_(False),
+                Notification.data.contains(str(session_id)),
+            )
+        )
+        for notification in result.scalars().all():
+            notification.is_read = True
+        await self.db.flush()
+
     async def send_session_invite(
         self,
         from_user: User,
@@ -66,6 +79,20 @@ class NotificationService:
         to_user = result.scalar_one_or_none()
         if not to_user:
             raise NotFoundException("User not found")
+
+        # Repeated taps should not fill the recipient's inbox with identical,
+        # unread invitations for the same session.
+        session_id = str(session.id)
+        existing_result = await self.db.execute(
+            select(Notification).where(
+                Notification.user_id == to_user_id,
+                Notification.type == NotificationType.SESSION_INVITE,
+                Notification.is_read.is_(False),
+                Notification.data.contains(session_id),
+            )
+        )
+        if existing_result.scalars().first():
+            return
 
         # Create notification record
         notification = Notification(

@@ -45,19 +45,55 @@ alembic upgrade head
 uvicorn app.main:app --reload
 ```
 
-### Frontend
+### Frontend (Windows + Android emulator)
 
-```bash
+Use JDK 17; Android Studio's bundled JDK may be too new for this project's
+Gradle version.
+
+```powershell
 cd frontend
 npm install
-npx react-native run-android
+$env:JAVA_HOME = "C:\Program Files\Eclipse Adoptium\jdk-17.0.20.101-hotspot"
+$env:ANDROID_HOME = "$env:LOCALAPPDATA\Android\Sdk"
+$env:Path = "$env:JAVA_HOME\bin;$env:ANDROID_HOME\platform-tools;$env:ANDROID_HOME\emulator;$env:Path"
+npm start
+```
+
+Open an emulator, then use a second terminal:
+
+```powershell
+cd frontend
+adb reverse tcp:8081 tcp:8081
+adb emu geo fix 100.6065 14.0708
+npm run android
+```
+
+If Gradle reports `Could not move temporary workspace`, install with a
+separate project cache:
+
+```powershell
+cd frontend\android
+.\gradlew.bat app:installDebug `
+  -PreactNativeDevServerPort=8081 `
+  --no-daemon `
+  --project-cache-dir "$env:LOCALAPPDATA\Temp\ginder-gradle-project-cache"
 ```
 
 ### Docker (Backend + DB + Redis)
 
-```bash
-docker-compose up -d
+```powershell
+docker compose up -d
 ```
+
+## Test a party session locally
+
+1. Start two Android emulators and register a different account on each.
+2. Run `adb devices`, then reverse Metro for both device ids with
+   `adb -s <device-id> reverse tcp:8081 tcp:8081`.
+3. On the host, tap `+` on Swipe, create a session, then share its link/code.
+4. On the other account, choose Profile → Invitations → Accept. For the first
+   session (before the accounts are friends), use Profile → Join with invite
+   code instead. Joining makes the host and guest friends automatically.
 
 ## Environment Variables
 

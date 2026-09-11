@@ -20,6 +20,7 @@ from app.schemas.vote import (
     SoloLikeResponse,
     SwipeRequest,
     SwipeResponse,
+    VoteProgressResponse,
 )
 from app.services.match_service import MatchService
 from app.services.restaurant_service import RestaurantService
@@ -124,6 +125,19 @@ class VoteService:
         ]
 
         return SessionLikesResponse(session_id=session_id, likes=likes)
+
+    async def get_progress(self, session_id: UUID, user: User) -> VoteProgressResponse:
+        """Return persisted swipe progress so reconnecting skips completed cards."""
+        await self._ensure_participant(session_id, user.id)
+        result = await self.db.execute(
+            select(Vote.restaurant_id)
+            .where(Vote.session_id == session_id, Vote.user_id == user.id)
+            .order_by(Vote.created_at)
+        )
+        return VoteProgressResponse(
+            session_id=session_id,
+            restaurant_ids=[row[0] for row in result.all()],
+        )
 
     async def solo_like(self, user: User, body: SoloLikeRequest) -> SoloLikeResponse:
         """Save a restaurant liked in solo mode (requirement 10.4)."""

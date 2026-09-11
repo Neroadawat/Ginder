@@ -13,6 +13,8 @@ import ProfileNavigator from './stacks/ProfileStack';
 import {MainTabParamList} from './types';
 import AppIcon, {AppIconName} from '@/components/AppIcon';
 import {COLORS} from '@/constants/theme';
+import {useNotifications} from '@/hooks/useNotifications';
+import {useCurrentSession} from '@/hooks/useSessions';
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
 
@@ -60,6 +62,8 @@ const tabScreenOptions = ({
 });
 
 const MainTabNavigator = () => {
+  const {data: notifications} = useNotifications();
+  useCurrentSession();
   return (
     <Tab.Navigator screenOptions={tabScreenOptions}>
       <Tab.Screen
@@ -85,7 +89,11 @@ const MainTabNavigator = () => {
       <Tab.Screen
         name="ProfileTab"
         component={ProfileNavigator}
-        options={{tabBarLabel: 'Profile'}}
+        options={{
+          tabBarLabel: 'Profile',
+          tabBarBadge: notifications?.unread_count || undefined,
+          tabBarBadgeStyle: {backgroundColor: COLORS.accent, color: '#FFF', fontSize: 10},
+        }}
       />
     </Tab.Navigator>
   );

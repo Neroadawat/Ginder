@@ -22,6 +22,13 @@ class SwipeResponse(BaseModel):
     matched_restaurant_id: uuid.UUID | None = None
 
 
+class VoteProgressResponse(BaseModel):
+    """Restaurant ids the caller already swiped in this session."""
+
+    session_id: uuid.UUID
+    restaurant_ids: list[uuid.UUID]
+
+
 class LikeEntry(BaseModel):
     """One participant's like, for the in-session Likes tab."""
 

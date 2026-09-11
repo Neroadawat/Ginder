@@ -189,3 +189,10 @@ export interface NotificationListResponse {
   notifications: NotificationItem[];
   unread_count: number;
 }
+
+export interface VoteProgressResponse {
+  session_id: string;
+  restaurant_ids: string[];
+}
+
+export type CurrentSessionResponse = LobbyResponse | null;

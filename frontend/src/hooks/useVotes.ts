@@ -12,6 +12,7 @@ import {SwipeRequest} from '@/types/api';
 export const useSwipe = (sessionId: string) => {
   return useMutation({
     mutationFn: (data: SwipeRequest) => voteApi.swipe(sessionId, data),
+    retry: 2,
   });
 };
 
@@ -37,6 +38,15 @@ export const useSessionLikes = (sessionId: string) => {
   }, [lastEvent, queryClient, sessionId]);
 
   return query;
+};
+
+export const useVoteProgress = (sessionId: string) => {
+  return useQuery({
+    queryKey: ['votes', 'progress', sessionId],
+    queryFn: () => voteApi.getProgress(sessionId),
+    enabled: !!sessionId,
+    staleTime: 0,
+  });
 };
 
 export const useSoloLike = () => {

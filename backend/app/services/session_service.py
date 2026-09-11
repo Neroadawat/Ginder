@@ -46,13 +46,16 @@ class SessionService:
         """Create a lobby with the host as its first participant."""
         await self._ensure_no_active_session(host.id)
 
+        # Eight characters are short enough to type from another phone while
+        # still providing more than four billion possible invite codes.
+        invite_code = await self._new_invite_code()
         session = Session(
             host_id=host.id,
             latitude=body.latitude,
             longitude=body.longitude,
             radius_km=body.radius_km,
             duration_seconds=body.duration_seconds,
-            invite_code=secrets.token_urlsafe(16),
+            invite_code=invite_code,
             category_filter=body.category_filter,
             price_filter=body.price_filter,
             rating_filter=body.rating_filter,
@@ -83,7 +86,7 @@ class SessionService:
         result = await self.db.execute(
             select(Session)
             .options(selectinload(Session.participants).selectinload(SessionParticipant.user))
-            .where(Session.invite_code == body.invite_code)
+            .where(Session.invite_code == body.invite_code.strip())
         )
         session = result.scalar_one_or_none()
 
@@ -113,6 +116,11 @@ class SessionService:
 
         await self.db.flush()
         await self.db.refresh(session, ["participants"])
+
+        # Publish only after the participant is visible to other database
+        # connections; otherwise the host can receive the event and refetch
+        # the still-old lobby.
+        await self.db.commit()
 
         await manager.broadcast_to_session(
             session.id,
@@ -159,6 +167,11 @@ class SessionService:
 
         restaurant_service = RestaurantService(self.db)
         deck = await restaurant_service.create_session_deck(session)
+        if not deck:
+            raise NotFoundException(
+                "No restaurants match these filters. Leave this lobby and create a new "
+                "session with a wider radius or fewer filters."
+            )
 
         now = datetime.now(UTC)
         session.status = SessionStatus.ACTIVE
@@ -168,7 +181,12 @@ class SessionService:
         for participant in session.participants:
             participant.status = ParticipantStatus.SWIPING
 
+        await NotificationService(self.db).expire_session_invites(session.id)
+
         await self.db.flush()
+        # The WebSocket event can move guests to the swipe screen immediately.
+        # Commit first so their deck/timer requests cannot race this transaction.
+        await self.db.commit()
 
         await manager.broadcast_to_session(
             session.id,
@@ -216,6 +234,40 @@ class SessionService:
 
         return MessageResponse(message="Participant removed from session")
 
+    async def leave_session(self, session_id: UUID, user: User) -> MessageResponse:
+        """Leave a lobby; leaving as host cancels it for everybody."""
+        session = await self._get_session_with_participants(session_id)
+        self._ensure_participant(session, user)
+
+        if session.status != SessionStatus.LOBBY:
+            raise ForbiddenException("You cannot leave after the session has started")
+
+        if session.host_id == user.id:
+            participant_ids = [str(item.user_id) for item in session.participants]
+            for participant in list(session.participants):
+                await self.db.delete(participant)
+            await NotificationService(self.db).expire_session_invites(session.id)
+            await self.db.delete(session)
+            await self.db.flush()
+            await manager.broadcast_to_session(
+                session_id,
+                EVENT_USER_LEFT,
+                {
+                    "user_id": str(user.id),
+                    "session_cancelled": True,
+                    "participants": participant_ids,
+                },
+            )
+            return MessageResponse(message="Session cancelled")
+
+        participant = next(item for item in session.participants if item.user_id == user.id)
+        await self.db.delete(participant)
+        await self.db.flush()
+        await manager.broadcast_to_session(
+            session.id, EVENT_USER_LEFT, {"user_id": str(user.id)}
+        )
+        return MessageResponse(message="You left the session")
+
     async def invite_friend(
         self, session_id: UUID, friend_id: UUID, host: User
     ) -> MessageResponse:
@@ -225,6 +277,15 @@ class SessionService:
 
         if session.status != SessionStatus.LOBBY:
             raise ForbiddenException("Cannot invite after the session has started")
+
+        if friend_id == host.id:
+            raise ForbiddenException("You cannot invite yourself")
+
+        if not await FriendService(self.db).are_friends(host.id, friend_id):
+            raise ForbiddenException("You can only invite people in your friends list")
+
+        if any(participant.user_id == friend_id for participant in session.participants):
+            return MessageResponse(message="This friend is already in the lobby")
 
         notification_service = NotificationService(self.db)
         await notification_service.send_session_invite(
@@ -324,6 +385,33 @@ class SessionService:
         )
 
     # ─── Private helpers ───
+
+    async def get_current_session(self, user: User) -> LobbyResponse | None:
+        """Return the user's open session so the app can recover after restart."""
+        result = await self.db.execute(
+            select(Session)
+            .join(SessionParticipant, SessionParticipant.session_id == Session.id)
+            .options(selectinload(Session.participants).selectinload(SessionParticipant.user))
+            .where(
+                SessionParticipant.user_id == user.id,
+                Session.status.in_([SessionStatus.LOBBY, SessionStatus.ACTIVE]),
+            )
+            .order_by(Session.created_at.desc())
+        )
+        session = result.scalars().first()
+        return await self._build_lobby_response(session) if session else None
+
+    async def _new_invite_code(self) -> str:
+        """Generate a compact code and guard against the unlikely collision."""
+        for _ in range(10):
+            code = secrets.token_hex(4).upper()
+            exists = await self.db.scalar(
+                select(func.count(Session.id)).where(Session.invite_code == code)
+            )
+            if not exists:
+                return code
+        # Cryptographically implausible fallback, but never create a duplicate.
+        return secrets.token_urlsafe(16)
 
     async def _ensure_no_active_session(self, user_id: UUID) -> None:
         """Raise if the user is already in a lobby or an active session.

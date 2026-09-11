@@ -9,31 +9,48 @@ import {useSession} from '@/hooks/useSessions';
 
 interface Props {
   sessionId: string;
+  initialEndsAt?: string;
 }
 
-const SessionTimer = ({sessionId}: Props) => {
+const secondsUntil = (value?: string | null) =>
+  value ? Math.max(0, Math.ceil((new Date(value).getTime() - Date.now()) / 1000)) : null;
+
+const SessionTimer = ({sessionId, initialEndsAt}: Props) => {
   const {data: lobby} = useSession(sessionId);
-  const [remaining, setRemaining] = useState<number>(0);
+  const endsAt = initialEndsAt ?? lobby?.session.ends_at;
+  const [remaining, setRemaining] = useState<number | null>(() =>
+    secondsUntil(initialEndsAt),
+  );
 
   useEffect(() => {
-    if (!lobby?.session.ends_at) {
+    if (!endsAt) {
       return;
     }
 
-    const endsAt = new Date(lobby.session.ends_at).getTime();
+    const update = () => {
+      const next = secondsUntil(endsAt) ?? 0;
+      setRemaining(next);
+      return next;
+    };
+
+    update();
 
     const interval = setInterval(() => {
-      const now = Date.now();
-      const diff = Math.max(0, Math.floor((endsAt - now) / 1000));
-      setRemaining(diff);
-
-      if (diff <= 0) {
+      if (update() <= 0) {
         clearInterval(interval);
       }
-    }, 1000);
+    }, 250);
 
     return () => clearInterval(interval);
-  }, [lobby?.session.ends_at]);
+  }, [endsAt]);
+
+  if (remaining === null) {
+    return (
+      <View style={styles.container}>
+        <Text style={styles.timer}>⏱️ --:--</Text>
+      </View>
+    );
+  }
 
   const minutes = Math.floor(remaining / 60);
   const seconds = remaining % 60;

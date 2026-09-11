@@ -32,6 +32,10 @@ class User(Base):
     )
 
     # Relationships
-    session_participations = relationship("SessionParticipant", back_populates="user")
-    votes = relationship("Vote", back_populates="user")
-    notifications = relationship("Notification", back_populates="user")
+    # The foreign keys already use ON DELETE CASCADE. passive_deletes keeps
+    # SQLAlchemy from first setting their non-null user_id columns to NULL.
+    session_participations = relationship(
+        "SessionParticipant", back_populates="user", passive_deletes=True
+    )
+    votes = relationship("Vote", back_populates="user", passive_deletes=True)
+    notifications = relationship("Notification", back_populates="user", passive_deletes=True)

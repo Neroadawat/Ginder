@@ -29,7 +29,11 @@ const LobbyPlayerItem = ({participant, isHost, isCurrentUser, onKick}: Props) =>
           {participant.display_name}
           {isCurrentUser && <Text style={styles.youTag}> (You)</Text>}
         </Text>
-        <Text style={styles.status}>{participant.status}</Text>
+        {participant.status !== 'in_lobby' && (
+          <Text style={styles.status}>
+            {participant.status.replace('_', ' ')}
+          </Text>
+        )}
       </View>
 
       {isHost && !isCurrentUser && (
@@ -49,7 +53,7 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFF',
+    backgroundColor: '#151313',
     padding: 12,
     borderRadius: 12,
     marginBottom: 8,
@@ -74,7 +78,7 @@ const styles = StyleSheet.create({
   name: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#333',
+    color: '#FFF',
   },
   youTag: {
     fontSize: 14,

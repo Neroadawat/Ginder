@@ -62,6 +62,16 @@ async def join_session(
     return await service.join_session(current_user, body)
 
 
+@router.get("/current", response_model=LobbyResponse | None)
+async def get_current_session(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Recover the caller's lobby or active session after an app restart."""
+    service = SessionService(db)
+    return await service.get_current_session(current_user)
+
+
 @router.get("/{session_id}", response_model=LobbyResponse)
 async def get_session(
     session_id: UUID,
@@ -139,6 +149,17 @@ async def kick_participant(
     """Kick a participant from the lobby (host only, before start)."""
     service = SessionService(db)
     return await service.kick_participant(session_id, user_id, current_user)
+
+
+@router.post("/{session_id}/leave", response_model=MessageResponse)
+async def leave_session(
+    session_id: UUID,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Leave a lobby, or cancel it when called by its host."""
+    service = SessionService(db)
+    return await service.leave_session(session_id, current_user)
 
 
 @router.post("/{session_id}/invite", response_model=MessageResponse)

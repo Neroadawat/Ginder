@@ -16,6 +16,7 @@ import {
 import {useNavigation} from '@react-navigation/native';
 
 import {useFriends, useSearchFriends, useUnfriend} from '@/hooks/useFriends';
+import {COLORS} from '@/constants/theme';
 
 const FriendListScreen = () => {
   const navigation = useNavigation();
@@ -32,7 +33,10 @@ const FriendListScreen = () => {
       {
         text: 'Unfriend',
         style: 'destructive',
-        onPress: () => unfriendMutation.mutate(friendId),
+        onPress: () =>
+          unfriendMutation.mutate(friendId, {
+            onError: error => Alert.alert('Could not remove friend', error.message),
+          }),
       },
     ]);
   };
@@ -100,13 +104,13 @@ const FriendListScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F5F5F5',
+    backgroundColor: COLORS.background,
   },
   header: {
     paddingHorizontal: 20,
     paddingTop: 60,
     paddingBottom: 16,
-    backgroundColor: '#FFF',
+    backgroundColor: COLORS.background,
   },
   backText: {
     fontSize: 16,
@@ -116,20 +120,20 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 28,
     fontWeight: '700',
-    color: '#333',
+    color: COLORS.text,
   },
   count: {
     fontSize: 14,
-    color: '#666',
+    color: COLORS.textMuted,
     marginTop: 4,
   },
   searchInput: {
     margin: 16,
     padding: 12,
     borderRadius: 12,
-    backgroundColor: '#FFF',
+    backgroundColor: COLORS.surface,
     fontSize: 16,
-    color: '#333',
+    color: COLORS.text,
   },
   list: {
     paddingHorizontal: 16,
@@ -137,7 +141,7 @@ const styles = StyleSheet.create({
   friendItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFF',
+    backgroundColor: COLORS.surface,
     padding: 12,
     borderRadius: 12,
     marginBottom: 8,
@@ -162,7 +166,7 @@ const styles = StyleSheet.create({
   friendName: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#333',
+    color: COLORS.text,
   },
   friendEmail: {
     fontSize: 12,

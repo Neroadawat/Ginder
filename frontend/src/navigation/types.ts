@@ -40,9 +40,9 @@ export type ExploreStackParamList = {
 
 export type SessionStackParamList = {
   CreateSession: undefined;
-  JoinSession: {code: string};
+  JoinSession: {code?: string};
   Lobby: {sessionId: string};
-  SessionSwipe: {sessionId: string};
+  SessionSwipe: {sessionId: string; endsAt?: string};
   SessionResult: {sessionId: string};
   SpinWheel: {
     sessionId: string;

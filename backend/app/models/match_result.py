@@ -40,7 +40,11 @@ class MatchResult(Base):
         UUID(as_uuid=True), ForeignKey("restaurants.id", ondelete="SET NULL"), nullable=True
     )
     resolution_type: Mapped[ResolutionType] = mapped_column(
-        Enum(ResolutionType), nullable=False
+        Enum(
+            ResolutionType,
+            values_callable=lambda enum_type: [item.value for item in enum_type],
+        ),
+        nullable=False,
     )
     restaurant_name: Mapped[str] = mapped_column(String(255), nullable=False)
     created_at: Mapped[datetime] = mapped_column(

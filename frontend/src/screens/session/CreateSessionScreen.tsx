@@ -15,7 +15,8 @@ import {
 import {useNavigation} from '@react-navigation/native';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 
-import {useCreateSession} from '@/hooks/useSessions';
+import {useCreateSession, useCurrentSession} from '@/hooks/useSessions';
+import {COLORS} from '@/constants/theme';
 import {useCategories} from '@/hooks/useRestaurants';
 import {useLocationStore} from '@/stores/locationStore';
 import {SessionStackParamList} from '@/navigation/types';
@@ -37,6 +38,7 @@ const CreateSessionScreen = () => {
   const latitude = useLocationStore(state => state.latitude);
   const longitude = useLocationStore(state => state.longitude);
   const createMutation = useCreateSession();
+  const {data: currentSession, isLoading: isCheckingSession} = useCurrentSession();
   const {data: categories} = useCategories();
 
   const [radiusKm, setRadiusKm] = useState<number>(DEFAULT_RADIUS_KM);
@@ -78,6 +80,26 @@ const CreateSessionScreen = () => {
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <Text style={styles.title}>🎉 Create Session</Text>
       <Text style={styles.subtitle}>Set up a group food hunt</Text>
+
+      {currentSession && (
+        <View style={styles.resumeCard}>
+          <View style={styles.resumeCopy}>
+            <Text style={styles.resumeTitle}>You already have an open session</Text>
+            <Text style={styles.resumeHint}>Resume it before creating another one.</Text>
+          </View>
+          <TouchableOpacity
+            style={styles.resumeButton}
+            onPress={() => {
+              if (currentSession.session.status === 'lobby') {
+                navigation.replace('Lobby', {sessionId: currentSession.session.id});
+              } else {
+                navigation.replace('SessionSwipe', {sessionId: currentSession.session.id});
+              }
+            }}>
+            <Text style={styles.resumeText}>Resume</Text>
+          </TouchableOpacity>
+        </View>
+      )}
 
       {/* Radius */}
       <Text style={styles.sectionTitle}>Search Radius</Text>
@@ -165,7 +187,7 @@ const CreateSessionScreen = () => {
         <Switch
           value={openNow}
           onValueChange={setOpenNow}
-          trackColor={{false: '#DDD', true: '#FF6B6B'}}
+          trackColor={{false: '#403B3B', true: COLORS.accent}}
           thumbColor="#FFF"
           accessibilityLabel="Only show places open now"
         />
@@ -196,15 +218,18 @@ const CreateSessionScreen = () => {
       <TouchableOpacity
         style={styles.createButton}
         onPress={handleCreate}
-        disabled={createMutation.isPending}
+        disabled={createMutation.isPending || isCheckingSession || Boolean(currentSession)}
         accessibilityRole="button"
         accessibilityLabel="Create session">
-        {createMutation.isPending ? (
+        {createMutation.isPending || isCheckingSession ? (
           <ActivityIndicator color="#FFF" />
         ) : (
           <Text style={styles.createText}>Create Session</Text>
         )}
       </TouchableOpacity>
+      {createMutation.isError && (
+        <Text style={styles.error}>{createMutation.error.message}</Text>
+      )}
     </ScrollView>
   );
 };
@@ -212,7 +237,7 @@ const CreateSessionScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFF',
+    backgroundColor: COLORS.background,
   },
   content: {
     padding: 24,
@@ -221,24 +246,24 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 28,
     fontWeight: '700',
-    color: '#333',
+    color: COLORS.text,
   },
   subtitle: {
     fontSize: 14,
-    color: '#666',
+    color: COLORS.textMuted,
     marginTop: 4,
     marginBottom: 32,
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#333',
+    color: COLORS.text,
     marginBottom: 12,
     marginTop: 20,
   },
   sectionHint: {
     fontSize: 13,
-    color: '#999',
+    color: COLORS.textMuted,
     marginTop: -8,
     marginBottom: 4,
   },
@@ -262,16 +287,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: '#DDD',
-    backgroundColor: '#F9F9F9',
+    borderColor: COLORS.border,
+    backgroundColor: COLORS.surface,
   },
   chipActive: {
     borderColor: '#FF6B6B',
-    backgroundColor: '#FFF0F0',
+    backgroundColor: '#381B1B',
   },
   chipText: {
     fontSize: 14,
-    color: '#666',
+    color: COLORS.textMuted,
   },
   chipTextActive: {
     color: '#FF6B6B',
@@ -289,6 +314,22 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '700',
   },
+  resumeCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.surface,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: 16,
+    padding: 14,
+    marginBottom: 8,
+  },
+  resumeCopy: {flex: 1},
+  resumeTitle: {color: COLORS.text, fontSize: 14, fontWeight: '800'},
+  resumeHint: {color: COLORS.textMuted, fontSize: 11, marginTop: 3},
+  resumeButton: {backgroundColor: COLORS.accent, borderRadius: 11, paddingHorizontal: 14, paddingVertical: 9},
+  resumeText: {color: '#FFF', fontSize: 12, fontWeight: '800'},
+  error: {color: '#FF7777', fontSize: 13, textAlign: 'center', marginTop: 12},
 });
 
 export default CreateSessionScreen;
