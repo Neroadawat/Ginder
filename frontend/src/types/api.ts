@@ -73,7 +73,7 @@ export interface CreateSessionRequest {
 export interface SessionResponse {
   id: string;
   status: 'lobby' | 'active' | 'finished';
-  host_id: string;
+  host_id: string | null;
   latitude: number;
   longitude: number;
   radius_km: number;

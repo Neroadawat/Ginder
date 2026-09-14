@@ -41,7 +41,8 @@ class SessionDeck(Base):
     )
     restaurant_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
-        ForeignKey("restaurants.id", ondelete="CASCADE"),
+        # Cache cleanup must never shrink a persisted session deck.
+        ForeignKey("restaurants.id", ondelete="RESTRICT"),
         nullable=False,
     )
 

@@ -29,7 +29,8 @@ class CreateSessionRequest(BaseModel):
 
 class SessionResponse(BaseModel):
     id: uuid.UUID
-    host_id: uuid.UUID
+    # Active and historical sessions can outlive a host account.
+    host_id: uuid.UUID | None
     status: str
     latitude: float
     longitude: float

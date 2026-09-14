@@ -4,12 +4,14 @@ import asyncio
 import logging
 from datetime import UTC, datetime
 
-from sqlalchemy import delete, select
+from sqlalchemy import delete, exists, select
 from sqlalchemy.orm import selectinload
 
 from app.core.database import async_session_factory
 from app.models.restaurant import Restaurant
 from app.models.session import Session, SessionParticipant, SessionStatus
+from app.models.session_deck import SessionDeck
+from app.models.vote import Vote
 from app.services.match_service import MatchService
 from app.tasks.celery_app import celery_app
 from app.websocket.connection_manager import manager
@@ -21,10 +23,9 @@ logger = logging.getLogger(__name__)
 def cleanup_restaurant_cache() -> int:
     """Delete expired cached restaurants. Runs nightly.
 
-    Only touches rows that carry a TTL and whose TTL has passed. Curated mock
-    data is flagged ``is_permanent`` and must survive (requirement 14.8) —
-    deleting the whole table here would wipe every seeded restaurant every
-    night and leave the app with an empty deck.
+    Only touches expired TTL rows that are not referenced by a persisted deck
+    or vote. Curated mock data is flagged ``is_permanent`` and must survive
+    (requirement 14.8).
     """
     return asyncio.run(_cleanup_restaurant_cache())
 
@@ -38,6 +39,8 @@ async def _cleanup_restaurant_cache() -> int:
                 Restaurant.is_permanent.is_(False),
                 Restaurant.expires_at.is_not(None),
                 Restaurant.expires_at <= now,
+                ~exists().where(SessionDeck.restaurant_id == Restaurant.id),
+                ~exists().where(Vote.restaurant_id == Restaurant.id),
             )
         )
         await session.commit()

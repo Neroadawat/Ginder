@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 
 import {RestaurantCard} from '@/types/restaurant';
-import {getPlaceholderImage} from '@/constants/placeholders';
+import {getRestaurantImageUri} from '@/constants/restaurantImages';
 import AppIcon from './AppIcon';
 
 interface Props {
@@ -34,16 +34,14 @@ const MatchPopup = ({restaurant, onDismiss}: Props) => {
             <Image
               source={{
                 uri:
-                  restaurant.photo_url ||
-                  getPlaceholderImage(restaurant.primary_category),
+                  getRestaurantImageUri(restaurant),
               }}
               style={[styles.photo, styles.photoLeft]}
             />
             <Image
               source={{
                 uri:
-                  restaurant.photo_url ||
-                  getPlaceholderImage(restaurant.primary_category),
+                  getRestaurantImageUri(restaurant),
               }}
               style={[styles.photo, styles.photoRight]}
             />

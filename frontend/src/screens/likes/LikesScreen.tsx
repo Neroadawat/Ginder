@@ -13,7 +13,7 @@ import {
 import {useSessionLikes, useSoloLikes} from '@/hooks/useVotes';
 import {useSessionStore} from '@/stores/sessionStore';
 import {RestaurantCard} from '@/types/restaurant';
-import {getPlaceholderImage} from '@/constants/placeholders';
+import {getRestaurantImageUri} from '@/constants/restaurantImages';
 import {COLORS} from '@/constants/theme';
 
 interface GridEntry {
@@ -113,7 +113,7 @@ const LikesGrid = ({
 const LikeTile = ({entry}: {entry: GridEntry}) => {
   const restaurant = entry.restaurant;
   const image =
-    restaurant.photo_url || getPlaceholderImage(restaurant.primary_category);
+    getRestaurantImageUri(restaurant);
   const open = () =>
     restaurant.google_maps_url && Linking.openURL(restaurant.google_maps_url);
   return (

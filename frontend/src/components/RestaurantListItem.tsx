@@ -8,7 +8,7 @@ import React from 'react';
 import {Image, Linking, StyleSheet, Text, TouchableOpacity, View} from 'react-native';
 
 import {RestaurantCard} from '@/types/restaurant';
-import {getCategoryEmoji} from '@/constants/placeholders';
+import {getRestaurantImageUri} from '@/constants/restaurantImages';
 
 interface Props {
   restaurant: RestaurantCard;
@@ -34,15 +34,7 @@ const RestaurantListItem = ({restaurant}: Props) => {
           ? `Navigate to ${restaurant.name}, ${restaurant.primary_category}`
           : `${restaurant.name}, ${restaurant.primary_category}`
       }>
-      {restaurant.photo_url ? (
-        <Image source={{uri: restaurant.photo_url}} style={styles.image} resizeMode="cover" />
-      ) : (
-        <View style={styles.placeholderImage}>
-          <Text style={styles.placeholderEmoji}>
-            {getCategoryEmoji(restaurant.primary_category)}
-          </Text>
-        </View>
-      )}
+      <Image source={{uri: getRestaurantImageUri(restaurant)}} style={styles.image} resizeMode="cover" />
 
       <View style={styles.info}>
         <Text style={styles.name} numberOfLines={1}>

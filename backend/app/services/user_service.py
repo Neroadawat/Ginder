@@ -8,6 +8,7 @@ from app.models.session import Session, SessionParticipant, SessionStatus
 from app.models.user import User
 from app.schemas.auth import MessageResponse
 from app.schemas.user import UpdateFCMTokenRequest, UpdateProfileRequest
+from app.services.notification_service import NotificationService
 
 
 class UserService:
@@ -28,10 +29,10 @@ class UserService:
         belong to the user (friendships, session participation, votes,
         notifications) go with them via the FK cascades on those tables.
 
-        Match history is deliberately left in place: it belongs to every
-        participant of that session, not just this user, and each result stores
-        the restaurant name directly so the remaining players keep their
-        history intact.
+        Lobbies hosted by this user are cancelled. Active and finished sessions
+        are left in place with a NULL host: they belong to every participant,
+        and each result stores the restaurant name directly so the remaining
+        players keep their game and history intact.
         """
         # Friendships are stored as two rows, and the reverse row points at the
         # user from the other side, so clear both directions explicitly.
@@ -41,8 +42,8 @@ class UserService:
             )
         )
 
-        # Drop the user out of any lobby or running session so the remaining
-        # players are not left waiting for someone who no longer exists.
+        # Cancel lobbies owned by the user and remove them from every other
+        # lobby or running session.
         await self._leave_open_sessions(user)
 
         await self.db.delete(user)
@@ -57,14 +58,32 @@ class UserService:
         return MessageResponse(message="FCM token updated")
 
     async def _leave_open_sessions(self, user: User) -> None:
-        """Remove the user from every lobby or active session."""
-        result = await self.db.execute(
-            select(SessionParticipant)
-            .join(Session, Session.id == SessionParticipant.session_id)
-            .where(
-                SessionParticipant.user_id == user.id,
-                Session.status.in_([SessionStatus.LOBBY, SessionStatus.ACTIVE]),
+        """Cancel owned lobbies and leave every other open session."""
+        open_statuses = [SessionStatus.LOBBY, SessionStatus.ACTIVE]
+
+        owned_lobby_ids = list(
+            await self.db.scalars(
+                select(Session.id).where(
+                    Session.host_id == user.id,
+                    Session.status == SessionStatus.LOBBY,
+                )
             )
         )
-        for participant in result.scalars().all():
-            await self.db.delete(participant)
+        notification_service = NotificationService(self.db)
+        for session_id in owned_lobby_ids:
+            await notification_service.expire_session_invites(session_id)
+
+        await self.db.execute(
+            delete(Session).where(
+                Session.host_id == user.id,
+                Session.status == SessionStatus.LOBBY,
+            )
+        )
+
+        open_session_ids = select(Session.id).where(Session.status.in_(open_statuses))
+        await self.db.execute(
+            delete(SessionParticipant).where(
+                SessionParticipant.user_id == user.id,
+                SessionParticipant.session_id.in_(open_session_ids),
+            )
+        )

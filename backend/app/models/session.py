@@ -43,8 +43,11 @@ class Session(Base):
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
     )
-    host_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    # Active and finished sessions remain available to their other participants
+    # after the host deletes their account. Unstarted lobbies are cancelled by
+    # UserService, so they always have a host.
+    host_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True
     )
     status: Mapped[SessionStatus] = mapped_column(
         Enum(

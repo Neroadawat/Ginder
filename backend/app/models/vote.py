@@ -10,7 +10,7 @@ Serves both modes:
 import uuid
 from datetime import UTC, datetime
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, Index, UniqueConstraint
+from sqlalchemy import Boolean, DateTime, ForeignKey, Index, UniqueConstraint, text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -28,6 +28,15 @@ class Vote(Base):
         # Tallying likes and counting a user's progress are the two hot reads.
         Index("ix_votes_session_restaurant", "session_id", "restaurant_id"),
         Index("ix_votes_session_user", "session_id", "user_id"),
+        # PostgreSQL considers NULL values distinct, so the three-column
+        # constraint above does not cover solo likes (whose session_id is NULL).
+        Index(
+            "uq_votes_solo_user_restaurant",
+            "user_id",
+            "restaurant_id",
+            unique=True,
+            postgresql_where=text("session_id IS NULL"),
+        ),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
@@ -40,7 +49,7 @@ class Vote(Base):
         UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
     )
     restaurant_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("restaurants.id", ondelete="CASCADE"), nullable=False
+        UUID(as_uuid=True), ForeignKey("restaurants.id", ondelete="RESTRICT"), nullable=False
     )
 
     # True = swiped right (Like), False = swiped left (Skip).

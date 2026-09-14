@@ -3,6 +3,7 @@
 from uuid import UUID
 
 from sqlalchemy import func, select
+from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -148,28 +149,40 @@ class VoteService:
         if not restaurant:
             raise NotFoundException("Restaurant not found")
 
-        # Liking the same place twice should be a no-op, not a duplicate row.
-        existing = await self.db.execute(
-            select(Vote).where(
-                Vote.user_id == user.id,
-                Vote.session_id.is_(None),
-                Vote.restaurant_id == body.restaurant_id,
-            )
-        )
-        vote = existing.scalar_one_or_none()
-
-        if vote is None:
-            vote = Vote(
+        # Let PostgreSQL make concurrent retries idempotent. A read-then-insert
+        # check alone can race when two requests arrive together.
+        statement = (
+            insert(Vote)
+            .values(
                 session_id=None,
                 user_id=user.id,
                 restaurant_id=body.restaurant_id,
                 liked=True,
             )
-            self.db.add(vote)
-            await self.db.flush()
+            .on_conflict_do_nothing(
+                index_elements=[Vote.user_id, Vote.restaurant_id],
+                index_where=Vote.session_id.is_(None),
+            )
+            .returning(Vote.id)
+        )
+        vote_id = await self.db.scalar(statement)
+
+        if vote_id is None:
+            vote_id = await self.db.scalar(
+                select(Vote.id).where(
+                    Vote.user_id == user.id,
+                    Vote.session_id.is_(None),
+                    Vote.restaurant_id == body.restaurant_id,
+                )
+            )
+
+        # The partial unique index guarantees that the row now exists exactly
+        # once, whether this request inserted it or lost a concurrent race.
+        if vote_id is None:
+            raise RuntimeError("Solo like could not be persisted")
 
         restaurant_service = RestaurantService(self.db)
-        return SoloLikeResponse(id=vote.id, restaurant=restaurant_service.to_card(restaurant))
+        return SoloLikeResponse(id=vote_id, restaurant=restaurant_service.to_card(restaurant))
 
     async def get_solo_likes(self, user: User) -> list[SoloLikeResponse]:
         """The user's personal solo-mode likes (requirement 11.2)."""

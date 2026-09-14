@@ -1,210 +1,163 @@
-/**
- * SwipeCard — Tinder-style swipeable restaurant card stack.
- * Uses react-native-gesture-handler + reanimated for smooth gestures.
- */
-
-import React, {useCallback, useEffect, useRef, useState} from 'react';
-import {
-  Image,
-  View,
-  Text,
-  StyleSheet,
-  Dimensions,
-  TouchableOpacity,
-} from 'react-native';
+/** Restaurant cards keep their own image view and animation while in the stack. */
+import React, {forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState} from 'react';
+import {Image, View, Text, StyleSheet, Dimensions, TouchableOpacity} from 'react-native';
 import {GestureDetector, Gesture} from 'react-native-gesture-handler';
-import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withSpring,
-  withTiming,
-  Easing,
-  runOnJS,
-  interpolate,
-  Extrapolation,
-} from 'react-native-reanimated';
-
+import Animated, {useSharedValue, useAnimatedStyle, withSpring, withTiming, Easing, runOnJS, interpolate, Extrapolation} from 'react-native-reanimated';
 import {RestaurantCard as RestaurantCardType} from '@/types/restaurant';
+import {getRestaurantImageUri} from '@/constants/restaurantImages';
 import RestaurantCardContent from './RestaurantCardContent';
 import AppIcon from './AppIcon';
-import {getPlaceholderImage} from '@/constants/placeholders';
 
 const {width: SCREEN_WIDTH} = Dimensions.get('window');
 const SWIPE_THRESHOLD = SCREEN_WIDTH * 0.3;
-
 interface SwipeCardProps {
   restaurants: RestaurantCardType[];
-  /** Return false to keep the current card visible (for example, API failure). */
+  /** Return false to restore the card when the server rejects a vote. */
   onSwipe: (restaurant: RestaurantCardType, liked: boolean) => void | Promise<boolean>;
   onDeckEmpty: () => void;
 }
+interface CardHandle { swipe: (liked: boolean) => void; }
+interface CardLayerProps {
+  restaurant: RestaurantCardType;
+  active: boolean;
+  disabled: boolean;
+  onComplete: (liked: boolean) => void;
+}
+
+const CardLayer = forwardRef<CardHandle, CardLayerProps>(({restaurant, active, disabled, onComplete}, ref) => {
+  const translateX = useSharedValue(0);
+  const exiting = useSharedValue(false);
+  const animateOut = (liked: boolean) => {
+    'worklet';
+    if (exiting.value) {
+      return;
+    }
+    exiting.value = true;
+    translateX.value = withTiming(liked ? SCREEN_WIDTH * 1.5 : -SCREEN_WIDTH * 1.5,
+      {duration: 200, easing: Easing.out(Easing.cubic)}, finished => {
+        if (finished) {
+          // Leave this card offscreen until React removes it. Never reset the
+          // outgoing image into view while the JS thread is changing cards.
+          runOnJS(onComplete)(liked);
+        } else {
+          exiting.value = false;
+        }
+      });
+  };
+  useImperativeHandle(ref, () => ({swipe: liked => {
+    if (active && !disabled) {
+      animateOut(liked);
+    }
+  }}));
+  const gesture = Gesture.Pan()
+    .enabled(active && !disabled)
+    .onUpdate(event => {
+      if (!exiting.value) {
+        translateX.value = event.translationX;
+      }
+    })
+    .onEnd(event => {
+      if (exiting.value) {
+        return;
+      }
+      if (Math.abs(event.translationX) > SWIPE_THRESHOLD) {
+        animateOut(event.translationX > 0);
+      } else {
+        translateX.value = withSpring(0);
+      }
+    });
+  const animatedStyle = useAnimatedStyle(() => ({transform: [
+    {translateX: translateX.value},
+    {rotate: `${interpolate(translateX.value, [-SCREEN_WIDTH, 0, SCREEN_WIDTH], [-15, 0, 15], Extrapolation.CLAMP)}deg`},
+  ]}));
+  const likeOpacity = useAnimatedStyle(() => ({opacity: interpolate(translateX.value, [0, SWIPE_THRESHOLD], [0, 1], Extrapolation.CLAMP)}));
+  const skipOpacity = useAnimatedStyle(() => ({opacity: interpolate(translateX.value, [-SWIPE_THRESHOLD, 0], [1, 0], Extrapolation.CLAMP)}));
+  return (
+    <GestureDetector gesture={gesture}>
+      <Animated.View pointerEvents={active ? 'auto' : 'none'} style={[styles.card, styles.nextCard, animatedStyle]}>
+        <Animated.View style={[styles.overlay, styles.likeOverlay, likeOpacity]}>
+          <Text style={styles.overlayText}>LIKE ❤️</Text>
+        </Animated.View>
+        <Animated.View style={[styles.overlay, styles.skipOverlay, skipOpacity]}>
+          <Text style={styles.overlayText}>SKIP ✕</Text>
+        </Animated.View>
+        <RestaurantCardContent restaurant={restaurant} />
+      </Animated.View>
+    </GestureDetector>
+  );
+});
 
 const SwipeCard = ({restaurants, onSwipe, onDeckEmpty}: SwipeCardProps) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const submittingRef = useRef(false);
-  const translateX = useSharedValue(0);
-
-  const handleSwipeComplete = useCallback(
-    async (liked: boolean) => {
-      if (submittingRef.current) {
-        return;
-      }
-      const restaurant = restaurants[currentIndex];
-      if (restaurant) {
-        submittingRef.current = true;
-        setIsSubmitting(true);
-        // Reveal the already-rendered next card immediately. The request can
-        // finish in the background without making the UI wait on the network.
-        const swipedIndex = currentIndex;
-        setCurrentIndex(swipedIndex + 1);
-        try {
-          const accepted = await onSwipe(restaurant, liked);
-          if (accepted === false) {
-            setCurrentIndex(swipedIndex);
-            return;
-          }
-          if (swipedIndex + 1 >= restaurants.length) {
-            onDeckEmpty();
-          }
-        } finally {
-          submittingRef.current = false;
-          setIsSubmitting(false);
-        }
-      }
-    },
-    [currentIndex, restaurants, onSwipe, onDeckEmpty],
-  );
-
-  const gesture = Gesture.Pan()
-    .enabled(!isSubmitting)
-    .onUpdate(event => {
-      translateX.value = event.translationX;
-    })
-    .onEnd(event => {
-      if (event.translationX > SWIPE_THRESHOLD) {
-        translateX.value = withTiming(SCREEN_WIDTH * 1.5, {duration: 165, easing: Easing.out(Easing.cubic)}, () => {
-          runOnJS(handleSwipeComplete)(true);
-          translateX.value = 0;
-        });
-      } else if (event.translationX < -SWIPE_THRESHOLD) {
-        translateX.value = withTiming(-SCREEN_WIDTH * 1.5, {duration: 165, easing: Easing.out(Easing.cubic)}, () => {
-          runOnJS(handleSwipeComplete)(false);
-          translateX.value = 0;
-        });
-      } else {
-        translateX.value = withSpring(0);
-      }
-    });
-
-  useEffect(() => {
-    restaurants.slice(currentIndex + 1, currentIndex + 3).forEach(item => {
-      Image.prefetch(
-        item.photo_url || getPlaceholderImage(item.primary_category),
-      ).catch(() => undefined);
-    });
-  }, [currentIndex, restaurants]);
-
-  const animateButtonSwipe = (liked: boolean) => {
+  const activeCardRef = useRef<CardHandle>(null);
+  const handleSwipeComplete = useCallback(async (liked: boolean) => {
     if (submittingRef.current) {
       return;
     }
-    translateX.value = withTiming(
-      liked ? SCREEN_WIDTH * 1.5 : -SCREEN_WIDTH * 1.5,
-      {duration: 165, easing: Easing.out(Easing.cubic)},
-      () => {
-        runOnJS(handleSwipeComplete)(liked);
-        translateX.value = 0;
-      },
-    );
-  };
+    const restaurant = restaurants[currentIndex];
+    if (!restaurant) {
+      return;
+    }
+    submittingRef.current = true;
+    setIsSubmitting(true);
+    const swipedIndex = currentIndex;
+    setCurrentIndex(swipedIndex + 1);
+    try {
+      const accepted = await onSwipe(restaurant, liked);
+      if (accepted === false) {
+        setCurrentIndex(swipedIndex);
+      } else if (swipedIndex + 1 >= restaurants.length) {
+        onDeckEmpty();
+      }
+    } catch {
+      // A rejected request must restore the removed card as well.
+      setCurrentIndex(swipedIndex);
+    } finally {
+      submittingRef.current = false;
+      setIsSubmitting(false);
+    }
+  }, [currentIndex, restaurants, onSwipe, onDeckEmpty]);
 
-  const animatedStyle = useAnimatedStyle(() => {
-    const rotate = interpolate(
-      translateX.value,
-      [-SCREEN_WIDTH, 0, SCREEN_WIDTH],
-      [-15, 0, 15],
-      Extrapolation.CLAMP,
-    );
-    return {
-      transform: [{translateX: translateX.value}, {rotate: `${rotate}deg`}],
-    };
-  });
-
-  const likeOpacity = useAnimatedStyle(() => ({
-    opacity: interpolate(
-      translateX.value,
-      [0, SWIPE_THRESHOLD],
-      [0, 1],
-      Extrapolation.CLAMP,
-    ),
-  }));
-
-  const skipOpacity = useAnimatedStyle(() => ({
-    opacity: interpolate(
-      translateX.value,
-      [-SWIPE_THRESHOLD, 0],
-      [1, 0],
-      Extrapolation.CLAMP,
-    ),
-  }));
+  useEffect(() => {
+    restaurants.slice(currentIndex + 1, currentIndex + 3).forEach(item => {
+      const uri = getRestaurantImageUri(item);
+      if (/^https?:/.test(uri)) {
+        Image.prefetch(uri).catch(() => undefined);
+      }
+    });
+  }, [currentIndex, restaurants]);
 
   if (currentIndex >= restaurants.length) {
     return null;
   }
-
-  const currentRestaurant = restaurants[currentIndex];
-  const nextRestaurant = restaurants[currentIndex + 1];
-
   return (
     <View style={styles.container}>
       <View style={styles.cardStack}>
-        {nextRestaurant && (
-          <View style={[styles.card, styles.nextCard]} pointerEvents="none">
-            <RestaurantCardContent restaurant={nextRestaurant} />
-          </View>
-        )}
-        <GestureDetector gesture={gesture}>
-          <Animated.View style={[styles.card, animatedStyle]}>
-            {/* Like / Skip overlays */}
-            <Animated.View
-              style={[styles.overlay, styles.likeOverlay, likeOpacity]}>
-              <Text style={styles.overlayText}>LIKE ❤️</Text>
-            </Animated.View>
-            <Animated.View
-              style={[styles.overlay, styles.skipOverlay, skipOpacity]}>
-              <Text style={styles.overlayText}>SKIP ✕</Text>
-            </Animated.View>
-
-            <RestaurantCardContent restaurant={currentRestaurant} />
-          </Animated.View>
-        </GestureDetector>
+        {restaurants.slice(currentIndex, currentIndex + 3).map((restaurant, offset) => (
+          <CardLayer
+            key={restaurant.id}
+            ref={offset === 0 ? activeCardRef : undefined}
+            restaurant={restaurant}
+            active={offset === 0}
+            disabled={isSubmitting}
+            onComplete={handleSwipeComplete}
+          />
+        )).reverse()}
       </View>
       <View style={styles.actions}>
-        <TouchableOpacity
-          style={[styles.actionButton, styles.skipButton]}
-          onPress={() => animateButtonSwipe(false)}
-          disabled={isSubmitting}
-          accessibilityLabel="Skip restaurant">
+        <TouchableOpacity style={[styles.actionButton, styles.skipButton]} onPress={() => activeCardRef.current?.swipe(false)} disabled={isSubmitting} accessibilityLabel="Skip restaurant">
           <AppIcon name="close" size={34} />
         </TouchableOpacity>
-        <View style={styles.counterPill}>
-          <Text style={styles.counter}>
-            {currentIndex + 1} of {restaurants.length}
-          </Text>
-        </View>
-        <TouchableOpacity
-          style={[styles.actionButton, styles.likeButton]}
-          onPress={() => animateButtonSwipe(true)}
-          disabled={isSubmitting}
-          accessibilityLabel="Like restaurant">
+        <View style={styles.counterPill}><Text style={styles.counter}>{currentIndex + 1} of {restaurants.length}</Text></View>
+        <TouchableOpacity style={[styles.actionButton, styles.likeButton]} onPress={() => activeCardRef.current?.swipe(true)} disabled={isSubmitting} accessibilityLabel="Like restaurant">
           <AppIcon name="heart" size={28} color="#FFF" filled />
         </TouchableOpacity>
       </View>
     </View>
   );
 };
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,

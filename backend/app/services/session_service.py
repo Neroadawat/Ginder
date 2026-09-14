@@ -101,6 +101,12 @@ class SessionService:
         if session.status != SessionStatus.LOBBY:
             raise SessionAlreadyStartedException()
 
+        host_id = session.host_id
+        if host_id is None:
+            # Finished historical sessions may have no host, but an open lobby
+            # must always have one.
+            raise NotFoundException("Session host no longer exists")
+
         await self._ensure_no_active_session(user.id)
 
         self.db.add(
@@ -112,7 +118,7 @@ class SessionService:
         )
 
         friend_service = FriendService(self.db)
-        await friend_service.add_friend(user.id, session.host_id)
+        await friend_service.add_friend(user.id, host_id)
 
         await self.db.flush()
         await self.db.refresh(session, ["participants"])

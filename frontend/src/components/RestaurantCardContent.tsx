@@ -9,7 +9,7 @@ import React from 'react';
 import {ImageBackground, StyleSheet, Text, View} from 'react-native';
 
 import {RestaurantCard} from '@/types/restaurant';
-import {getPlaceholderImage} from '@/constants/placeholders';
+import {getRestaurantImageUri} from '@/constants/restaurantImages';
 
 interface Props {
   restaurant: RestaurantCard;
@@ -18,11 +18,13 @@ interface Props {
 const RestaurantCardContent = ({restaurant}: Props) => {
   // Requirement 8.7: fall back to a category-specific placeholder.
   const imageUri =
-    restaurant.photo_url || getPlaceholderImage(restaurant.primary_category);
+    getRestaurantImageUri(restaurant);
 
   return (
     <ImageBackground
+      key={imageUri}
       source={{uri: imageUri}}
+      fadeDuration={0}
       style={styles.image}
       resizeMode="cover"
       accessibilityLabel={`Photo of ${restaurant.name}`}>
