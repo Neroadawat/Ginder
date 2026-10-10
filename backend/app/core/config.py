@@ -1,5 +1,7 @@
 """Application configuration using pydantic-settings."""
 
+from typing import Literal
+
 from pydantic_settings import BaseSettings
 
 
@@ -37,6 +39,10 @@ class Settings(BaseSettings):
     RESTAURANT_API_PROVIDER: str = "dummy"
     RESTAURANT_API_KEY: str = ""
     RESTAURANT_API_BASE_URL: str = ""
+
+    # Production discovery must use only real/curated rows. Development mode
+    # keeps synthetic venues available for offline UI testing.
+    RESTAURANT_DATA_MODE: Literal["production", "development"] = "development"
 
     # ─── CORS ───
     CORS_ORIGINS: list[str] = ["http://localhost:8081"]

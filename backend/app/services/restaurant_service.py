@@ -29,9 +29,8 @@ class RestaurantService:
 
     async def get_categories(self) -> list[str]:
         """Distinct display categories, for the Explore page."""
-        result = await self.db.execute(
-            select(distinct(Restaurant.primary_category)).order_by(Restaurant.primary_category)
-        )
+        query = select(distinct(Restaurant.primary_category)).order_by(Restaurant.primary_category)
+        result = await self.db.execute(self._apply_data_mode(query))
         return [row[0] for row in result.all()]
 
     async def get_solo_deck(self, filters: SoloFilterRequest, user: User) -> DeckResponse:
@@ -151,7 +150,8 @@ class RestaurantService:
         standing at opposite ends of the same campus would generate different
         keys and one of them would get an empty deck (requirement 15.4).
         """
-        query = self._apply_bounding_box(select(Restaurant), latitude, longitude, radius_km)
+        query = self._apply_data_mode(select(Restaurant))
+        query = self._apply_bounding_box(query, latitude, longitude, radius_km)
 
         if category:
             query = query.where(Restaurant.primary_category == category)
@@ -182,6 +182,17 @@ class RestaurantService:
         # would be far harder to read for no practical gain at this data size.
         moment = now_in_timezone(settings.APP_TIMEZONE)
         return [r for r in within_radius if is_open_at(r.opening_hours, moment)]
+
+    @staticmethod
+    def _apply_data_mode(query: Select) -> Select:
+        """Hide synthetic rows from new discovery in production.
+
+        Direct lookups and persisted session decks deliberately remain
+        unfiltered so historical votes and sessions never break.
+        """
+        if settings.RESTAURANT_DATA_MODE == "production":
+            return query.where(Restaurant.source.in_(("osm", "manual")))
+        return query
 
     @staticmethod
     def _apply_bounding_box(
@@ -219,10 +230,13 @@ class RestaurantService:
         return RestaurantCardResponse(
             id=restaurant.id,
             place_id=restaurant.place_id,
+            source=restaurant.source,
             name=restaurant.name,
             primary_category=restaurant.primary_category,
             types=restaurant.types or [],
             photo_url=restaurant.photo_url,
+            photo_source=restaurant.photo_source,
+            photo_attribution=restaurant.photo_attribution,
             latitude=restaurant.latitude,
             longitude=restaurant.longitude,
             distance_km=distance,

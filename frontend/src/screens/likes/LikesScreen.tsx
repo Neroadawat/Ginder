@@ -14,6 +14,7 @@ import {useSessionLikes, useSoloLikes} from '@/hooks/useVotes';
 import {useSessionStore} from '@/stores/sessionStore';
 import {RestaurantCard} from '@/types/restaurant';
 import {getRestaurantImageUri} from '@/constants/restaurantImages';
+import PhotoAttribution from '@/components/PhotoAttribution';
 import {COLORS} from '@/constants/theme';
 
 interface GridEntry {
@@ -112,8 +113,7 @@ const LikesGrid = ({
 
 const LikeTile = ({entry}: {entry: GridEntry}) => {
   const restaurant = entry.restaurant;
-  const image =
-    getRestaurantImageUri(restaurant);
+  const image = getRestaurantImageUri(restaurant);
   const open = () =>
     restaurant.google_maps_url && Linking.openURL(restaurant.google_maps_url);
   return (
@@ -146,6 +146,7 @@ const LikeTile = ({entry}: {entry: GridEntry}) => {
           <Text style={styles.price}>
             {restaurant.price_symbol ?? restaurant.primary_category}
           </Text>
+          <PhotoAttribution restaurant={restaurant} light />
         </View>
       </ImageBackground>
     </TouchableOpacity>

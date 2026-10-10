@@ -1,15 +1,20 @@
-"""Restaurant model — shaped after the Google Places schema.
-
-Phase 1 fills this table with mock data the team curates, but the column set
-deliberately mirrors Google Places (requirement 14.2) so switching to the real
-API later is a straight copy with no data loss and no schema rewrite.
-"""
+"""Provider-neutral restaurant model."""
 
 import uuid
 from datetime import UTC, datetime
 from typing import Any
 
-from sqlalchemy import Boolean, DateTime, Float, Index, Integer, String, Text
+from sqlalchemy import (
+    Boolean,
+    CheckConstraint,
+    DateTime,
+    Float,
+    Index,
+    Integer,
+    String,
+    Text,
+    UniqueConstraint,
+)
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -24,15 +29,23 @@ class Restaurant(Base):
         Index("ix_restaurants_lat_lng", "latitude", "longitude"),
         # Lets the cleanup cronjob find expired TTL rows cheaply.
         Index("ix_restaurants_is_permanent_expires_at", "is_permanent", "expires_at"),
+        Index("ix_restaurants_source", "source"),
+        UniqueConstraint("source", "source_place_id", name="uq_restaurants_source_place_id"),
+        CheckConstraint(
+            "source IN ('osm', 'manual', 'synthetic')",
+            name="ck_restaurants_source",
+        ),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
 
-    # ─── Google Places identity ───
+    # ─── Provider-neutral identity ───
 
-    # Google's stable identifier for a place. Mock rows use a synthetic value
-    # in the same shape so the uniqueness guarantee still holds.
+    # Compatibility identifier used by existing clients and foreign-key flows.
+    # It is namespaced, for example ``osm:node/123`` or ``manual:campus-canteen``.
     place_id: Mapped[str] = mapped_column(String(255), unique=True, nullable=False, index=True)
+    source: Mapped[str] = mapped_column(String(30), nullable=False, default="manual")
+    source_place_id: Mapped[str] = mapped_column(String(255), nullable=False)
 
     name: Mapped[str] = mapped_column(String(255), nullable=False)
 
@@ -55,8 +68,7 @@ class Restaurant(Base):
 
     # ─── Ratings and price ───
 
-    # Google's scale: 0 = free, 1 = inexpensive ... 4 = very expensive.
-    # Mapped to ฿ / ฿฿ / ฿฿฿ at display time (requirement 14.5).
+    # Provider-compatible scale: 0 = free, 1 = inexpensive ... 4 = very expensive.
     price_level: Mapped[int | None] = mapped_column(Integer, nullable=True)
     rating: Mapped[float | None] = mapped_column(Float, nullable=True)
     user_ratings_total: Mapped[int | None] = mapped_column(Integer, nullable=True)
@@ -72,7 +84,10 @@ class Restaurant(Base):
 
     # ─── Media and links ───
     photo_url: Mapped[str | None] = mapped_column(Text, nullable=True)
+    photo_source: Mapped[str | None] = mapped_column(String(30), nullable=True)
+    photo_attribution: Mapped[str | None] = mapped_column(Text, nullable=True)
     google_maps_url: Mapped[str | None] = mapped_column(Text, nullable=True)
+    verified_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     # ─── Data lifecycle (requirement 14.7, 14.8) ───
 

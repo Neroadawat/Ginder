@@ -1,0 +1,46 @@
+﻿place_id,name,previous_category,new_category,reason,evidence_url
+osm:node/864676830,สมชัยลาบยโส,Other,Thai,OSM cuisine tag: อาหารอีสาน,https://www.openstreetmap.org/node/864676830
+osm:node/867790951,ลุงอ้วนไก่ย่างวิเชียรบุรี,Other,Thai,OSM cuisine tag: อาหารอีสาน,https://www.openstreetmap.org/node/867790951
+osm:node/2073116853,ร้านก๋วยเตี๋ยวปลา,Other,Thai,Restaurant name identifies Thai fish noodles,https://www.openstreetmap.org/node/2073116853
+osm:node/2367308140,Food Plaza,Other,Food Court,OSM amenity tag: food_court,https://www.openstreetmap.org/node/2367308140
+osm:node/2368363932,Butter Steak,Other,Steak,Restaurant name explicitly identifies steak,https://www.openstreetmap.org/node/2368363932
+osm:node/2372032121,ชาบูอูมาอิ,Other,Hot Pot,Restaurant name explicitly identifies shabu,https://www.openstreetmap.org/node/2372032121
+osm:node/2378262717,Charlie's Steak,Other,Steak,Restaurant name explicitly identifies steak,https://www.openstreetmap.org/node/2378262717
+osm:node/3476665222,SU Cafeteria,Other,Food Court,OSM amenity tag: food_court,https://www.openstreetmap.org/node/3476665222
+osm:node/3990851534,HOTTO BUN,Other,Japanese,Brand appears in a Japanese dining campaign,https://www.ktc.co.th/pub/media/Promotion/Dining/japanese-dining/BKK.pdf
+osm:node/3990858274,ร้านยำยูป้า,Other,Thai,Restaurant name explicitly identifies Thai spicy salad,https://www.openstreetmap.org/node/3990858274
+osm:node/3990858276,ส้มตำ ไก่ทอด,Other,Thai,Restaurant name explicitly identifies som tam,https://www.openstreetmap.org/node/3990858276
+osm:node/3990884457,DALLAS STEAK,Other,Steak,Restaurant name explicitly identifies steak,https://www.openstreetmap.org/node/3990884457
+osm:node/4369856091,สเวนเซ่นส์,Other,Dessert,Official Swensen's Thailand menu is ice cream and desserts,https://brandsite.swensens1112.com/our-menu
+osm:node/4439111991,Yayoi japanese restaurant,Other,Japanese,Official Yayoi material identifies a Japanese restaurant,https://yayoirestaurants.com/frontend/catering_brochure_th.pdf
+osm:node/4439115792,MK Restaurant,Other,Hot Pot,Official MK site identifies suki as its main restaurant offering,https://www.mkrestaurant.com/th/mk-menu/suki
+osm:node/4439158489,TU Dome food court,Other,Food Court,Restaurant name explicitly identifies a food court,https://www.openstreetmap.org/node/4439158489
+osm:node/5600546817,Rest'er Day Cafe' and Resterant,Other,Cafe,Restaurant name explicitly identifies a cafe,https://www.openstreetmap.org/node/5600546817
+osm:node/12101126326,ร้านก๋วยเตี๋ยวเรือ,Other,Thai,Restaurant name explicitly identifies Thai boat noodles,https://www.openstreetmap.org/node/12101126326
+osm:node/12101126328,ร้านน้ำชง,Other,Cafe,Restaurant name identifies a drinks shop,https://www.openstreetmap.org/node/12101126328
+osm:node/12101126329,ร้านข้าวซอย ผัดไท,Other,Thai,Restaurant name explicitly identifies khao soi and pad Thai,https://www.openstreetmap.org/node/12101126329
+osm:node/12101126330,ไก่ทอด 5 ดาว,Other,Fast Food,Official Five Star site identifies its fried chicken business,https://fivestar.in.th/
+osm:node/12101126339,สเต็กเด็กแนว,Other,Steak,Restaurant name explicitly identifies steak,https://www.openstreetmap.org/node/12101126339
+osm:node/12101126346,ร้านข้าวต้มทิวสน,Other,Thai,Restaurant name explicitly identifies Thai rice soup,https://www.openstreetmap.org/node/12101126346
+osm:node/12101126350,โนบิ ชา,Other,Cafe,Restaurant name explicitly identifies tea,https://www.openstreetmap.org/node/12101126350
+osm:node/12101131880,ตะวันหม่าล่าทัง,Other,Chinese,Restaurant name explicitly identifies malatang,https://www.openstreetmap.org/node/12101131880
+osm:node/12101131883,ตามสั่ง 2,Other,Thai,Restaurant name identifies a Thai made-to-order shop,https://www.openstreetmap.org/node/12101131883
+osm:node/12101131884,ตามสั่ง 1,Other,Thai,Restaurant name identifies a Thai made-to-order shop,https://www.openstreetmap.org/node/12101131884
+osm:node/12101131890,ร้านน้ำชง,Other,Cafe,Restaurant name identifies a drinks shop,https://www.openstreetmap.org/node/12101131890
+osm:node/12101131892,ร้านหมูปิ้ง,Other,Thai,Restaurant name explicitly identifies grilled pork,https://www.openstreetmap.org/node/12101131892
+osm:node/12101131893,ร้านหม่าล่าเสียบไม้,Other,Chinese,Restaurant name explicitly identifies mala skewers,https://www.openstreetmap.org/node/12101131893
+osm:node/12103704727,ร้านลูกชิ้นทอด,Other,Fast Food,Restaurant name explicitly identifies fried meatballs,https://www.openstreetmap.org/node/12103704727
+osm:node/12103704734,ร้านชาชักชาวเรือ,Other,Cafe,Restaurant name explicitly identifies pulled tea,https://www.openstreetmap.org/node/12103704734
+osm:node/12390075024,ร้านหมูทอด,Other,Thai,Restaurant name explicitly identifies fried pork,https://www.openstreetmap.org/node/12390075024
+osm:way/108946024,โรงอาหาร สวทช,Other,Food Court,OSM amenity tag: food_court,https://www.openstreetmap.org/way/108946024
+osm:way/153000038,โรงอาหาร SC (SC2),Other,Food Court,OSM amenity tag: food_court,https://www.openstreetmap.org/way/153000038
+osm:way/198298619,กรีนแคนทีน,Other,Food Court,OSM amenity tag: food_court,https://www.openstreetmap.org/way/198298619
+osm:way/198301398,ศูนย์อาหารทิวสนโดม,Other,Food Court,OSM amenity tag: food_court,https://www.openstreetmap.org/way/198301398
+osm:way/228627675,โรงอาหารคณะวิศวกรรมศาสตร์,Other,Food Court,OSM amenity tag: food_court,https://www.openstreetmap.org/way/228627675
+osm:way/228671343,โรงอาหารกลางคืน (กรีนดึก),Other,Food Court,OSM amenity tag: food_court,https://www.openstreetmap.org/way/228671343
+osm:way/228686832,โรงอาหารคณะวิทยาศาสตร์,Other,Food Court,OSM amenity tag: food_court,https://www.openstreetmap.org/way/228686832
+osm:way/229368855,ร้านอาหารตามสั่งโกวเหง้า,Other,Thai,Restaurant name identifies a Thai made-to-order shop,https://www.openstreetmap.org/way/229368855
+osm:way/233731199,โรงอาหาร JC (SC),Other,Food Court,OSM amenity tag: food_court,https://www.openstreetmap.org/way/233731199
+osm:way/340446407,AIT Cafeteria,Other,Food Court,OSM amenity tag: food_court,https://www.openstreetmap.org/way/340446407
+osm:way/1259594102,ร้านอาหารอินเดีย,Other,Indian,Restaurant name explicitly identifies Indian food,https://www.openstreetmap.org/way/1259594102
+osm:way/1306646509,ร้านหม่าล่า มาหาหน่อย,Other,Chinese,Restaurant name explicitly identifies mala,https://www.openstreetmap.org/way/1306646509

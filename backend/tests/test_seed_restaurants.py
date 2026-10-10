@@ -1,8 +1,8 @@
 """Tests for the seed script's data derivation.
 
 Focused on the parts that silently corrupt data when wrong: the OSM opening
-hours parser, category classification, and the deterministic filler used for
-fields OSM does not provide.
+hours parser, category classification, production-data honesty, and the
+deterministic filler used only by synthetic development data.
 """
 
 import sys
@@ -19,12 +19,17 @@ from seed_restaurants import (  # noqa: E402
     CATEGORY_CAFE,
     CATEGORY_DESSERT,
     CATEGORY_FAST_FOOD,
+    CATEGORY_FOOD_COURT,
     CATEGORY_JAPANESE,
     CATEGORY_OTHER,
     CATEGORY_THAI,
+    _parse_osm_elements,
     build_types,
     classify,
+    deduplicate,
     generate_synthetic,
+    infer_source,
+    load_from_csv,
     parse_osm_opening_hours,
     parse_osm_price,
     synthesize_price_level,
@@ -69,6 +74,12 @@ class TestClassify:
         assert classify({})[0] == CATEGORY_OTHER
         assert classify({"amenity": "spaceship"})[0] == CATEGORY_OTHER
 
+    def test_food_court_has_its_own_category(self):
+        assert classify({"amenity": "food_court"})[0] == CATEGORY_FOOD_COURT
+
+    def test_thai_script_isan_tag_is_recognised(self):
+        assert classify({"amenity": "restaurant", "cuisine": "อาหารอีสาน"})[0] == CATEGORY_THAI
+
 
 class TestBuildTypes:
     def test_most_specific_type_comes_first(self):
@@ -88,9 +99,7 @@ class TestBuildTypes:
 class TestSyntheticFillers:
     def test_price_is_stable_across_calls(self):
         """Re-running the seed must not reshuffle prices."""
-        assert synthesize_price_level("ก๋วยเตี๋ยวเรือ") == synthesize_price_level(
-            "ก๋วยเตี๋ยวเรือ"
-        )
+        assert synthesize_price_level("ก๋วยเตี๋ยวเรือ") == synthesize_price_level("ก๋วยเตี๋ยวเรือ")
 
     def test_rating_is_stable_across_calls(self):
         assert synthesize_rating("ข้าวมันไก่") == synthesize_rating("ข้าวมันไก่")
@@ -130,6 +139,132 @@ class TestParseOsmPrice:
 
     def test_unrecognised_format_returns_none(self):
         assert parse_osm_price({"price_range": "moderate"}) is None
+
+
+class TestProductionDataHonesty:
+    @pytest.mark.parametrize(
+        ("place_id", "expected"),
+        [
+            ("osm:node/42", ("osm", "node/42")),
+            ("manual:campus-canteen", ("manual", "campus-canteen")),
+            ("synthetic:7", ("synthetic", "7")),
+            ("legacy-id", ("manual", "legacy-id")),
+            ("unknown:42", ("manual", "unknown:42")),
+        ],
+    )
+    def test_infers_safe_provider_metadata(self, place_id, expected):
+        assert infer_source(place_id) == expected
+
+    def test_osm_does_not_invent_commercial_fields(self):
+        rows = _parse_osm_elements(
+            [
+                {
+                    "type": "node",
+                    "id": 42,
+                    "lat": TU_RANGSIT_LAT,
+                    "lon": TU_RANGSIT_LNG,
+                    "tags": {"name": "ร้านจริง", "amenity": "restaurant"},
+                }
+            ]
+        )
+
+        assert len(rows) == 1
+        assert rows[0].price_level is None
+        assert rows[0].rating is None
+        assert rows[0].user_ratings_total is None
+
+    def test_curated_csv_blanks_stay_unknown(self, tmp_path):
+        path = tmp_path / "restaurants.csv"
+        path.write_text(
+            "name,latitude,longitude,price_level,rating,user_ratings_total\n"
+            f"ร้านจริง,{TU_RANGSIT_LAT},{TU_RANGSIT_LNG},,,\n",
+            encoding="utf-8",
+        )
+
+        rows = load_from_csv(path)
+
+        assert len(rows) == 1
+        assert rows[0].price_level is None
+        assert rows[0].rating is None
+        assert rows[0].user_ratings_total is None
+
+    def test_curated_photo_metadata_is_preserved(self, tmp_path):
+        path = tmp_path / "restaurants.csv"
+        path.write_text(
+            "name,latitude,longitude,photo_url,photo_source,photo_attribution\n"
+            f"ร้านจริง,{TU_RANGSIT_LAT},{TU_RANGSIT_LNG},"
+            "https://example.com/photo.jpg,owner_upload,Photo by Student Club\n",
+            encoding="utf-8",
+        )
+
+        row = load_from_csv(path)[0]
+
+        assert row.photo_source == "owner_upload"
+        assert row.photo_attribution == "Photo by Student Club"
+
+    def test_photo_without_rights_metadata_is_ignored(self, tmp_path, capsys):
+        path = tmp_path / "restaurants.csv"
+        path.write_text(
+            "name,latitude,longitude,photo_url\n"
+            f"ร้านจริง,{TU_RANGSIT_LAT},{TU_RANGSIT_LNG},"
+            "https://example.com/unlicensed.jpg\n",
+            encoding="utf-8",
+        )
+
+        row = load_from_csv(path)[0]
+
+        assert row.photo_url is None
+        assert "photo ignored" in capsys.readouterr().out
+
+    def test_deduplicates_same_named_pois_at_same_location(self):
+        rows = _parse_osm_elements(
+            [
+                {
+                    "type": "node",
+                    "id": 1,
+                    "lat": TU_RANGSIT_LAT,
+                    "lon": TU_RANGSIT_LNG,
+                    "tags": {"name": "ร้านเดียวกัน", "amenity": "restaurant"},
+                },
+                {
+                    "type": "way",
+                    "id": 2,
+                    "center": {"lat": TU_RANGSIT_LAT + 0.00001, "lon": TU_RANGSIT_LNG},
+                    "tags": {
+                        "name": "ร้านเดียวกัน",
+                        "amenity": "restaurant",
+                        "opening_hours": "24/7",
+                    },
+                },
+            ]
+        )
+
+        unique = deduplicate(rows)
+
+        assert len(unique) == 1
+        assert unique[0].opening_hours is not None
+
+    def test_keeps_same_named_branches_far_apart(self):
+        rows = _parse_osm_elements(
+            [
+                {
+                    "type": "node",
+                    "id": 1,
+                    "lat": TU_RANGSIT_LAT,
+                    "lon": TU_RANGSIT_LNG,
+                    "tags": {"name": "ร้านสาขา", "amenity": "restaurant"},
+                },
+                {
+                    "type": "node",
+                    "id": 2,
+                    "lat": TU_RANGSIT_LAT + 0.01,
+                    "lon": TU_RANGSIT_LNG,
+                    "tags": {"name": "ร้านสาขา", "amenity": "restaurant"},
+                },
+            ]
+        )
+
+        assert len(deduplicate(rows)) == 2
 
 
 class TestParseOsmOpeningHours:

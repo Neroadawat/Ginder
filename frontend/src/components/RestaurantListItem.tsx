@@ -5,10 +5,18 @@
  */
 
 import React from 'react';
-import {Image, Linking, StyleSheet, Text, TouchableOpacity, View} from 'react-native';
+import {
+  Image,
+  Linking,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 
 import {RestaurantCard} from '@/types/restaurant';
 import {getRestaurantImageUri} from '@/constants/restaurantImages';
+import PhotoAttribution from './PhotoAttribution';
 
 interface Props {
   restaurant: RestaurantCard;
@@ -34,7 +42,11 @@ const RestaurantListItem = ({restaurant}: Props) => {
           ? `Navigate to ${restaurant.name}, ${restaurant.primary_category}`
           : `${restaurant.name}, ${restaurant.primary_category}`
       }>
-      <Image source={{uri: getRestaurantImageUri(restaurant)}} style={styles.image} resizeMode="cover" />
+      <Image
+        source={{uri: getRestaurantImageUri(restaurant)}}
+        style={styles.image}
+        resizeMode="cover"
+      />
 
       <View style={styles.info}>
         <Text style={styles.name} numberOfLines={1}>
@@ -53,6 +65,7 @@ const RestaurantListItem = ({restaurant}: Props) => {
             <Text style={styles.meta}>{restaurant.distance_km} km</Text>
           )}
         </View>
+        <PhotoAttribution restaurant={restaurant} />
       </View>
 
       {canNavigate && <Text style={styles.navigateIcon}>📍</Text>}

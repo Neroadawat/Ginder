@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""Seed the restaurant table with Google Places-shaped rows.
+"""Seed the restaurant table with provider-neutral restaurant rows.
 
 Everything written here is flagged ``is_permanent`` so the nightly cache
 cleanup leaves it alone (requirement 14.8).
@@ -9,8 +9,8 @@ Three sources:
 ``osm``
     Pull real venues from OpenStreetMap via the public Overpass API. Gives real
     names and coordinates, which is what makes radius filtering and distance
-    maths testable. OSM has no photos or ratings and almost never has prices,
-    so those are filled in deterministically (see :func:`synthesize_price_level`).
+    maths testable. Missing facts stay unknown; production imports must never
+    invent ratings, review counts, prices, photos, or opening hours.
 
 ``csv``
     Import hand-curated rows. Use this for the places OSM does not know about —
@@ -31,6 +31,10 @@ Examples::
     # Preview without writing
     python scripts/seed_restaurants.py --dry-run
 
+    # Save a reviewable production candidate sheet
+    python scripts/seed_restaurants.py --dry-run \
+        --export-csv data/thammasat_rangsit_restaurants.csv
+
     # Import a curated sheet, keeping what is already there
     python scripts/seed_restaurants.py --source csv --file data/restaurants.csv
 
@@ -44,23 +48,21 @@ import argparse
 import asyncio
 import csv
 import hashlib
+import json
 import math
 import random
 import re
 import sys
 from dataclasses import dataclass, field
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
 import httpx
-from sqlalchemy import delete, select
 
 # Allow running as a plain script from the backend/ directory.
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-# Imported after the path fix so the script works without installing the package.
-from app.core.database import async_session_factory  # noqa: E402
-from app.models.restaurant import Restaurant  # noqa: E402
 from app.utils.geo import calculate_distance_km  # noqa: E402
 from app.utils.places import build_weekly_periods  # noqa: E402
 
@@ -74,6 +76,14 @@ OVERPASS_ENDPOINTS = (
     "https://overpass-api.de/api/interpreter",
     "https://overpass.kumi.systems/api/interpreter",
 )
+
+# Public Overpass instances require an identifiable client. A descriptive
+# User-Agent also prevents otherwise-valid requests being rejected as generic
+# automated traffic.
+OVERPASS_HEADERS = {
+    "User-Agent": "Ginder/0.1 (+https://github.com/Neroadawat/Ginder)",
+    "Accept": "application/json",
+}
 
 # OSM amenity values we treat as places to eat.
 EATERY_AMENITIES = (
@@ -95,6 +105,10 @@ CATEGORY_ITALIAN = "Italian"
 CATEGORY_FAST_FOOD = "Fast Food"
 CATEGORY_CAFE = "Cafe"
 CATEGORY_DESSERT = "Dessert"
+CATEGORY_FOOD_COURT = "Food Court"
+CATEGORY_STEAK = "Steak"
+CATEGORY_HOT_POT = "Hot Pot"
+CATEGORY_INDIAN = "Indian"
 CATEGORY_OTHER = "Other"
 
 # OSM `cuisine` fragment -> (display category, Google-style type).
@@ -102,6 +116,7 @@ CATEGORY_OTHER = "Other"
 CUISINE_MAP: tuple[tuple[str, str, str], ...] = (
     ("thai", CATEGORY_THAI, "thai_restaurant"),
     ("isan", CATEGORY_THAI, "thai_restaurant"),
+    ("อาหารอีสาน", CATEGORY_THAI, "thai_restaurant"),
     ("noodle", CATEGORY_THAI, "noodle_shop"),
     ("som_tam", CATEGORY_THAI, "thai_restaurant"),
     ("japanese", CATEGORY_JAPANESE, "japanese_restaurant"),
@@ -123,6 +138,10 @@ CUISINE_MAP: tuple[tuple[str, str, str], ...] = (
     ("dessert", CATEGORY_DESSERT, "dessert_shop"),
     ("ice_cream", CATEGORY_DESSERT, "ice_cream_shop"),
     ("bakery", CATEGORY_DESSERT, "bakery"),
+    ("steak", CATEGORY_STEAK, "steak_house"),
+    ("hot_pot", CATEGORY_HOT_POT, "restaurant"),
+    ("shabu", CATEGORY_HOT_POT, "restaurant"),
+    ("indian", CATEGORY_INDIAN, "indian_restaurant"),
 )
 
 # OSM amenity -> (display category, Google-style type).
@@ -131,7 +150,7 @@ AMENITY_MAP: dict[str, tuple[str, str]] = {
     "fast_food": (CATEGORY_FAST_FOOD, "fast_food_restaurant"),
     "ice_cream": (CATEGORY_DESSERT, "ice_cream_shop"),
     "restaurant": (CATEGORY_OTHER, "restaurant"),
-    "food_court": (CATEGORY_OTHER, "food_court"),
+    "food_court": (CATEGORY_FOOD_COURT, "food_court"),
     "bar": (CATEGORY_OTHER, "bar"),
     "pub": (CATEGORY_OTHER, "pub"),
 }
@@ -146,6 +165,10 @@ CATEGORY_TYPE: dict[str, str] = {
     CATEGORY_FAST_FOOD: "fast_food_restaurant",
     CATEGORY_CAFE: "cafe",
     CATEGORY_DESSERT: "dessert_shop",
+    CATEGORY_FOOD_COURT: "food_court",
+    CATEGORY_STEAK: "steak_house",
+    CATEGORY_HOT_POT: "restaurant",
+    CATEGORY_INDIAN: "indian_restaurant",
     CATEGORY_OTHER: "restaurant",
 }
 
@@ -167,6 +190,8 @@ class SeedRestaurant:
     rating: float | None = None
     user_ratings_total: int | None = None
     photo_url: str | None = None
+    photo_source: str | None = None
+    photo_attribution: str | None = None
     address: str | None = None
     opening_hours: dict[str, Any] | None = None
 
@@ -177,6 +202,24 @@ class SeedRestaurant:
             "https://www.google.com/maps/dir/?api=1"
             f"&destination={self.latitude},{self.longitude}"
         )
+
+    @property
+    def source(self) -> str:
+        """Provider namespace encoded in ``place_id``."""
+        return infer_source(self.place_id)[0]
+
+    @property
+    def source_place_id(self) -> str:
+        """Identifier within the provider namespace."""
+        return infer_source(self.place_id)[1]
+
+
+def infer_source(place_id: str) -> tuple[str, str]:
+    """Return a safe ``(source, provider_id)`` pair for a place identifier."""
+    prefix, separator, provider_id = place_id.partition(":")
+    if separator and prefix in {"osm", "manual", "synthetic"} and provider_id:
+        return prefix, provider_id
+    return "manual", place_id
 
 
 def build_types(specific: str, category: str) -> list[str]:
@@ -397,7 +440,11 @@ async def fetch_from_osm(
         for endpoint in OVERPASS_ENDPOINTS:
             try:
                 print(f"  querying {endpoint} ...")
-                response = await client.post(endpoint, data={"data": query})
+                response = await client.post(
+                    endpoint,
+                    data={"data": query},
+                    headers=OVERPASS_HEADERS,
+                )
                 response.raise_for_status()
                 elements = response.json().get("elements", [])
                 print(f"  Overpass returned {len(elements)} raw elements")
@@ -408,7 +455,8 @@ async def fetch_from_osm(
 
     raise RuntimeError(
         f"All Overpass endpoints failed. Last error: {last_error}. "
-        "Use --source generate to seed without network access."
+        "Retry later, import the reviewed CSV, or use --source generate only "
+        "for local development."
     )
 
 
@@ -421,7 +469,9 @@ def _parse_osm_elements(elements: list[dict]) -> list[SeedRestaurant]:
     for element in elements:
         tags = element.get("tags") or {}
 
-        name = (tags.get("name:en") or tags.get("name") or "").strip()
+        # Prefer the local/Thai label for a Thai launch area, with English as
+        # a fallback. ``name`` is normally the locally preferred OSM value.
+        name = (tags.get("name") or tags.get("name:th") or tags.get("name:en") or "").strip()
         if not name:
             # An unnamed pin is useless on a swipe card.
             skipped_unnamed += 1
@@ -446,9 +496,9 @@ def _parse_osm_elements(elements: list[dict]) -> list[SeedRestaurant]:
                 types=build_types(specific_type, category),
                 latitude=float(latitude),
                 longitude=float(longitude),
-                price_level=parse_osm_price(tags) or synthesize_price_level(name),
-                rating=synthesize_rating(name),
-                user_ratings_total=synthesize_ratings_total(name),
+                price_level=parse_osm_price(tags),
+                rating=None,
+                user_ratings_total=None,
                 address=build_address(tags),
                 opening_hours=opening_hours,
             )
@@ -512,6 +562,7 @@ def build_address(tags: dict[str, str]) -> str | None:
 # ─── CSV ───
 
 CSV_COLUMNS = (
+    "place_id",
     "name",
     "category",
     "latitude",
@@ -521,6 +572,9 @@ CSV_COLUMNS = (
     "user_ratings_total",
     "address",
     "photo_url",
+    "photo_source",
+    "photo_attribution",
+    "opening_hours_json",
     "opens",
     "closes",
 )
@@ -530,8 +584,9 @@ def load_from_csv(path: Path) -> list[SeedRestaurant]:
     """Read curated restaurants from a CSV file.
 
     Required columns: ``name``, ``latitude``, ``longitude``.
-    Everything else is optional and filled in when blank. ``opens``/``closes``
-    take ``HH:MM`` and apply to every day of the week.
+    Everything else is optional and stays unknown when blank. ``opens``/``closes``
+    take ``HH:MM`` and apply to every day of the week. Synthetic values belong
+    only to ``--source generate`` and are never added to curated production rows.
     """
     if not path.exists():
         raise FileNotFoundError(f"CSV not found: {path}")
@@ -563,29 +618,61 @@ def load_from_csv(path: Path) -> list[SeedRestaurant]:
             if price_level is not None:
                 price_level = max(0, min(4, price_level))
 
+            opening_hours = _opening_hours_from_csv(row, line_number, name)
+            photo_url, photo_source, photo_attribution = _photo_from_csv(row, line_number, name)
+
             results.append(
                 SeedRestaurant(
-                    place_id=f"manual:{_slugify(name)}",
+                    place_id=(row.get("place_id") or "").strip() or f"manual:{_slugify(name)}",
                     name=name,
                     primary_category=category,
                     types=build_types(CATEGORY_TYPE.get(category, "restaurant"), category),
                     latitude=latitude,
                     longitude=longitude,
-                    price_level=(
-                        price_level if price_level is not None else synthesize_price_level(name)
-                    ),
-                    rating=_optional_float(row.get("rating")) or synthesize_rating(name),
-                    user_ratings_total=(
-                        _optional_int(row.get("user_ratings_total"))
-                        or synthesize_ratings_total(name)
-                    ),
+                    price_level=price_level,
+                    rating=_optional_float(row.get("rating")),
+                    user_ratings_total=_optional_int(row.get("user_ratings_total")),
                     address=(row.get("address") or "").strip() or None,
-                    photo_url=(row.get("photo_url") or "").strip() or None,
-                    opening_hours=_hours_from_csv(row.get("opens"), row.get("closes")),
+                    photo_url=photo_url,
+                    photo_source=photo_source,
+                    photo_attribution=photo_attribution,
+                    opening_hours=opening_hours,
                 )
             )
 
     return results
+
+
+def _photo_from_csv(
+    row: dict[str, str | None], line_number: int, name: str
+) -> tuple[str | None, str | None, str | None]:
+    """Accept a curated photo only when its origin and credit are present."""
+    photo_url = (row.get("photo_url") or "").strip() or None
+    photo_source = (row.get("photo_source") or "").strip() or None
+    photo_attribution = (row.get("photo_attribution") or "").strip() or None
+
+    if photo_url and (not photo_source or not photo_attribution):
+        print(
+            f"  line {line_number}: photo for {name!r} is missing photo_source "
+            "or photo_attribution; photo ignored"
+        )
+        return None, None, None
+
+    return photo_url, photo_source, photo_attribution
+
+
+def _opening_hours_from_csv(
+    row: dict[str, str | None], line_number: int, name: str
+) -> dict[str, Any] | None:
+    raw_json = (row.get("opening_hours_json") or "").strip()
+    if raw_json:
+        try:
+            parsed = json.loads(raw_json)
+        except json.JSONDecodeError:
+            print(f"  line {line_number}: bad opening_hours_json for {name!r}; stored unknown")
+            return None
+        return parsed if isinstance(parsed, dict) else None
+    return _hours_from_csv(row.get("opens"), row.get("closes"))
 
 
 def _hours_from_csv(opens: str | None, closes: str | None) -> dict[str, Any] | None:
@@ -638,6 +725,7 @@ def write_csv_template(path: Path) -> None:
         writer.writeheader()
         writer.writerow(
             {
+                "place_id": "",
                 "name": "ร้านตัวอย่าง หน้าประตูเชียงราก",
                 "category": CATEGORY_THAI,
                 "latitude": DEFAULT_LATITUDE,
@@ -647,10 +735,47 @@ def write_csv_template(path: Path) -> None:
                 "user_ratings_total": 120,
                 "address": "",
                 "photo_url": "",
+                "photo_source": "",
+                "photo_attribution": "",
+                "opening_hours_json": "",
                 "opens": "08:00",
                 "closes": "20:00",
             }
         )
+
+
+def export_csv(path: Path, rows: list[SeedRestaurant]) -> None:
+    """Write an auditable, round-trippable production candidate sheet."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("w", encoding="utf-8-sig", newline="") as handle:
+        writer = csv.DictWriter(handle, fieldnames=CSV_COLUMNS)
+        writer.writeheader()
+        for row in rows:
+            writer.writerow(
+                {
+                    "place_id": row.place_id,
+                    "name": row.name,
+                    "category": row.primary_category,
+                    "latitude": row.latitude,
+                    "longitude": row.longitude,
+                    "price_level": "" if row.price_level is None else row.price_level,
+                    "rating": "" if row.rating is None else row.rating,
+                    "user_ratings_total": (
+                        "" if row.user_ratings_total is None else row.user_ratings_total
+                    ),
+                    "address": row.address or "",
+                    "photo_url": row.photo_url or "",
+                    "photo_source": row.photo_source or "",
+                    "photo_attribution": row.photo_attribution or "",
+                    "opening_hours_json": (
+                        json.dumps(row.opening_hours, ensure_ascii=False, separators=(",", ":"))
+                        if row.opening_hours
+                        else ""
+                    ),
+                    "opens": "",
+                    "closes": "",
+                }
+            )
 
 
 # ─── Synthetic generator (offline fallback) ───
@@ -696,9 +821,7 @@ def generate_synthetic(
         bearing = rng.uniform(0, 2 * math.pi)
 
         delta_lat = (distance_km / 111.0) * math.cos(bearing)
-        delta_lng = (distance_km / (111.0 * math.cos(math.radians(latitude)))) * math.sin(
-            bearing
-        )
+        delta_lng = (distance_km / (111.0 * math.cos(math.radians(latitude)))) * math.sin(bearing)
 
         results.append(
             SeedRestaurant(
@@ -725,15 +848,38 @@ def deduplicate(rows: list[SeedRestaurant]) -> list[SeedRestaurant]:
     """Drop repeats.
 
     Overpass can return the same venue as both a node and a building way, and a
-    CSV may be re-imported.
+    CSV may be re-imported. Different branches sharing a name are preserved;
+    only matching names within 25 metres are treated as the same physical POI.
     """
-    seen: set[str] = set()
+    seen_ids: set[str] = set()
     unique: list[SeedRestaurant] = []
 
     for row in rows:
-        if row.place_id in seen:
+        if row.place_id in seen_ids:
             continue
-        seen.add(row.place_id)
+
+        duplicate_index = next(
+            (
+                index
+                for index, existing in enumerate(unique)
+                if _normalise_name(existing.name) == _normalise_name(row.name)
+                and calculate_distance_km(
+                    existing.latitude,
+                    existing.longitude,
+                    row.latitude,
+                    row.longitude,
+                )
+                <= 0.025
+            ),
+            None,
+        )
+        if duplicate_index is not None:
+            if _row_quality(row) > _row_quality(unique[duplicate_index]):
+                unique[duplicate_index] = row
+            seen_ids.add(row.place_id)
+            continue
+
+        seen_ids.add(row.place_id)
         unique.append(row)
 
     dropped = len(rows) - len(unique)
@@ -741,6 +887,23 @@ def deduplicate(rows: list[SeedRestaurant]) -> list[SeedRestaurant]:
         print(f"  removed {dropped} duplicate(s)")
 
     return unique
+
+
+def _normalise_name(name: str) -> str:
+    return re.sub(r"\s+", " ", name).strip().casefold()
+
+
+def _row_quality(row: SeedRestaurant) -> int:
+    """Prefer the duplicate carrying the most real source metadata."""
+    return sum(
+        (
+            row.primary_category != CATEGORY_OTHER,
+            row.address is not None,
+            row.opening_hours is not None,
+            row.price_level is not None,
+            row.photo_url is not None,
+        )
+    )
 
 
 def filter_to_radius(
@@ -769,8 +932,16 @@ async def persist(rows: list[SeedRestaurant], clear_existing: bool) -> tuple[int
     Everything written is marked permanent with no expiry, so the nightly cache
     cleanup skips it (requirement 14.8).
     """
+    # Keep database-only dependencies out of module import so ``--dry-run`` can
+    # audit live OSM data without requiring a PostgreSQL driver or running DB.
+    from sqlalchemy import delete, select
+
+    from app.core.database import async_session_factory
+    from app.models.restaurant import Restaurant
+
     inserted = 0
     updated = 0
+    verified_at = datetime.now(UTC)
 
     async with async_session_factory() as session:
         if clear_existing:
@@ -790,6 +961,8 @@ async def persist(rows: list[SeedRestaurant], clear_existing: bool) -> tuple[int
                 session.add(
                     Restaurant(
                         place_id=row.place_id,
+                        source=row.source,
+                        source_place_id=row.source_place_id,
                         name=row.name,
                         primary_category=row.primary_category,
                         types=row.types,
@@ -800,8 +973,13 @@ async def persist(rows: list[SeedRestaurant], clear_existing: bool) -> tuple[int
                         user_ratings_total=row.user_ratings_total,
                         opening_hours=row.opening_hours,
                         photo_url=row.photo_url,
+                        photo_source=(
+                            row.photo_source or "external_url" if row.photo_url else None
+                        ),
+                        photo_attribution=row.photo_attribution,
                         address=row.address,
                         google_maps_url=row.google_maps_url,
+                        verified_at=(verified_at if row.source != "synthetic" else None),
                         is_permanent=True,
                         expires_at=None,
                         cache_key=None,
@@ -809,6 +987,8 @@ async def persist(rows: list[SeedRestaurant], clear_existing: bool) -> tuple[int
                 )
                 inserted += 1
             else:
+                existing.source = row.source
+                existing.source_place_id = row.source_place_id
                 existing.name = row.name
                 existing.primary_category = row.primary_category
                 existing.types = row.types
@@ -820,11 +1000,14 @@ async def persist(rows: list[SeedRestaurant], clear_existing: bool) -> tuple[int
                 existing.opening_hours = row.opening_hours
                 existing.address = row.address
                 existing.google_maps_url = row.google_maps_url
+                existing.verified_at = verified_at if row.source != "synthetic" else None
                 existing.is_permanent = True
                 existing.expires_at = None
                 # Never overwrite a curated photo with nothing.
                 if row.photo_url:
                     existing.photo_url = row.photo_url
+                    existing.photo_source = row.photo_source or "external_url"
+                    existing.photo_attribution = row.photo_attribution
                 updated += 1
 
         await session.commit()
@@ -877,9 +1060,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--file", type=Path, help="CSV path, required for --source csv")
     parser.add_argument("--lat", type=float, default=DEFAULT_LATITUDE, help="Centre latitude")
     parser.add_argument("--lng", type=float, default=DEFAULT_LONGITUDE, help="Centre longitude")
-    parser.add_argument(
-        "--radius", type=float, default=DEFAULT_RADIUS_KM, help="Radius in km"
-    )
+    parser.add_argument("--radius", type=float, default=DEFAULT_RADIUS_KM, help="Radius in km")
     parser.add_argument(
         "--count",
         type=int,
@@ -898,6 +1079,11 @@ def parse_args() -> argparse.Namespace:
         "--write-csv-template",
         type=Path,
         help="Write a blank CSV template to this path and exit",
+    )
+    parser.add_argument(
+        "--export-csv",
+        type=Path,
+        help="Export collected rows to a reviewable CSV before any database write",
     )
     return parser.parse_args()
 
@@ -940,10 +1126,14 @@ async def main() -> int:
     print(f"\n{len(rows)} restaurant(s) ready")
     summarize(rows)
 
+    if args.export_csv:
+        export_csv(args.export_csv, rows)
+        print(f"\nExported review sheet to {args.export_csv}")
+
     if args.dry_run:
         print("\n  Sample:")
         for row in rows[:10]:
-            price = "฿" * max(row.price_level or 0, 1)
+            price = "฿" * max(row.price_level, 1) if row.price_level is not None else "unknown"
             print(
                 f"    {row.name[:32]:<32} {row.primary_category:<11} "
                 f"{price:<5} {row.rating}  ({row.latitude:.5f}, {row.longitude:.5f})"

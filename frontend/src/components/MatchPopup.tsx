@@ -15,6 +15,7 @@ import {
 import {RestaurantCard} from '@/types/restaurant';
 import {getRestaurantImageUri} from '@/constants/restaurantImages';
 import AppIcon from './AppIcon';
+import PhotoAttribution from './PhotoAttribution';
 
 interface Props {
   restaurant: RestaurantCard;
@@ -32,20 +33,15 @@ const MatchPopup = ({restaurant, onDismiss}: Props) => {
           <Text style={styles.title}>It’s a</Text>
           <View style={styles.photos}>
             <Image
-              source={{
-                uri:
-                  getRestaurantImageUri(restaurant),
-              }}
+              source={{uri: getRestaurantImageUri(restaurant)}}
               style={[styles.photo, styles.photoLeft]}
             />
             <Image
-              source={{
-                uri:
-                  getRestaurantImageUri(restaurant),
-              }}
+              source={{uri: getRestaurantImageUri(restaurant)}}
               style={[styles.photo, styles.photoRight]}
             />
           </View>
+          <PhotoAttribution restaurant={restaurant} light />
           <Text style={styles.match}>Match</Text>
           <Text style={styles.subtitle}>You matched at {restaurant.name}</Text>
 

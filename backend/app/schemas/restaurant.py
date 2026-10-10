@@ -1,4 +1,4 @@
-"""Restaurant schemas — Google Places-aligned payloads."""
+"""Provider-neutral restaurant payloads."""
 
 import uuid
 
@@ -12,6 +12,7 @@ class RestaurantCardResponse(BaseModel):
 
     id: uuid.UUID
     place_id: str
+    source: str
     name: str
 
     # Single value for display; the raw list is included so clients can grow
@@ -20,6 +21,8 @@ class RestaurantCardResponse(BaseModel):
     types: list[str] = Field(default_factory=list)
 
     photo_url: str | None
+    photo_source: str | None
+    photo_attribution: str | None
     latitude: float
     longitude: float
     distance_km: float | None = None

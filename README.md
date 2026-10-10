@@ -95,6 +95,27 @@ docker compose up -d
    session (before the accounts are friends), use Profile → Join with invite
    code instead. Joining makes the host and guest friends automatically.
 
+## Restaurant data for Thammasat Rangsit
+
+The production candidate dataset is stored in
+`backend/data/thammasat_rangsit_restaurants.csv`. It contains named OpenStreetMap
+restaurants within 3 km of the Rangsit campus. Missing ratings, prices, photos,
+and opening hours remain unknown rather than being filled with mock values.
+
+See `backend/data/README.md` for audit results, attribution requirements, review,
+refresh, and import commands. Synthetic restaurant generation is for local
+development and automated tests only.
+
+Set `RESTAURANT_DATA_MODE=production` in `backend/.env` for demos and deployed
+builds. New solo and party decks will then use only `osm` and `manual` records.
+Existing sessions, votes, and history that reference old `synthetic` records
+remain readable; the migration does not delete them. Use `development` only
+when the mock deck is intentionally needed for UI work.
+
+The reviewed launch dataset now has an auditable category-curation sheet and
+requires source plus attribution metadata for every real photo. The app displays
+that credit anywhere the photo appears; unverified image URLs are ignored.
+
 ## Environment Variables
 
 Copy `.env.example` files in both `backend/` and `frontend/` directories and fill in the values.

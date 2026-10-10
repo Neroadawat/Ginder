@@ -3,7 +3,14 @@
  */
 
 import React from 'react';
-import {View, Text, TouchableOpacity, StyleSheet, Alert} from 'react-native';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  Alert,
+  Linking,
+} from 'react-native';
 import {useNavigation} from '@react-navigation/native';
 
 import {useAuthStore} from '@/stores/authStore';
@@ -66,6 +73,18 @@ const SettingsScreen = () => {
           <Text style={styles.menuTextDanger}>Delete Account</Text>
         </TouchableOpacity>
       </View>
+
+      <TouchableOpacity
+        style={styles.attribution}
+        onPress={() =>
+          Linking.openURL('https://www.openstreetmap.org/copyright')
+        }
+        accessibilityRole="link"
+        accessibilityLabel="Open OpenStreetMap copyright and licence information">
+        <Text style={styles.attributionText}>
+          Restaurant data © OpenStreetMap contributors
+        </Text>
+      </TouchableOpacity>
     </View>
   );
 };
@@ -113,6 +132,16 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#E53E3E',
     fontWeight: '600',
+  },
+  attribution: {
+    alignSelf: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+  },
+  attributionText: {
+    color: '#666',
+    fontSize: 12,
+    textDecorationLine: 'underline',
   },
 });
 

@@ -14,6 +14,10 @@ const PLACEHOLDER_BY_CATEGORY: Record<string, string> = {
   'Fast Food': 'https://placehold.co/600x450/FF6B6B/FFFFFF?text=Fast+Food',
   Cafe: 'https://placehold.co/600x450/FF6B6B/FFFFFF?text=Cafe',
   Dessert: 'https://placehold.co/600x450/FF6B6B/FFFFFF?text=Dessert',
+  'Food Court': 'https://placehold.co/600x450/FF6B6B/FFFFFF?text=Food+Court',
+  Steak: 'https://placehold.co/600x450/FF6B6B/FFFFFF?text=Steak',
+  'Hot Pot': 'https://placehold.co/600x450/FF6B6B/FFFFFF?text=Hot+Pot',
+  Indian: 'https://placehold.co/600x450/FF6B6B/FFFFFF?text=Indian',
 };
 
 const FALLBACK = 'https://placehold.co/600x450/FF6B6B/FFFFFF?text=Restaurant';
@@ -32,6 +36,10 @@ export const CATEGORY_EMOJI: Record<string, string> = {
   'Fast Food': '🍔',
   Cafe: '☕',
   Dessert: '🍰',
+  'Food Court': '🍱',
+  Steak: '🥩',
+  'Hot Pot': '🍲',
+  Indian: '🍛',
 };
 
 export const getCategoryEmoji = (category: string): string =>

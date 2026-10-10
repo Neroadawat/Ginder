@@ -10,6 +10,7 @@ import {ImageBackground, StyleSheet, Text, View} from 'react-native';
 
 import {RestaurantCard} from '@/types/restaurant';
 import {getRestaurantImageUri} from '@/constants/restaurantImages';
+import PhotoAttribution from './PhotoAttribution';
 
 interface Props {
   restaurant: RestaurantCard;
@@ -17,8 +18,7 @@ interface Props {
 
 const RestaurantCardContent = ({restaurant}: Props) => {
   // Requirement 8.7: fall back to a category-specific placeholder.
-  const imageUri =
-    getRestaurantImageUri(restaurant);
+  const imageUri = getRestaurantImageUri(restaurant);
 
   return (
     <ImageBackground
@@ -52,6 +52,7 @@ const RestaurantCardContent = ({restaurant}: Props) => {
             ⌖ {restaurant.distance_km} km away
           </Text>
         )}
+        <PhotoAttribution restaurant={restaurant} light />
       </View>
     </ImageBackground>
   );

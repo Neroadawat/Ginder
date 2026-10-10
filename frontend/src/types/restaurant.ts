@@ -5,8 +5,11 @@
 export interface RestaurantCard {
   id: string;
 
-  /** Google Places identifier. Stable across data refreshes. */
+  /** Namespaced identifier retained for API compatibility. */
   place_id: string;
+
+  /** Origin of the record; synthetic rows are development-only discovery data. */
+  source: 'osm' | 'manual' | 'synthetic';
 
   name: string;
 
@@ -17,6 +20,8 @@ export interface RestaurantCard {
   types: string[];
 
   photo_url: string | null;
+  photo_source: string | null;
+  photo_attribution: string | null;
   latitude: number;
   longitude: number;
   distance_km: number | null;
