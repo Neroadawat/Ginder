@@ -60,7 +60,12 @@ class Settings(BaseSettings):
     CORS_ORIGINS: list[str] = ["http://localhost:8081"]
 
     # ─── Session Defaults ───
-    MAX_DECK_SIZE: int = 50
+    # Keep the first deck quick to scan. More restaurants are reached by
+    # widening the radius instead of returning an unbounded payload.
+    MAX_DECK_SIZE: int = 20
+    # Below this number the area is usable in solo mode but is reported as
+    # partial coverage; party sessions wait for a wider radius/fewer filters.
+    MIN_LOCAL_RESTAURANTS: int = 10
 
     # ─── Search Radius (requirement 6) ───
     # Capped for the Thammasat Rangsit launch: students walk or ride to eat, so

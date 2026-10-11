@@ -15,6 +15,7 @@ from app.models.restaurant import Restaurant
 from app.models.session import Session
 from app.models.session_deck import SessionDeck
 from app.models.user import User
+from app.models.vote import Vote
 from app.schemas.restaurant import DeckResponse, RestaurantCardResponse, SoloFilterRequest
 from app.services.osm_fallback_service import OsmFallbackService
 from app.utils.geo import bounding_box, calculate_distance_km
@@ -50,12 +51,29 @@ class RestaurantService:
             open_now=filters.open_now,
         )
 
+        # Solo swipes are persisted, including skips, so refreshing the same
+        # area cannot reshuffle restaurants the user has already judged.
+        seen_result = await self.db.execute(
+            select(Vote.restaurant_id).where(
+                Vote.user_id == user.id,
+                Vote.session_id.is_(None),
+            )
+        )
+        seen_ids = set(seen_result.scalars().all())
+        available = [restaurant for restaurant in restaurants if restaurant.id not in seen_ids]
+
         # Random order, capped at MAX_DECK_SIZE (requirement 10.3).
-        random.shuffle(restaurants)
-        deck = restaurants[: settings.MAX_DECK_SIZE]
+        random.shuffle(available)
+        deck = available[: settings.MAX_DECK_SIZE]
 
         cards = [self.to_card(r, filters.latitude, filters.longitude) for r in deck]
-        return DeckResponse(restaurants=cards, total=len(cards))
+        return DeckResponse(
+            restaurants=cards,
+            total=len(cards),
+            data_source=self._data_source(deck),
+            coverage_status=self._coverage_status(len(available)),
+            suggested_radius_km=self._suggested_radius(filters.radius_km, len(available)),
+        )
 
     async def create_session_deck(self, session: Session) -> list[Restaurant]:
         """Shuffle once and persist the result as the session's deck.
@@ -72,6 +90,11 @@ class RestaurantService:
             min_rating=session.rating_filter,
             open_now=session.open_now_filter,
         )
+
+        # A shared session needs enough choices for voting to be meaningful.
+        # Solo mode still returns a smaller, explicitly partial deck.
+        if len(restaurants) < settings.MIN_LOCAL_RESTAURANTS:
+            return []
 
         random.shuffle(restaurants)
         deck = restaurants[: settings.MAX_DECK_SIZE]
@@ -112,6 +135,11 @@ class RestaurantService:
             session_id=session.id,
             restaurants=cards,
             total=len(cards),
+            data_source=self._data_source(
+                [entry.restaurant for entry in entries if entry.restaurant is not None]
+            ),
+            coverage_status=self._coverage_status(len(cards)),
+            suggested_radius_km=self._suggested_radius(session.radius_km, len(cards)),
         )
 
     async def get_session_deck_restaurant_ids(self, session_id: UUID) -> list[UUID]:
@@ -181,7 +209,10 @@ class RestaurantService:
             local_area = await self._execute_radius_query(
                 area_query, latitude, longitude, radius_km
             )
-            if not local_area:
+            # Local-first: ask the user to widen the radius before spending an
+            # external discovery request. The fallback is the last resort at
+            # the configured launch-area maximum.
+            if self._should_request_fallback(len(local_area), radius_km):
                 try:
                     await OsmFallbackService().ensure_area(latitude, longitude, radius_km)
                     within_radius = await self._execute_radius_query(
@@ -294,3 +325,35 @@ class RestaurantService:
             address=restaurant.address,
             google_maps_url=restaurant.google_maps_url,
         )
+
+    @staticmethod
+    def _coverage_status(count: int) -> str:
+        """Describe whether this request has enough local choices."""
+        if count >= settings.MIN_LOCAL_RESTAURANTS:
+            return "full"
+        if count > 0:
+            return "partial"
+        return "unsupported"
+
+    @staticmethod
+    def _suggested_radius(radius_km: float, count: int) -> float | None:
+        """Suggest the next 500 m step before another provider is considered."""
+        if count >= settings.MIN_LOCAL_RESTAURANTS or radius_km >= settings.MAX_RADIUS_KM:
+            return None
+        return round(min(radius_km + 0.5, settings.MAX_RADIUS_KM), 1)
+
+    @staticmethod
+    def _should_request_fallback(local_count: int, radius_km: float) -> bool:
+        """Use external discovery only after local radius expansion is exhausted."""
+        return local_count == 0 and radius_km >= settings.MAX_RADIUS_KM
+
+    @staticmethod
+    def _data_source(restaurants: list[Restaurant]) -> str:
+        """Summarise whether cards came from durable local data or OSM TTL cache."""
+        if not restaurants:
+            return "none"
+        has_local = any(restaurant.is_permanent for restaurant in restaurants)
+        has_cache = any(not restaurant.is_permanent for restaurant in restaurants)
+        if has_local and has_cache:
+            return "mixed"
+        return "local" if has_local else "osm_cache"

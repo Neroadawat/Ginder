@@ -12,7 +12,10 @@ import {
 } from '@/types/api';
 
 export const voteApi = {
-  swipe: async (sessionId: string, data: SwipeRequest): Promise<SwipeResponse> => {
+  swipe: async (
+    sessionId: string,
+    data: SwipeRequest,
+  ): Promise<SwipeResponse> => {
     const response = await apiClient.post(
       `/votes/sessions/${sessionId}/swipe`,
       data,
@@ -21,19 +24,26 @@ export const voteApi = {
   },
 
   getSessionLikes: async (sessionId: string): Promise<SessionLikesResponse> => {
-    const response = await apiClient.get(
-      `/votes/sessions/${sessionId}/likes`,
-    );
+    const response = await apiClient.get(`/votes/sessions/${sessionId}/likes`);
     return response.data;
   },
 
   getProgress: async (sessionId: string): Promise<VoteProgressResponse> => {
-    const response = await apiClient.get(`/votes/sessions/${sessionId}/progress`);
+    const response = await apiClient.get(
+      `/votes/sessions/${sessionId}/progress`,
+    );
     return response.data;
   },
 
-  soloLike: async (data: {restaurant_id: string}): Promise<SoloLikeResponse> => {
+  soloLike: async (data: {
+    restaurant_id: string;
+  }): Promise<SoloLikeResponse> => {
     const response = await apiClient.post('/votes/solo/like', data);
+    return response.data;
+  },
+
+  soloSwipe: async (data: SwipeRequest): Promise<SwipeResponse> => {
+    const response = await apiClient.post('/votes/solo/swipe', data);
     return response.data;
   },
 

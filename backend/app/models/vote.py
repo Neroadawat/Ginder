@@ -3,8 +3,8 @@
 Serves both modes:
 
 * party session — ``session_id`` set, ``liked`` records right or left
-* solo mode — ``session_id`` is NULL and only likes are stored, because a solo
-  skip is discarded rather than remembered (requirement 10.4)
+* solo mode — ``session_id`` is NULL and both directions are stored so a
+  refresh cannot return restaurants the user already judged
 """
 
 import uuid
@@ -41,7 +41,7 @@ class Vote(Base):
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
 
-    # NULL for solo-mode likes, which belong to no session.
+    # NULL for solo-mode swipes, which belong to no session.
     session_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), ForeignKey("sessions.id", ondelete="CASCADE"), nullable=True
     )

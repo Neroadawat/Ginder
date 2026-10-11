@@ -184,6 +184,31 @@ class VoteService:
         restaurant_service = RestaurantService(self.db)
         return SoloLikeResponse(id=vote_id, restaurant=restaurant_service.to_card(restaurant))
 
+    async def record_solo_swipe(self, user: User, body: SwipeRequest) -> SwipeResponse:
+        """Persist either direction of a solo swipe, idempotently."""
+        restaurant_exists = await self.db.scalar(
+            select(Restaurant.id).where(Restaurant.id == body.restaurant_id)
+        )
+        if restaurant_exists is None:
+            raise NotFoundException("Restaurant not found")
+
+        statement = (
+            insert(Vote)
+            .values(
+                session_id=None,
+                user_id=user.id,
+                restaurant_id=body.restaurant_id,
+                liked=body.liked,
+            )
+            .on_conflict_do_update(
+                index_elements=[Vote.user_id, Vote.restaurant_id],
+                index_where=Vote.session_id.is_(None),
+                set_={"liked": body.liked},
+            )
+        )
+        await self.db.execute(statement)
+        return SwipeResponse(success=True)
+
     async def get_solo_likes(self, user: User) -> list[SoloLikeResponse]:
         """The user's personal solo-mode likes (requirement 11.2)."""
         result = await self.db.execute(

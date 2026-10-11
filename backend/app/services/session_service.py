@@ -8,6 +8,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from app.core.config import settings
 from app.core.exceptions import (
     ForbiddenException,
     NotFoundException,
@@ -175,8 +176,8 @@ class SessionService:
         deck = await restaurant_service.create_session_deck(session)
         if not deck:
             raise NotFoundException(
-                "No restaurants match these filters. Leave this lobby and create a new "
-                "session with a wider radius or fewer filters."
+                f"At least {settings.MIN_LOCAL_RESTAURANTS} restaurants are needed to start. "
+                "Leave this lobby and create a new session with a wider radius or fewer filters."
             )
 
         now = datetime.now(UTC)

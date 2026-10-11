@@ -33,7 +33,9 @@ export const useSessionLikes = (sessionId: string) => {
 
   useEffect(() => {
     if (lastEvent?.event === 'like') {
-      queryClient.invalidateQueries({queryKey: ['likes', 'session', sessionId]});
+      queryClient.invalidateQueries({
+        queryKey: ['likes', 'session', sessionId],
+      });
     }
   }, [lastEvent, queryClient, sessionId]);
 
@@ -59,6 +61,26 @@ export const useSoloLike = () => {
     },
     // A dropped like is not worth interrupting the swipe flow for; the next
     // like will refresh the list anyway.
+    retry: 1,
+  });
+};
+
+export const useSoloSwipe = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (data: SwipeRequest) => voteApi.soloSwipe(data),
+    onSuccess: (_response, swipe) => {
+      // Mark the existing deck stale without refetching while the user is
+      // still swiping it. A later visit asks the backend for unseen cards.
+      queryClient.invalidateQueries({
+        queryKey: ['deck', 'solo'],
+        refetchType: 'none',
+      });
+      if (swipe.liked) {
+        queryClient.invalidateQueries({queryKey: ['likes', 'solo']});
+      }
+    },
     retry: 1,
   });
 };

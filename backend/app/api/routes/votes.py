@@ -65,6 +65,17 @@ async def solo_like(
     return await service.solo_like(current_user, body)
 
 
+@router.post("/solo/swipe", response_model=SwipeResponse)
+async def solo_swipe(
+    body: SwipeRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Remember a solo like or skip so it is not served again."""
+    service = VoteService(db)
+    return await service.record_solo_swipe(current_user, body)
+
+
 @router.get("/solo/likes", response_model=list[SoloLikeResponse])
 async def get_solo_likes(
     current_user: User = Depends(get_current_user),

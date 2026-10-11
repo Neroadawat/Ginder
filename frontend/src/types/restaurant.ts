@@ -42,6 +42,9 @@ export interface DeckResponse {
   session_id: string | null;
   restaurants: RestaurantCard[];
   total: number;
+  data_source: 'local' | 'osm_cache' | 'mixed' | 'none';
+  coverage_status: 'full' | 'partial' | 'unsupported';
+  suggested_radius_km: number | null;
 }
 
 export interface SoloFilterParams {

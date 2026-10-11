@@ -16,7 +16,7 @@ import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 
 import SwipeCard from '@/components/SwipeCard';
 import {useSoloDeck} from '@/hooks/useRestaurants';
-import {useSoloLike} from '@/hooks/useVotes';
+import {useSoloSwipe} from '@/hooks/useVotes';
 import {useFilterStore} from '@/stores/filterStore';
 import {HomeStackParamList, RootStackParamList} from '@/navigation/types';
 import {RestaurantCard} from '@/types/restaurant';
@@ -36,31 +36,46 @@ const SoloSwipeScreen = () => {
   const radiusKm = useFilterStore(state => state.radiusKm);
   const openNow = useFilterStore(state => state.openNow);
 
-  const {
-    data: deck,
-    isLoading,
-    refetch,
-  } = useSoloDeck({category, priceLevel, minRating, radiusKm, openNow});
-  const soloLikeMutation = useSoloLike();
+  const {data: deck, isLoading} = useSoloDeck({
+    category,
+    priceLevel,
+    minRating,
+    radiusKm,
+    openNow,
+  });
+  const soloSwipeMutation = useSoloSwipe();
 
   const openPartyMenu = () => {
     const rootNavigation = navigation.getParent()?.getParent() as
       | NativeStackNavigationProp<RootStackParamList>
       | undefined;
-    Alert.alert('Play with friends', 'Create a new lobby or join with an invite code.', [
-      {text: 'Cancel', style: 'cancel'},
-      {text: 'Join', onPress: () => rootNavigation?.navigate('Session', {screen: 'JoinSession', params: {}})},
-      {text: 'Create', onPress: () => rootNavigation?.navigate('Session', {screen: 'CreateSession'})},
-    ]);
+    Alert.alert(
+      'Play with friends',
+      'Create a new lobby or join with an invite code.',
+      [
+        {text: 'Cancel', style: 'cancel'},
+        {
+          text: 'Join',
+          onPress: () =>
+            rootNavigation?.navigate('Session', {
+              screen: 'JoinSession',
+              params: {},
+            }),
+        },
+        {
+          text: 'Create',
+          onPress: () =>
+            rootNavigation?.navigate('Session', {screen: 'CreateSession'}),
+        },
+      ],
+    );
   };
 
   const handleSwipe = useCallback(
     (restaurant: RestaurantCard, liked: boolean) => {
-      if (liked) {
-        soloLikeMutation.mutate({restaurant_id: restaurant.id});
-      }
+      soloSwipeMutation.mutate({restaurant_id: restaurant.id, liked});
     },
-    [soloLikeMutation],
+    [soloSwipeMutation],
   );
 
   const handleDeckEmpty = useCallback(() => {
@@ -101,6 +116,19 @@ const SoloSwipeScreen = () => {
         </TouchableOpacity>
       </View>
 
+      {deck?.coverage_status === 'partial' && (
+        <TouchableOpacity
+          style={styles.coverageNotice}
+          onPress={() => navigation.navigate('ExpandRadius')}
+          accessibilityRole="button">
+          <Text style={styles.coverageText}>
+            {deck.suggested_radius_km
+              ? `Only ${deck.total} new places here. Expand to ${deck.suggested_radius_km} km for more.`
+              : `Only ${deck.total} new places here. Try changing your filters.`}
+          </Text>
+        </TouchableOpacity>
+      )}
+
       <View style={styles.cardContainer}>
         {deck && deck.restaurants.length > 0 ? (
           <SwipeCard
@@ -111,15 +139,19 @@ const SoloSwipeScreen = () => {
         ) : (
           <View style={styles.emptyState}>
             <Text style={styles.emptyEmoji}>🔍</Text>
-            <Text style={styles.emptyTitle}>No restaurants found</Text>
+            <Text style={styles.emptyTitle}>
+              {deck?.coverage_status === 'unsupported'
+                ? 'No new restaurants nearby'
+                : 'You have seen this deck'}
+            </Text>
             <Text style={styles.emptySubtitle}>
-              Try expanding your search radius or changing filters
+              Expand the search radius or change filters to see more places.
             </Text>
             <TouchableOpacity
               style={styles.retryButton}
-              onPress={() => refetch()}
+              onPress={() => navigation.navigate('ExpandRadius')}
               accessibilityRole="button">
-              <Text style={styles.retryText}>Refresh</Text>
+              <Text style={styles.retryText}>Expand search radius</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -166,7 +198,33 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   deckText: {color: '#DDD', fontSize: 12, fontWeight: '600'},
-  partyButton: {width: 42, height: 42, borderRadius: 21, backgroundColor: '#151313', borderWidth: 1, borderColor: '#3A3535', alignItems: 'center', justifyContent: 'center'},
+  coverageNotice: {
+    position: 'absolute',
+    top: 94,
+    left: 24,
+    right: 24,
+    zIndex: 29,
+    borderRadius: 12,
+    backgroundColor: 'rgba(20,20,20,0.86)',
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+  },
+  coverageText: {
+    color: '#FFF',
+    fontSize: 13,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  partyButton: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: '#151313',
+    borderWidth: 1,
+    borderColor: '#3A3535',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   partyText: {color: '#FFF', fontSize: 28, lineHeight: 30, fontWeight: '300'},
   title: {
     fontSize: 24,

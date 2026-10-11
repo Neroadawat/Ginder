@@ -1,6 +1,7 @@
 """Provider-neutral restaurant payloads."""
 
 import uuid
+from typing import Literal
 
 from pydantic import BaseModel, Field, model_serializer
 
@@ -61,6 +62,9 @@ class DeckResponse(BaseModel):
     session_id: uuid.UUID | None = None  # None in solo mode
     restaurants: list[RestaurantCardResponse]
     total: int
+    data_source: Literal["local", "osm_cache", "mixed", "none"] = "none"
+    coverage_status: Literal["full", "partial", "unsupported"] = "unsupported"
+    suggested_radius_km: float | None = None
 
 
 class SoloFilterRequest(BaseModel):
