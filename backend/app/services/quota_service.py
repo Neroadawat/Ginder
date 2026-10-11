@@ -1,5 +1,6 @@
 """Atomic monthly quotas for paid provider calls, with PostgreSQL backup."""
 
+import hashlib
 import logging
 from dataclasses import dataclass
 from datetime import UTC, datetime
@@ -49,7 +50,12 @@ class GoogleQuotaService:
         self.redis = redis or redis_client
         self.db_factory = db_factory
 
-    async def reserve(self, operation: QuotaOperation, actor_key: str) -> QuotaDecision:
+    async def reserve(
+        self,
+        operation: QuotaOperation,
+        actor_key: str,
+        request_key: str | None = None,
+    ) -> QuotaDecision:
         """Reserve one billable call before sending it to Google."""
         soft_limit, hard_limit = self._limits(operation)
         if hard_limit <= 0:
@@ -57,7 +63,14 @@ class GoogleQuotaService:
 
         period = self._period()
         try:
-            cooldown_key = f"{_COOLDOWN_PREFIX}:{operation}:{actor_key}"
+            # Nearby Search is throttled per actor. Photos use the resource as
+            # an additional discriminator so the visible three-card stack can
+            # load, while repeat requests for the same photo remain blocked.
+            cooldown_subject = actor_key
+            if request_key:
+                request_hash = hashlib.sha256(request_key.encode()).hexdigest()[:16]
+                cooldown_subject = f"{actor_key}:{request_hash}"
+            cooldown_key = f"{_COOLDOWN_PREFIX}:{operation}:{cooldown_subject}"
             cooldown_set = await self.redis.set(
                 cooldown_key,
                 "1",

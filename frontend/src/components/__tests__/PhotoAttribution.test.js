@@ -44,3 +44,27 @@ it('shows the credit and opens an HTTP source', async () => {
   expect(open).toHaveBeenCalledWith('https://images.example/licence');
   open.mockRestore();
 });
+
+it('links a visible live Google photo to its individual Google Maps source', async () => {
+  const open = jest.spyOn(Linking, 'openURL').mockResolvedValue();
+  let tree;
+  act(() => {
+    tree = create(
+      <PhotoAttribution
+        restaurant={{
+          source: 'google_live',
+          photo_url: null,
+          photo_source: 'https://maps.google.com/contributor',
+          photo_attribution: 'Photo author',
+          google_photo_maps_uri: 'https://maps.google.com/photo/source',
+        }}
+        photoVisible
+      />,
+    );
+  });
+
+  const link = tree.root.findByProps({accessibilityRole: 'link'});
+  await act(async () => link.props.onPress());
+  expect(open).toHaveBeenCalledWith('https://maps.google.com/photo/source');
+  open.mockRestore();
+});

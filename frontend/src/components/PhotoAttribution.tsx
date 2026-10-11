@@ -14,15 +14,27 @@ interface Props {
   restaurant: RestaurantCard;
   light?: boolean;
   style?: StyleProp<TextStyle>;
+  photoVisible?: boolean;
 }
 
-const PhotoAttribution = ({restaurant, light = false, style}: Props) => {
-  if (!restaurant.photo_url || !restaurant.photo_attribution) {
+const PhotoAttribution = ({
+  restaurant,
+  light = false,
+  style,
+  photoVisible = Boolean(restaurant.photo_url),
+}: Props) => {
+  if (!photoVisible || !restaurant.photo_attribution) {
     return null;
   }
 
-  const sourceUrl = restaurant.photo_source?.startsWith('http')
-    ? restaurant.photo_source
+  const rawSourceUrl =
+    restaurant.source === 'google_live'
+      ? restaurant.google_photo_maps_uri
+      : restaurant.photo_source;
+  const sourceUrl = rawSourceUrl?.startsWith('//')
+    ? `https:${rawSourceUrl}`
+    : rawSourceUrl?.startsWith('http')
+    ? rawSourceUrl
     : null;
   const credit = `Photo: ${restaurant.photo_attribution}`;
   const textStyle = [styles.text, light && styles.light, style];

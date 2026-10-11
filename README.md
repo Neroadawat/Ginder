@@ -190,6 +190,15 @@ request before it reaches Google. Signed-in users can inspect both counters in
 Settings or at `GET /api/v1/usage/google`. Google Cloud Budget Alerts and Quota
 Alerts still need to be configured manually in the Cloud Console.
 
+Google photos are resolved only for the three live cards mounted in the swipe
+stack (current plus the next two). The authenticated backend exchanges the
+recent photo resource name for a short-lived media URL, keeps the API key out of
+the mobile app, and increments the Place Photo counter before the request. The
+photo name and media URL are never written to PostgreSQL, Redis, object storage,
+or a persistent React Query cache. If resolution fails or quota is exhausted,
+the category placeholder remains visible. A displayed Google photo includes
+its author credit and a link to the individual source photo on Google Maps.
+
 ## Environment Variables
 
 Copy `.env.example` files in both `backend/` and `frontend/` directories and fill in the values.

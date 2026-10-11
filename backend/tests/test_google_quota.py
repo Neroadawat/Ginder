@@ -65,3 +65,29 @@ async def test_same_actor_is_rate_limited_without_incrementing_again(monkeypatch
     assert repeated.allowed is False
     assert repeated.reason == "rate_limited"
     assert service._increment_backup.await_count == 1
+
+
+@pytest.mark.asyncio
+async def test_photo_cooldown_allows_three_resources_but_blocks_a_repeat(
+    monkeypatch,
+) -> None:
+    monkeypatch.setattr(settings, "GOOGLE_PHOTO_SOFT_LIMIT", 10)
+    monkeypatch.setattr(settings, "GOOGLE_PHOTO_HARD_LIMIT", 20)
+    service = GoogleQuotaService(redis=FakeRedis())
+    service._read_db_count = AsyncMock(return_value=0)
+    service._increment_backup = AsyncMock(return_value=1)
+
+    results = [
+        await service.reserve(
+            "place_photo", "same-actor", request_key=f"photo-{index}"
+        )
+        for index in range(3)
+    ]
+    repeated = await service.reserve(
+        "place_photo", "same-actor", request_key="photo-0"
+    )
+
+    assert all(result.allowed for result in results)
+    assert repeated.allowed is False
+    assert repeated.reason == "rate_limited"
+    assert service._increment_backup.await_count == 3

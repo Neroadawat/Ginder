@@ -27,6 +27,7 @@ class RestaurantCardResponse(BaseModel):
     # Present only for an ephemeral Google result. It is never persisted and
     # will be resolved lazily by the backend photo endpoint in phase 9.
     google_photo_name: str | None = None
+    google_photo_maps_uri: str | None = None
     latitude: float
     longitude: float
     distance_km: float | None = None
@@ -58,6 +59,16 @@ class RestaurantCardResponse(BaseModel):
         if self.rating is None:
             data.pop("rating", None)
         return data
+
+
+class GooglePhotoResponse(BaseModel):
+    """Short-lived Google photo URL resolved for an active card only."""
+
+    photo_uri: str | None = None
+    status: Literal[
+        "available", "disabled", "rate_limited", "quota_exhausted", "failed"
+    ]
+    quota_warning: bool = False
 
 
 class DeckResponse(BaseModel):

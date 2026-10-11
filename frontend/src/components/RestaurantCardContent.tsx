@@ -11,6 +11,7 @@ import {ImageBackground, StyleSheet, Text, View} from 'react-native';
 import {RestaurantCard} from '@/types/restaurant';
 import {getRestaurantImageUri} from '@/constants/restaurantImages';
 import {formatDistanceTh} from '@/utils/distance';
+import {useGooglePhoto} from '@/hooks/useGooglePhoto';
 import PhotoAttribution from './PhotoAttribution';
 
 interface Props {
@@ -18,13 +19,22 @@ interface Props {
 }
 
 const RestaurantCardContent = ({restaurant}: Props) => {
+  const {data: googlePhoto} = useGooglePhoto(restaurant);
   // Requirement 8.7: fall back to a category-specific placeholder.
-  const imageUri = getRestaurantImageUri(restaurant);
+  const imageUri =
+    googlePhoto?.status === 'available' && googlePhoto.photo_uri
+      ? googlePhoto.photo_uri
+      : getRestaurantImageUri(restaurant);
+  const isGooglePhotoVisible =
+    restaurant.source === 'google_live' && googlePhoto?.status === 'available';
 
   return (
     <ImageBackground
       key={imageUri}
-      source={{uri: imageUri}}
+      source={{
+        uri: imageUri,
+        cache: isGooglePhotoVisible ? 'reload' : 'default',
+      }}
       fadeDuration={0}
       style={styles.image}
       resizeMode="cover"
@@ -53,7 +63,11 @@ const RestaurantCardContent = ({restaurant}: Props) => {
             ⌖ ห่าง {formatDistanceTh(restaurant.distance_km)}
           </Text>
         )}
-        <PhotoAttribution restaurant={restaurant} light />
+        <PhotoAttribution
+          restaurant={restaurant}
+          light
+          photoVisible={isGooglePhotoVisible}
+        />
         {restaurant.source === 'google_live' && (
           <Text style={styles.googleAttribution}>Google Maps</Text>
         )}

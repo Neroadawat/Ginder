@@ -23,6 +23,7 @@ export interface RestaurantCard {
   photo_source: string | null;
   photo_attribution: string | null;
   google_photo_name: string | null;
+  google_photo_maps_uri?: string | null;
   latitude: number;
   longitude: number;
   distance_km: number | null;
@@ -39,6 +40,17 @@ export interface RestaurantCard {
   google_maps_url: string | null;
   /** False for ephemeral Google previews, which have no database restaurant id. */
   can_like: boolean;
+}
+
+export interface GooglePhotoResponse {
+  photo_uri: string | null;
+  status:
+    | 'available'
+    | 'disabled'
+    | 'rate_limited'
+    | 'quota_exhausted'
+    | 'failed';
+  quota_warning: boolean;
 }
 
 export interface DeckResponse {

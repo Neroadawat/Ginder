@@ -170,3 +170,21 @@ it('disables likes for ephemeral Google places but still allows skipping', () =>
   );
   expect(mockAnimations).toHaveLength(1);
 });
+
+it('mounts only the current card and the next two cards for lazy photo loading', () => {
+  const fourRestaurants = ['a', 'b', 'c', 'd'].map(id => ({id, name: id}));
+  act(() => {
+    tree = create(
+      <SwipeCard
+        restaurants={fourRestaurants}
+        onSwipe={jest.fn()}
+        onDeckEmpty={jest.fn()}
+      />,
+    );
+  });
+
+  expect(tree.root.findAllByProps({testID: 'a'}).length).toBeGreaterThan(0);
+  expect(tree.root.findAllByProps({testID: 'b'}).length).toBeGreaterThan(0);
+  expect(tree.root.findAllByProps({testID: 'c'}).length).toBeGreaterThan(0);
+  expect(tree.root.findAllByProps({testID: 'd'})).toHaveLength(0);
+});

@@ -3,7 +3,12 @@
  */
 
 import apiClient, {DISCOVERY_TIMEOUT_MS} from './client';
-import {DeckResponse, RestaurantCard, SoloFilterParams} from '@/types/restaurant';
+import {
+  DeckResponse,
+  GooglePhotoResponse,
+  RestaurantCard,
+  SoloFilterParams,
+} from '@/types/restaurant';
 
 export const restaurantApi = {
   getCategories: async (): Promise<string[]> => {
@@ -25,6 +30,13 @@ export const restaurantApi = {
 
   getRestaurant: async (restaurantId: string): Promise<RestaurantCard> => {
     const response = await apiClient.get(`/restaurants/${restaurantId}`);
+    return response.data;
+  },
+
+  getGooglePhoto: async (photoName: string): Promise<GooglePhotoResponse> => {
+    const response = await apiClient.get('/restaurants/google-photo', {
+      params: {photo_name: photoName},
+    });
     return response.data;
   },
 };

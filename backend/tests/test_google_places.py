@@ -50,6 +50,10 @@ class FakeClient:
         self.calls.append((url, kwargs))
         return self.response
 
+    async def get(self, url, **kwargs):
+        self.calls.append((url, kwargs))
+        return self.response
+
 
 class ListResult:
     def __init__(self, rows):
@@ -131,6 +135,7 @@ async def test_nearby_search_uses_minimal_mask_and_parses_ephemeral_card(monkeyp
                     "photos": [
                         {
                             "name": "places/ChIJ-test/photos/photo-1",
+                            "googleMapsUri": "https://maps.google.com/photo/test",
                             "authorAttributions": [
                                 {"displayName": "เจ้าของภาพ", "uri": "https://maps.google.com"}
                             ],
@@ -160,6 +165,7 @@ async def test_nearby_search_uses_minimal_mask_and_parses_ephemeral_card(monkeyp
     assert card.source == "google_live"
     assert card.can_like is False
     assert card.google_photo_name == "places/ChIJ-test/photos/photo-1"
+    assert card.google_photo_maps_uri == "https://maps.google.com/photo/test"
     assert card.photo_attribution == "เจ้าของภาพ"
     assert card.rating is None and card.price_level is None
     _, request = client.calls[0]
@@ -168,6 +174,65 @@ async def test_nearby_search_uses_minimal_mask_and_parses_ephemeral_card(monkeyp
         "places.id,places.displayName,places.primaryType,places.location,places.photos"
     )
     assert request["json"]["maxResultCount"] == 20
+
+
+@pytest.mark.asyncio
+async def test_photo_is_resolved_lazily_with_quota_and_no_api_key_in_url(
+    monkeypatch,
+) -> None:
+    quota = SimpleNamespace(
+        reserve=AsyncMock(return_value=QuotaDecision(True, 1, False, "allowed"))
+    )
+    client = FakeClient(FakeResponse({"photoUri": "//lh3.googleusercontent.com/photo"}))
+    monkeypatch.setattr(
+        "app.services.google_places_service.httpx.AsyncClient",
+        lambda **_kwargs: client,
+    )
+    monkeypatch.setattr(settings, "GOOGLE_PLACES_ENABLED", True)
+    monkeypatch.setattr(settings, "GOOGLE_PLACES_API_KEY", "server-secret")
+    photo_name = "places/ChIJ-test/photos/photo-1"
+
+    result = await GooglePlacesService(quota=quota).get_photo_uri(
+        photo_name=photo_name,
+        actor_key="hashed-actor",
+    )
+
+    assert result.status == "available"
+    assert result.photo_uri == "https://lh3.googleusercontent.com/photo"
+    quota.reserve.assert_awaited_once_with(
+        "place_photo", "hashed-actor", request_key=photo_name
+    )
+    url, request = client.calls[0]
+    assert url.endswith(f"/{photo_name}/media")
+    assert "server-secret" not in url
+    assert request["headers"]["X-Goog-Api-Key"] == "server-secret"
+    assert request["params"] == {
+        "maxWidthPx": 1200,
+        "maxHeightPx": 1600,
+        "skipHttpRedirect": "true",
+    }
+
+
+@pytest.mark.asyncio
+async def test_photo_hard_limit_uses_placeholder_without_google_call(monkeypatch) -> None:
+    quota = SimpleNamespace(
+        reserve=AsyncMock(return_value=QuotaDecision(False, 1000, True, "hard_limit"))
+    )
+    client_factory = AsyncMock()
+    monkeypatch.setattr(
+        "app.services.google_places_service.httpx.AsyncClient", client_factory
+    )
+    monkeypatch.setattr(settings, "GOOGLE_PLACES_ENABLED", True)
+    monkeypatch.setattr(settings, "GOOGLE_PLACES_API_KEY", "server-secret")
+
+    result = await GooglePlacesService(quota=quota).get_photo_uri(
+        photo_name="places/ChIJ-test/photos/photo-1",
+        actor_key="hashed-actor",
+    )
+
+    assert result.status == "quota_exhausted"
+    assert result.photo_uri is None
+    client_factory.assert_not_called()
 
 
 @pytest.mark.asyncio

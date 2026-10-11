@@ -1,6 +1,7 @@
 """Ephemeral Google Places (New) fallback for Solo discovery only."""
 
 import logging
+import re
 from dataclasses import dataclass
 from typing import Any, Literal
 from urllib.parse import quote_plus
@@ -9,7 +10,7 @@ from uuid import NAMESPACE_URL, uuid5
 import httpx
 
 from app.core.config import settings
-from app.schemas.restaurant import RestaurantCardResponse
+from app.schemas.restaurant import GooglePhotoResponse, RestaurantCardResponse
 from app.services.quota_service import GoogleQuotaService
 from app.utils.geo import calculate_distance_km
 
@@ -28,6 +29,7 @@ _FIELD_MASK = ",".join(
         "places.photos",
     )
 )
+_PHOTO_NAME_PATTERN = re.compile(r"^places/[A-Za-z0-9_-]+/photos/[A-Za-z0-9_-]+$")
 
 
 @dataclass(frozen=True)
@@ -116,6 +118,62 @@ class GooglePlacesService:
         ]
         return GoogleSearchResult(cards, "available", decision.soft_limit_reached)
 
+    async def get_photo_uri(
+        self, *, photo_name: str, actor_key: str
+    ) -> GooglePhotoResponse:
+        """Resolve one recent photo resource without persisting or proxy-caching it."""
+        if not settings.GOOGLE_PLACES_ENABLED or not settings.GOOGLE_PLACES_API_KEY:
+            return GooglePhotoResponse(status="disabled")
+        if not _PHOTO_NAME_PATTERN.fullmatch(photo_name):
+            return GooglePhotoResponse(status="failed")
+
+        decision = await self.quota.reserve(
+            "place_photo", actor_key, request_key=photo_name
+        )
+        if not decision.allowed:
+            status: ExternalStatus = (
+                "quota_exhausted" if decision.reason == "hard_limit" else "rate_limited"
+            )
+            return GooglePhotoResponse(status=status)
+
+        logger.info(
+            "Google Places place_photo reserved for actor=%s count=%s",
+            actor_key,
+            decision.count,
+        )
+        try:
+            async with httpx.AsyncClient(
+                timeout=settings.GOOGLE_PLACES_TIMEOUT_SECONDS
+            ) as client:
+                response = await client.get(
+                    f"{settings.GOOGLE_PLACES_BASE_URL}/{photo_name}/media",
+                    params={
+                        "maxWidthPx": 1200,
+                        "maxHeightPx": 1600,
+                        "skipHttpRedirect": "true",
+                    },
+                    headers={"X-Goog-Api-Key": settings.GOOGLE_PLACES_API_KEY},
+                )
+                response.raise_for_status()
+                photo_uri = response.json().get("photoUri")
+        except (httpx.HTTPError, ValueError, AttributeError):
+            logger.warning("Google Places place_photo failed", exc_info=True)
+            return GooglePhotoResponse(
+                status="failed", quota_warning=decision.soft_limit_reached
+            )
+
+        if isinstance(photo_uri, str) and photo_uri.startswith("//"):
+            photo_uri = f"https:{photo_uri}"
+        if not isinstance(photo_uri, str) or not photo_uri.startswith("https://"):
+            return GooglePhotoResponse(
+                status="failed", quota_warning=decision.soft_limit_reached
+            )
+        return GooglePhotoResponse(
+            photo_uri=photo_uri,
+            status="available",
+            quota_warning=decision.soft_limit_reached,
+        )
+
     @classmethod
     def _to_card(
         cls,
@@ -166,6 +224,7 @@ class GooglePlacesService:
             photo_source=author_uri,
             photo_attribution=", ".join(author_names) or None,
             google_photo_name=photo.get("name"),
+            google_photo_maps_uri=photo.get("googleMapsUri"),
             latitude=float(place_lat),
             longitude=float(place_lng),
             distance_km=round(

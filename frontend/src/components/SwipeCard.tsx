@@ -2,13 +2,11 @@
 import React, {
   forwardRef,
   useCallback,
-  useEffect,
   useImperativeHandle,
   useRef,
   useState,
 } from 'react';
 import {
-  Image,
   View,
   Text,
   StyleSheet,
@@ -27,7 +25,6 @@ import Animated, {
   Extrapolation,
 } from 'react-native-reanimated';
 import {RestaurantCard as RestaurantCardType} from '@/types/restaurant';
-import {getRestaurantImageUri} from '@/constants/restaurantImages';
 import RestaurantCardContent from './RestaurantCardContent';
 import AppIcon from './AppIcon';
 
@@ -190,15 +187,6 @@ const SwipeCard = ({restaurants, onSwipe, onDeckEmpty}: SwipeCardProps) => {
     },
     [currentIndex, restaurants, onSwipe, onDeckEmpty],
   );
-
-  useEffect(() => {
-    restaurants.slice(currentIndex + 1, currentIndex + 3).forEach(item => {
-      const uri = getRestaurantImageUri(item);
-      if (/^https?:/.test(uri)) {
-        Image.prefetch(uri).catch(() => undefined);
-      }
-    });
-  }, [currentIndex, restaurants]);
 
   if (currentIndex >= restaurants.length) {
     return null;
