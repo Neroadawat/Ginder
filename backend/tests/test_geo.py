@@ -8,6 +8,7 @@ from app.utils.geo import (
     _bucket_radius,
     bounding_box,
     calculate_distance_km,
+    external_search_area,
     generate_cache_key,
 )
 
@@ -52,9 +53,7 @@ class TestBoundingBox:
         This is the property the SQL prefilter depends on: if the box were too
         small, valid restaurants would silently disappear from the deck.
         """
-        min_lat, max_lat, min_lng, max_lng = bounding_box(
-            TU_RANGSIT_LAT, TU_RANGSIT_LNG, radius_km
-        )
+        min_lat, max_lat, min_lng, max_lng = bounding_box(TU_RANGSIT_LAT, TU_RANGSIT_LNG, radius_km)
 
         # Walk the full circle at the exact radius.
         for step in range(72):
@@ -156,3 +155,12 @@ class TestGenerateCacheKey:
         north = generate_cache_key(TU_RANGSIT_LAT + 0.008, TU_RANGSIT_LNG, 3.0)
         south = generate_cache_key(TU_RANGSIT_LAT - 0.008, TU_RANGSIT_LNG, 3.0)
         assert north != south
+
+    def test_external_fetch_uses_bucket_plus_grid_padding(self):
+        centre_lat, centre_lng, fetch_radius = external_search_area(
+            TU_RANGSIT_LAT, TU_RANGSIT_LNG, 2.4
+        )
+
+        assert centre_lat == pytest.approx(14.072)
+        assert centre_lng == pytest.approx(100.608)
+        assert fetch_radius == pytest.approx(3.4)

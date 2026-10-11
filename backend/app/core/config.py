@@ -44,6 +44,18 @@ class Settings(BaseSettings):
     # keeps synthetic venues available for offline UI testing.
     RESTAURANT_DATA_MODE: Literal["production", "development"] = "development"
 
+    # If a production search has no local results, fetch real OSM venues once
+    # for the shared grid cell. OSM content may be cached, unlike Google Places
+    # content, so it also works with persisted likes and party-session decks.
+    RESTAURANT_FALLBACK_PROVIDER: Literal["none", "osm"] = "osm"
+    RESTAURANT_FALLBACK_CACHE_HOURS: int = 168
+    # Total budget for the first uncached search. Mobile discovery requests use
+    # a matching, slightly longer timeout; cached searches remain instant.
+    RESTAURANT_FALLBACK_TIMEOUT_SECONDS: float = 40.0
+    OSM_OVERPASS_PRIMARY_URL: str = "https://overpass.private.coffee/api/interpreter"
+    OSM_OVERPASS_SECONDARY_URL: str = "https://maps.mail.ru/osm/tools/overpass/api/interpreter"
+    OSM_OVERPASS_TERTIARY_URL: str = "https://overpass-api.de/api/interpreter"
+
     # ─── CORS ───
     CORS_ORIGINS: list[str] = ["http://localhost:8081"]
 

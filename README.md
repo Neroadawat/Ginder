@@ -116,6 +116,33 @@ The reviewed launch dataset now has an auditable category-curation sheet and
 requires source plus attribution metadata for every real photo. The app displays
 that credit anywhere the photo appears; unverified image URLs are ignored.
 
+### Searches outside the launch area
+
+With `RESTAURANT_FALLBACK_PROVIDER=osm`, an empty production search triggers one
+OpenStreetMap Overpass lookup cycle for a shared ~400 m grid cell (configured
+mirrors are tried only when an earlier endpoint fails). The real OSM rows are
+cached in PostgreSQL for seven days, so nearby users reuse them for solo swipes,
+likes, and party sessions without another external request. Redis adds a short
+lock and an empty-result marker so simultaneous requests do not create a request
+burst. If Overpass is temporarily unavailable, the API returns an empty deck
+and retries later instead of failing the app.
+
+The first uncached search can take up to about 40 seconds while a public mirror
+responds. Solo-deck and party-start requests therefore use a 45-second mobile
+timeout; requests served from PostgreSQL are unaffected.
+
+Set `RESTAURANT_FALLBACK_PROVIDER=none` for a fully local demo. Change
+`RESTAURANT_FALLBACK_CACHE_HOURS` to control freshness. Dynamic cached rows are
+excluded from new searches after expiry and the nightly cleanup removes them
+once no saved vote or session deck refers to them. The reviewed Thammasat rows
+remain permanent.
+
+Google Places is deliberately not used for this persistent fallback. Google
+permits long-term storage of place IDs, but generally restricts caching of
+Places content and photo resource names; that conflicts with this app's saved
+likes and shared session decks. A future Google-backed live preview should be a
+separate, non-persistent flow with Google attribution and billing safeguards.
+
 ## Environment Variables
 
 Copy `.env.example` files in both `backend/` and `frontend/` directories and fill in the values.

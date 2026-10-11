@@ -8,6 +8,23 @@ EARTH_RADIUS_KM = 6371.0
 # Approximate kilometres per degree of latitude (near-constant everywhere)
 KM_PER_DEGREE_LAT = 111.0
 
+# Nearby users share one external-provider fetch. The provider searches from
+# the snapped cell centre with a little extra padding, then callers still apply
+# the exact Haversine radius. This avoids a cache hit hiding restaurants from a
+# user standing at the opposite edge of the same cell.
+CACHE_GRID_PRECISION = 0.004
+CACHE_GRID_PADDING_KM = 0.4
+RADIUS_BUCKETS: tuple[tuple[float, str], ...] = (
+    (0.5, "0.5km"),
+    (1.0, "1km"),
+    (1.5, "1.5km"),
+    (2.0, "2km"),
+    (3.0, "3km"),
+    (5.0, "5km"),
+    (10.0, "10km"),
+    (20.0, "20km"),
+)
+
 
 def calculate_distance_km(lat1: float, lng1: float, lat2: float, lng2: float) -> float:
     """Calculate distance between two coordinates using the Haversine formula.
@@ -19,10 +36,7 @@ def calculate_distance_km(lat1: float, lng1: float, lat2: float, lng2: float) ->
     dlat = math.radians(lat2 - lat1)
     dlng = math.radians(lng2 - lng1)
 
-    a = (
-        math.sin(dlat / 2) ** 2
-        + math.cos(lat1_rad) * math.cos(lat2_rad) * math.sin(dlng / 2) ** 2
-    )
+    a = math.sin(dlat / 2) ** 2 + math.cos(lat1_rad) * math.cos(lat2_rad) * math.sin(dlng / 2) ** 2
     c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
 
     return EARTH_RADIUS_KM * c
@@ -80,16 +94,26 @@ def generate_cache_key(
     seeded data is queried by distance instead — see
     ``RestaurantService._fetch_by_distance``.
     """
-    # Snap to a ~400 m grid (0.004 degrees latitude)
-    grid_precision = 0.004
-    grid_lat = round(latitude / grid_precision) * grid_precision
-    grid_lng = round(longitude / grid_precision) * grid_precision
+    grid_lat, grid_lng, _ = external_search_area(latitude, longitude, radius_km)
 
     grid_cell = f"{grid_lat:.4f},{grid_lng:.4f}"
     radius_bucket = _bucket_radius(radius_km)
     cat = category or "all"
 
     return f"{grid_cell}_{radius_bucket}_{cat}"
+
+
+def external_search_area(
+    latitude: float, longitude: float, radius_km: float
+) -> tuple[float, float, float]:
+    """Return the shared centre and safe radius for an external fetch."""
+    grid_lat = round(latitude / CACHE_GRID_PRECISION) * CACHE_GRID_PRECISION
+    grid_lng = round(longitude / CACHE_GRID_PRECISION) * CACHE_GRID_PRECISION
+    bucket_radius = next(
+        (threshold for threshold, _ in RADIUS_BUCKETS if radius_km <= threshold),
+        50.0,
+    )
+    return grid_lat, grid_lng, bucket_radius + CACHE_GRID_PADDING_KM
 
 
 def _bucket_radius(radius_km: float) -> str:
@@ -99,16 +123,7 @@ def _bucket_radius(radius_km: float) -> str:
     superset of what the caller needs; the exact distance filter narrows it down.
     Sub-kilometre buckets exist because the app offers 0.5 km increments.
     """
-    for threshold, label in (
-        (0.5, "0.5km"),
-        (1.0, "1km"),
-        (1.5, "1.5km"),
-        (2.0, "2km"),
-        (3.0, "3km"),
-        (5.0, "5km"),
-        (10.0, "10km"),
-        (20.0, "20km"),
-    ):
+    for threshold, label in RADIUS_BUCKETS:
         if radius_km <= threshold:
             return label
     return "50km"

@@ -2,7 +2,7 @@
  * Restaurant API — categories, solo deck, session deck, single restaurant.
  */
 
-import apiClient from './client';
+import apiClient, {DISCOVERY_TIMEOUT_MS} from './client';
 import {DeckResponse, RestaurantCard, SoloFilterParams} from '@/types/restaurant';
 
 export const restaurantApi = {
@@ -12,7 +12,9 @@ export const restaurantApi = {
   },
 
   getSoloDeck: async (filters: SoloFilterParams): Promise<DeckResponse> => {
-    const response = await apiClient.post('/restaurants/deck', filters);
+    const response = await apiClient.post('/restaurants/deck', filters, {
+      timeout: DISCOVERY_TIMEOUT_MS,
+    });
     return response.data;
   },
 

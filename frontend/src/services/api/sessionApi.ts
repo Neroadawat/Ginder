@@ -2,7 +2,7 @@
  * Session API — create, join, start, kick, invite, get.
  */
 
-import apiClient from './client';
+import apiClient, {DISCOVERY_TIMEOUT_MS} from './client';
 import {
   CreateSessionRequest,
   DeckFinishedResponse,
@@ -38,7 +38,11 @@ export const sessionApi = {
   },
 
   start: async (sessionId: string): Promise<StartSessionResponse> => {
-    const response = await apiClient.post(`/sessions/${sessionId}/start`);
+    const response = await apiClient.post(
+      `/sessions/${sessionId}/start`,
+      undefined,
+      {timeout: DISCOVERY_TIMEOUT_MS},
+    );
     return response.data;
   },
 

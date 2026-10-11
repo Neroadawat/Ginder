@@ -1,9 +1,11 @@
 """Restaurant business logic — search, deck generation, deck persistence."""
 
+import logging
 import random
+from datetime import UTC, datetime
 from uuid import UUID
 
-from sqlalchemy import Select, distinct, select
+from sqlalchemy import Select, distinct, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -14,6 +16,7 @@ from app.models.session import Session
 from app.models.session_deck import SessionDeck
 from app.models.user import User
 from app.schemas.restaurant import DeckResponse, RestaurantCardResponse, SoloFilterRequest
+from app.services.osm_fallback_service import OsmFallbackService
 from app.utils.geo import bounding_box, calculate_distance_km
 from app.utils.places import (
     is_open_at,
@@ -21,6 +24,8 @@ from app.utils.places import (
     price_level_to_symbol,
     price_tier_to_levels,
 )
+
+logger = logging.getLogger(__name__)
 
 
 class RestaurantService:
@@ -165,15 +170,27 @@ class RestaurantService:
         if min_rating is not None:
             query = query.where(Restaurant.rating >= min_rating)
 
-        result = await self.db.execute(query)
-        candidates = list(result.scalars().all())
+        within_radius = await self._execute_radius_query(query, latitude, longitude, radius_km)
 
-        # The bounding box is a square around the circle, so drop the corners.
-        within_radius = [
-            r
-            for r in candidates
-            if calculate_distance_km(latitude, longitude, r.latitude, r.longitude) <= radius_km
-        ]
+        if not within_radius and settings.RESTAURANT_FALLBACK_PROVIDER == "osm":
+            # A filter yielding no matches must not trigger an external call if
+            # this area is already represented locally. Only a genuinely empty
+            # area needs on-demand discovery.
+            area_query = self._apply_data_mode(select(Restaurant))
+            area_query = self._apply_bounding_box(area_query, latitude, longitude, radius_km)
+            local_area = await self._execute_radius_query(
+                area_query, latitude, longitude, radius_km
+            )
+            if not local_area:
+                try:
+                    await OsmFallbackService().ensure_area(latitude, longitude, radius_km)
+                    within_radius = await self._execute_radius_query(
+                        query, latitude, longitude, radius_km
+                    )
+                except Exception:
+                    # Restaurant discovery should degrade to an empty deck if a
+                    # public endpoint is unavailable, not fail the whole app.
+                    logger.exception("OSM fallback failed near %.5f, %.5f", latitude, longitude)
 
         if not open_now:
             return within_radius
@@ -183,6 +200,28 @@ class RestaurantService:
         moment = now_in_timezone(settings.APP_TIMEZONE)
         return [r for r in within_radius if is_open_at(r.opening_hours, moment)]
 
+    async def _execute_radius_query(
+        self,
+        query: Select,
+        latitude: float,
+        longitude: float,
+        radius_km: float,
+    ) -> list[Restaurant]:
+        result = await self.db.execute(query)
+        candidates = list(result.scalars().all())
+        # The bounding box is a square around the circle, so drop the corners.
+        return [
+            restaurant
+            for restaurant in candidates
+            if calculate_distance_km(
+                latitude,
+                longitude,
+                restaurant.latitude,
+                restaurant.longitude,
+            )
+            <= radius_km
+        ]
+
     @staticmethod
     def _apply_data_mode(query: Select) -> Select:
         """Hide synthetic rows from new discovery in production.
@@ -190,8 +229,16 @@ class RestaurantService:
         Direct lookups and persisted session decks deliberately remain
         unfiltered so historical votes and sessions never break.
         """
+        now = datetime.now(UTC)
+        query = query.where(
+            or_(
+                Restaurant.is_permanent.is_(True),
+                Restaurant.expires_at.is_(None),
+                Restaurant.expires_at > now,
+            )
+        )
         if settings.RESTAURANT_DATA_MODE == "production":
-            return query.where(Restaurant.source.in_(("osm", "manual")))
+            query = query.where(Restaurant.source.in_(("osm", "manual")))
         return query
 
     @staticmethod

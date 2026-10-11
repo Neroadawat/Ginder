@@ -7,6 +7,10 @@ import axios, {AxiosError, InternalAxiosRequestConfig} from 'axios';
 import {API_BASE_URL} from '@/services/config';
 import {useAuthStore} from '@/stores/authStore';
 
+// A first search in a new area may query a public OSM mirror. Later searches
+// use the server's seven-day cache and stay within the normal 15-second limit.
+export const DISCOVERY_TIMEOUT_MS = 45000;
+
 type ApiErrorBody = {
   detail?: string | Array<{loc?: Array<string | number>; msg?: string}>;
 };
