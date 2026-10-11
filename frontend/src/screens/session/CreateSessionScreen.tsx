@@ -19,6 +19,7 @@ import {useCreateSession, useCurrentSession} from '@/hooks/useSessions';
 import {COLORS} from '@/constants/theme';
 import {useCategories} from '@/hooks/useRestaurants';
 import {useLocationStore} from '@/stores/locationStore';
+import {ensureFreshLocation} from '@/services/location';
 import {SessionStackParamList} from '@/navigation/types';
 import {
   DEFAULT_RADIUS_KM,
@@ -29,16 +30,20 @@ import {
   formatRadius,
 } from '@/constants/filters';
 
-type NavigationProp = NativeStackNavigationProp<SessionStackParamList, 'CreateSession'>;
+type NavigationProp = NativeStackNavigationProp<
+  SessionStackParamList,
+  'CreateSession'
+>;
 
 const ALL_LABEL = 'All';
 
 const CreateSessionScreen = () => {
   const navigation = useNavigation<NavigationProp>();
-  const latitude = useLocationStore(state => state.latitude);
-  const longitude = useLocationStore(state => state.longitude);
+  const isLocating = useLocationStore(state => state.isLocating);
+  const locationError = useLocationStore(state => state.error);
   const createMutation = useCreateSession();
-  const {data: currentSession, isLoading: isCheckingSession} = useCurrentSession();
+  const {data: currentSession, isLoading: isCheckingSession} =
+    useCurrentSession();
   const {data: categories} = useCategories();
 
   const [radiusKm, setRadiusKm] = useState<number>(DEFAULT_RADIUS_KM);
@@ -52,15 +57,16 @@ const CreateSessionScreen = () => {
 
   const categoryOptions = [ALL_LABEL, ...(categories ?? [])];
 
-  const handleCreate = () => {
-    if (latitude === null || longitude === null) {
-      return; // Guarded by the permission gate, but stay defensive.
+  const handleCreate = async () => {
+    const location = await ensureFreshLocation();
+    if (!location) {
+      return;
     }
 
     createMutation.mutate(
       {
-        latitude,
-        longitude,
+        latitude: location.latitude,
+        longitude: location.longitude,
         radius_km: radiusKm,
         duration_seconds: durationSeconds,
         category_filter: category,
@@ -84,16 +90,24 @@ const CreateSessionScreen = () => {
       {currentSession && (
         <View style={styles.resumeCard}>
           <View style={styles.resumeCopy}>
-            <Text style={styles.resumeTitle}>You already have an open session</Text>
-            <Text style={styles.resumeHint}>Resume it before creating another one.</Text>
+            <Text style={styles.resumeTitle}>
+              You already have an open session
+            </Text>
+            <Text style={styles.resumeHint}>
+              Resume it before creating another one.
+            </Text>
           </View>
           <TouchableOpacity
             style={styles.resumeButton}
             onPress={() => {
               if (currentSession.session.status === 'lobby') {
-                navigation.replace('Lobby', {sessionId: currentSession.session.id});
+                navigation.replace('Lobby', {
+                  sessionId: currentSession.session.id,
+                });
               } else {
-                navigation.replace('SessionSwipe', {sessionId: currentSession.session.id});
+                navigation.replace('SessionSwipe', {
+                  sessionId: currentSession.session.id,
+                });
               }
             }}>
             <Text style={styles.resumeText}>Resume</Text>
@@ -111,7 +125,11 @@ const CreateSessionScreen = () => {
             onPress={() => setRadiusKm(r)}
             accessibilityRole="button"
             accessibilityState={{selected: radiusKm === r}}>
-            <Text style={[styles.chipText, radiusKm === r && styles.chipTextActive]}>
+            <Text
+              style={[
+                styles.chipText,
+                radiusKm === r && styles.chipTextActive,
+              ]}>
               {formatRadius(r)}
             </Text>
           </TouchableOpacity>
@@ -122,7 +140,8 @@ const CreateSessionScreen = () => {
       <Text style={styles.sectionTitle}>Category</Text>
       <View style={styles.chipRow}>
         {categoryOptions.map(option => {
-          const selected = option === ALL_LABEL ? !category : category === option;
+          const selected =
+            option === ALL_LABEL ? !category : category === option;
           return (
             <TouchableOpacity
               key={option}
@@ -130,7 +149,8 @@ const CreateSessionScreen = () => {
               onPress={() => setCategory(option === ALL_LABEL ? null : option)}
               accessibilityRole="button"
               accessibilityState={{selected}}>
-              <Text style={[styles.chipText, selected && styles.chipTextActive]}>
+              <Text
+                style={[styles.chipText, selected && styles.chipTextActive]}>
                 {option}
               </Text>
             </TouchableOpacity>
@@ -150,7 +170,8 @@ const CreateSessionScreen = () => {
               onPress={() => setPriceLevel(option.value)}
               accessibilityRole="button"
               accessibilityState={{selected}}>
-              <Text style={[styles.chipText, selected && styles.chipTextActive]}>
+              <Text
+                style={[styles.chipText, selected && styles.chipTextActive]}>
                 {option.label}
               </Text>
             </TouchableOpacity>
@@ -170,7 +191,8 @@ const CreateSessionScreen = () => {
               onPress={() => setMinRating(option.value)}
               accessibilityRole="button"
               accessibilityState={{selected}}>
-              <Text style={[styles.chipText, selected && styles.chipTextActive]}>
+              <Text
+                style={[styles.chipText, selected && styles.chipTextActive]}>
                 {option.label}
               </Text>
             </TouchableOpacity>
@@ -182,7 +204,9 @@ const CreateSessionScreen = () => {
       <View style={styles.switchRow}>
         <View style={styles.switchLabel}>
           <Text style={styles.sectionTitle}>Open now</Text>
-          <Text style={styles.sectionHint}>Only show places serving at this moment</Text>
+          <Text style={styles.sectionHint}>
+            Only show places serving at this moment
+          </Text>
         </View>
         <Switch
           value={openNow}
@@ -199,7 +223,10 @@ const CreateSessionScreen = () => {
         {SESSION_DURATION_OPTIONS.map(t => (
           <TouchableOpacity
             key={t.value}
-            style={[styles.chip, durationSeconds === t.value && styles.chipActive]}
+            style={[
+              styles.chip,
+              durationSeconds === t.value && styles.chipActive,
+            ]}
             onPress={() => setDurationSeconds(t.value)}
             accessibilityRole="button"
             accessibilityState={{selected: durationSeconds === t.value}}>
@@ -218,10 +245,15 @@ const CreateSessionScreen = () => {
       <TouchableOpacity
         style={styles.createButton}
         onPress={handleCreate}
-        disabled={createMutation.isPending || isCheckingSession || Boolean(currentSession)}
+        disabled={
+          createMutation.isPending ||
+          isCheckingSession ||
+          isLocating ||
+          Boolean(currentSession)
+        }
         accessibilityRole="button"
         accessibilityLabel="Create session">
-        {createMutation.isPending || isCheckingSession ? (
+        {createMutation.isPending || isCheckingSession || isLocating ? (
           <ActivityIndicator color="#FFF" />
         ) : (
           <Text style={styles.createText}>Create Session</Text>
@@ -230,6 +262,7 @@ const CreateSessionScreen = () => {
       {createMutation.isError && (
         <Text style={styles.error}>{createMutation.error.message}</Text>
       )}
+      {locationError && <Text style={styles.error}>{locationError}</Text>}
     </ScrollView>
   );
 };
@@ -327,7 +360,12 @@ const styles = StyleSheet.create({
   resumeCopy: {flex: 1},
   resumeTitle: {color: COLORS.text, fontSize: 14, fontWeight: '800'},
   resumeHint: {color: COLORS.textMuted, fontSize: 11, marginTop: 3},
-  resumeButton: {backgroundColor: COLORS.accent, borderRadius: 11, paddingHorizontal: 14, paddingVertical: 9},
+  resumeButton: {
+    backgroundColor: COLORS.accent,
+    borderRadius: 11,
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+  },
   resumeText: {color: '#FFF', fontSize: 12, fontWeight: '800'},
   error: {color: '#FF7777', fontSize: 13, textAlign: 'center', marginTop: 12},
 });

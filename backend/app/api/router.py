@@ -9,6 +9,7 @@ from app.api.routes import (
     notifications,
     restaurants,
     sessions,
+    usage,
     users,
     votes,
 )
@@ -23,3 +24,4 @@ api_router.include_router(restaurants.router, prefix="/restaurants", tags=["Rest
 api_router.include_router(votes.router, prefix="/votes", tags=["Votes"])
 api_router.include_router(history.router, prefix="/history", tags=["History"])
 api_router.include_router(notifications.router, prefix="/notifications", tags=["Notifications"])
+api_router.include_router(usage.router, prefix="/usage", tags=["Usage"])

@@ -10,6 +10,10 @@ import Geolocation from 'react-native-geolocation-service';
 
 import {PermissionStatus, useLocationStore} from '@/stores/locationStore';
 import {useFilterStore} from '@/stores/filterStore';
+import {isLocationFresh} from '@/utils/location';
+
+type Coordinates = {latitude: number; longitude: number};
+let inFlightLocationRequest: Promise<Coordinates | null> | null = null;
 
 /**
  * Check whether location access has already been granted, without prompting.
@@ -88,23 +92,28 @@ export async function requestLocationPermission(): Promise<PermissionStatus> {
  * Resolves to null on failure (GPS disabled, timeout) and records the reason
  * in the store so the UI can show it.
  */
-export async function getCurrentLocation(): Promise<{
-  latitude: number;
-  longitude: number;
-} | null> {
-  const {setLocation, setLocating, setError} = useLocationStore.getState();
+export function getCurrentLocation(): Promise<Coordinates | null> {
+  if (inFlightLocationRequest) {
+    return inFlightLocationRequest;
+  }
+
+  const {setLocation, setLocating, setError, setPermissionStatus} =
+    useLocationStore.getState();
 
   setLocating(true);
 
-  return new Promise(resolve => {
+  const request = new Promise<Coordinates | null>(resolve => {
     Geolocation.getCurrentPosition(
       position => {
         const {latitude, longitude} = position.coords;
-        setLocation(latitude, longitude);
+        setLocation(latitude, longitude, position.timestamp || Date.now());
         useFilterStore.getState().setLocation(latitude, longitude);
         resolve({latitude, longitude});
       },
       error => {
+        if (error.code === 1) {
+          setPermissionStatus('denied');
+        }
         setError(describeLocationError(error.code, error.message));
         resolve(null);
       },
@@ -115,6 +124,23 @@ export async function getCurrentLocation(): Promise<{
       },
     );
   });
+
+  inFlightLocationRequest = request;
+  return request.finally(() => {
+    if (inFlightLocationRequest === request) {
+      inFlightLocationRequest = null;
+    }
+  });
+}
+
+/** Return the cached fix only while it is recent; otherwise request GPS again. */
+export async function ensureFreshLocation(): Promise<Coordinates | null> {
+  const {latitude, longitude, capturedAt} = useLocationStore.getState();
+  if (latitude !== null && longitude !== null && isLocationFresh(capturedAt)) {
+    return {latitude, longitude};
+  }
+
+  return getCurrentLocation();
 }
 
 /** Open the OS settings page so the user can re-enable a blocked permission. */

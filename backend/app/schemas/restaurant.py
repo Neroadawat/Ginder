@@ -24,6 +24,9 @@ class RestaurantCardResponse(BaseModel):
     photo_url: str | None
     photo_source: str | None
     photo_attribution: str | None
+    # Present only for an ephemeral Google result. It is never persisted and
+    # will be resolved lazily by the backend photo endpoint in phase 9.
+    google_photo_name: str | None = None
     latitude: float
     longitude: float
     distance_km: float | None = None
@@ -37,6 +40,7 @@ class RestaurantCardResponse(BaseModel):
     user_ratings_total: int | None
     address: str | None
     google_maps_url: str | None
+    can_like: bool = True
 
     model_config = {"from_attributes": True}
 
@@ -62,9 +66,21 @@ class DeckResponse(BaseModel):
     session_id: uuid.UUID | None = None  # None in solo mode
     restaurants: list[RestaurantCardResponse]
     total: int
-    data_source: Literal["local", "osm_cache", "mixed", "none"] = "none"
+    data_source: Literal[
+        "local", "osm_cache", "mixed", "google_live", "mixed_live", "none"
+    ] = "none"
     coverage_status: Literal["full", "partial", "unsupported"] = "unsupported"
     suggested_radius_km: float | None = None
+    external_status: Literal[
+        "not_needed",
+        "available",
+        "disabled",
+        "filters_unsupported",
+        "rate_limited",
+        "quota_exhausted",
+        "failed",
+    ] = "not_needed"
+    quota_warning: bool = False
 
 
 class SoloFilterRequest(BaseModel):

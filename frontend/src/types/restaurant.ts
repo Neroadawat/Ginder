@@ -9,7 +9,7 @@ export interface RestaurantCard {
   place_id: string;
 
   /** Origin of the record; synthetic rows are development-only discovery data. */
-  source: 'osm' | 'manual' | 'synthetic';
+  source: 'osm' | 'manual' | 'synthetic' | 'google_live';
 
   name: string;
 
@@ -22,6 +22,7 @@ export interface RestaurantCard {
   photo_url: string | null;
   photo_source: string | null;
   photo_attribution: string | null;
+  google_photo_name: string | null;
   latitude: number;
   longitude: number;
   distance_km: number | null;
@@ -36,15 +37,32 @@ export interface RestaurantCard {
   user_ratings_total: number | null;
   address: string | null;
   google_maps_url: string | null;
+  /** False for ephemeral Google previews, which have no database restaurant id. */
+  can_like: boolean;
 }
 
 export interface DeckResponse {
   session_id: string | null;
   restaurants: RestaurantCard[];
   total: number;
-  data_source: 'local' | 'osm_cache' | 'mixed' | 'none';
+  data_source:
+    | 'local'
+    | 'osm_cache'
+    | 'mixed'
+    | 'google_live'
+    | 'mixed_live'
+    | 'none';
   coverage_status: 'full' | 'partial' | 'unsupported';
   suggested_radius_km: number | null;
+  external_status:
+    | 'not_needed'
+    | 'available'
+    | 'disabled'
+    | 'filters_unsupported'
+    | 'rate_limited'
+    | 'quota_exhausted'
+    | 'failed';
+  quota_warning: boolean;
 }
 
 export interface SoloFilterParams {

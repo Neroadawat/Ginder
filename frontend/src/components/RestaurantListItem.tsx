@@ -16,6 +16,7 @@ import {
 
 import {RestaurantCard} from '@/types/restaurant';
 import {getRestaurantImageUri} from '@/constants/restaurantImages';
+import {formatDistanceTh} from '@/utils/distance';
 import PhotoAttribution from './PhotoAttribution';
 
 interface Props {
@@ -62,7 +63,9 @@ const RestaurantListItem = ({restaurant}: Props) => {
             <Text style={styles.meta}>⭐ {restaurant.rating.toFixed(1)}</Text>
           )}
           {restaurant.distance_km != null && (
-            <Text style={styles.meta}>{restaurant.distance_km} km</Text>
+            <Text style={styles.meta}>
+              ห่าง {formatDistanceTh(restaurant.distance_km)}
+            </Text>
           )}
         </View>
         <PhotoAttribution restaurant={restaurant} />

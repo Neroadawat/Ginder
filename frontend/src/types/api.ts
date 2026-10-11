@@ -88,7 +88,11 @@ export interface SessionResponse {
   created_at: string;
 }
 
-export type ParticipantStatus = 'in_lobby' | 'swiping' | 'waiting' | 'disconnected';
+export type ParticipantStatus =
+  | 'in_lobby'
+  | 'swiping'
+  | 'waiting'
+  | 'disconnected';
 
 export interface ParticipantResponse {
   user_id: string;
@@ -196,3 +200,20 @@ export interface VoteProgressResponse {
 }
 
 export type CurrentSessionResponse = LobbyResponse | null;
+
+// ─── External API usage ───
+export interface OperationUsageResponse {
+  operation: string;
+  count: number;
+  soft_limit: number;
+  hard_limit: number;
+  soft_limit_reached: boolean;
+  hard_limit_reached: boolean;
+}
+
+export interface GoogleUsageResponse {
+  period: string;
+  enabled: boolean;
+  nearby_search: OperationUsageResponse;
+  place_photo: OperationUsageResponse;
+}

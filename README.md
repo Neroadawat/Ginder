@@ -126,6 +126,21 @@ ask the host to widen the radius or relax filters otherwise. Solo likes and skip
 are both remembered, so reopening or refreshing does not reshuffle already-seen
 restaurants or trigger discovery merely because the user finished a deck.
 
+### Location and no-Google verification
+
+Solo searches use the user's latest GPS fix. A fix older than two minutes is
+refreshed before a new deck request. Party creation performs the same freshness
+check, stores the host coordinates on the session, and every member receives the
+same persisted deck with distances measured from that host position. Distances
+are displayed in metres below 1 km and kilometres from 1 km upward.
+
+The local-only test suite covers radius inclusion, Solo and host-relative Group
+distance, fixed Group deck order, the 10-restaurant start threshold, the
+20-restaurant cap, no-provider operation, and OSM/manual Like and Match flows.
+For a fully offline classroom demonstration, set
+`RESTAURANT_FALLBACK_PROVIDER=none`; the imported Thammasat dataset then handles
+discovery with no external place-search request.
+
 ### Searches outside the launch area
 
 With `RESTAURANT_FALLBACK_PROVIDER=osm`, an empty production search first asks
@@ -153,6 +168,27 @@ permits long-term storage of place IDs, but generally restricts caching of
 Places content and photo resource names; that conflicts with this app's saved
 likes and shared session decks. A future Google-backed live preview should be a
 separate, non-persistent flow with Google attribution and billing safeguards.
+
+### Google Places live fallback
+
+The optional Google Places (New) integration is disabled by default and applies
+only to Solo searches at the maximum radius when fewer than 10 local matches
+exist. It requests at most 20 places with an explicit field mask and never
+writes Google names, categories, coordinates, or photo names to PostgreSQL.
+Live cards are removed from the client cache when the screen closes, display
+`Google Maps` attribution, and cannot be liked or used to create a Group.
+
+Set `GOOGLE_PLACES_ENABLED=true` and configure the server-only
+`GOOGLE_PLACES_API_KEY` after restricting the key to Places API in Google Cloud.
+Never add that key to `frontend/.env`. If Google is enabled, Solo uses it instead
+of the persistent OSM on-demand fallback; Group remains local-only.
+
+Nearby Search and Place Photo counters are reserved in Redis before a paid
+request and backed up in PostgreSQL by month. A per-user/IP cooldown prevents
+rapid repeats, the soft limit produces a warning, and the hard limit blocks the
+request before it reaches Google. Signed-in users can inspect both counters in
+Settings or at `GET /api/v1/usage/google`. Google Cloud Budget Alerts and Quota
+Alerts still need to be configured manually in the Cloud Console.
 
 ## Environment Variables
 

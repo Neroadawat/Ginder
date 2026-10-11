@@ -10,6 +10,7 @@ import {ImageBackground, StyleSheet, Text, View} from 'react-native';
 
 import {RestaurantCard} from '@/types/restaurant';
 import {getRestaurantImageUri} from '@/constants/restaurantImages';
+import {formatDistanceTh} from '@/utils/distance';
 import PhotoAttribution from './PhotoAttribution';
 
 interface Props {
@@ -49,10 +50,13 @@ const RestaurantCardContent = ({restaurant}: Props) => {
         </View>
         {restaurant.distance_km != null && (
           <Text style={styles.distance}>
-            ⌖ {restaurant.distance_km} km away
+            ⌖ ห่าง {formatDistanceTh(restaurant.distance_km)}
           </Text>
         )}
         <PhotoAttribution restaurant={restaurant} light />
+        {restaurant.source === 'google_live' && (
+          <Text style={styles.googleAttribution}>Google Maps</Text>
+        )}
       </View>
     </ImageBackground>
   );
@@ -126,6 +130,12 @@ const styles = StyleSheet.create({
   },
   openDot: {width: 7, height: 7, borderRadius: 4, backgroundColor: '#38A169'},
   openText: {fontSize: 11, color: '#151313', fontWeight: '700'},
+  googleAttribution: {
+    color: '#FFF',
+    fontSize: 12,
+    fontWeight: '400',
+    marginTop: 6,
+  },
 });
 
 export default RestaurantCardContent;

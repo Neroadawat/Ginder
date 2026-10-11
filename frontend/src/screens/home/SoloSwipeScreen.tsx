@@ -22,11 +22,31 @@ import {HomeStackParamList, RootStackParamList} from '@/navigation/types';
 import {RestaurantCard} from '@/types/restaurant';
 import AppIcon from '@/components/AppIcon';
 import {COLORS} from '@/constants/theme';
+import {getCurrentLocation} from '@/services/location';
+import {useLocationStore} from '@/stores/locationStore';
+import {isLocationFresh} from '@/utils/location';
 
 type NavigationProp = NativeStackNavigationProp<
   HomeStackParamList,
   'SoloSwipe'
 >;
+
+const externalMessage = (status: string | undefined): string => {
+  switch (status) {
+    case 'quota_exhausted':
+      return 'โควตาค้นหาร้านภายนอกของเดือนนี้หมดแล้ว กรุณาใช้ข้อมูลร้านในระบบ';
+    case 'rate_limited':
+      return 'เพิ่งค้นหาพื้นที่นี้ไป กรุณารอสักครู่ก่อนลองอีกครั้ง';
+    case 'failed':
+      return 'ค้นหาร้านภายนอกไม่สำเร็จ แต่ข้อมูลร้านในระบบยังใช้งานได้';
+    case 'disabled':
+      return 'พื้นที่นี้ยังไม่มีข้อมูลในระบบ และยังไม่ได้เปิดการค้นหาภายนอก';
+    case 'filters_unsupported':
+      return 'ตัวกรองนี้ใช้กับผลลัพธ์สดไม่ได้ ลองปิดตัวกรองราคา เรตติ้ง หรือเปิดอยู่';
+    default:
+      return 'Expand the search radius or change filters to see more places.';
+  }
+};
 
 const SoloSwipeScreen = () => {
   const navigation = useNavigation<NavigationProp>();
@@ -35,6 +55,10 @@ const SoloSwipeScreen = () => {
   const minRating = useFilterStore(state => state.minRating);
   const radiusKm = useFilterStore(state => state.radiusKm);
   const openNow = useFilterStore(state => state.openNow);
+  const capturedAt = useLocationStore(state => state.capturedAt);
+  const isLocating = useLocationStore(state => state.isLocating);
+  const locationError = useLocationStore(state => state.error);
+  const needsFreshGps = !isLocationFresh(capturedAt);
 
   const {data: deck, isLoading} = useSoloDeck({
     category,
@@ -44,8 +68,18 @@ const SoloSwipeScreen = () => {
     openNow,
   });
   const soloSwipeMutation = useSoloSwipe();
+  const hasGoogleLive = deck?.restaurants.some(
+    restaurant => restaurant.source === 'google_live',
+  );
 
   const openPartyMenu = () => {
+    if (hasGoogleLive) {
+      Alert.alert(
+        'Group unavailable for live places',
+        'Google Maps results are temporary previews. Group sessions use reviewed OSM or manual restaurants only.',
+      );
+      return;
+    }
     const rootNavigation = navigation.getParent()?.getParent() as
       | NativeStackNavigationProp<RootStackParamList>
       | undefined;
@@ -73,7 +107,11 @@ const SoloSwipeScreen = () => {
 
   const handleSwipe = useCallback(
     (restaurant: RestaurantCard, liked: boolean) => {
+      if (restaurant.source === 'google_live') {
+        return !liked;
+      }
       soloSwipeMutation.mutate({restaurant_id: restaurant.id, liked});
+      return true;
     },
     [soloSwipeMutation],
   );
@@ -82,11 +120,29 @@ const SoloSwipeScreen = () => {
     navigation.navigate('ExpandRadius');
   }, [navigation]);
 
-  if (isLoading) {
+  if (needsFreshGps && locationError && !isLocating) {
+    return (
+      <View style={styles.centered}>
+        <Text style={styles.emptyEmoji}>📍</Text>
+        <Text style={styles.emptyTitle}>ไม่สามารถอัปเดตตำแหน่งได้</Text>
+        <Text style={styles.emptySubtitle}>{locationError}</Text>
+        <TouchableOpacity
+          style={styles.retryButton}
+          onPress={getCurrentLocation}
+          accessibilityRole="button">
+          <Text style={styles.retryText}>ลองค้นหาตำแหน่งอีกครั้ง</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
+  if (isLoading || isLocating || needsFreshGps) {
     return (
       <View style={styles.centered}>
         <ActivityIndicator size="large" color="#FF6B6B" />
-        <Text style={styles.loadingText}>Finding restaurants...</Text>
+        <Text style={styles.loadingText}>
+          {needsFreshGps ? 'กำลังอัปเดตตำแหน่ง...' : 'Finding restaurants...'}
+        </Text>
       </View>
     );
   }
@@ -116,7 +172,7 @@ const SoloSwipeScreen = () => {
         </TouchableOpacity>
       </View>
 
-      {deck?.coverage_status === 'partial' && (
+      {deck?.coverage_status === 'partial' && !hasGoogleLive && (
         <TouchableOpacity
           style={styles.coverageNotice}
           onPress={() => navigation.navigate('ExpandRadius')}
@@ -127,6 +183,15 @@ const SoloSwipeScreen = () => {
               : `Only ${deck.total} new places here. Try changing your filters.`}
           </Text>
         </TouchableOpacity>
+      )}
+
+      {hasGoogleLive && (
+        <View style={styles.liveNotice}>
+          <Text style={styles.liveNoticeText}>
+            Live preview from Google Maps · Like and Group are unavailable
+            {deck?.quota_warning ? ' · Monthly soft limit reached' : ''}
+          </Text>
+        </View>
       )}
 
       <View style={styles.cardContainer}>
@@ -145,7 +210,7 @@ const SoloSwipeScreen = () => {
                 : 'You have seen this deck'}
             </Text>
             <Text style={styles.emptySubtitle}>
-              Expand the search radius or change filters to see more places.
+              {externalMessage(deck?.external_status)}
             </Text>
             <TouchableOpacity
               style={styles.retryButton}
@@ -213,6 +278,25 @@ const styles = StyleSheet.create({
     color: '#FFF',
     fontSize: 13,
     fontWeight: '600',
+    textAlign: 'center',
+  },
+  liveNotice: {
+    position: 'absolute',
+    top: 94,
+    left: 24,
+    right: 24,
+    zIndex: 29,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#5E5E5E',
+    backgroundColor: 'rgba(20,20,20,0.92)',
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+  },
+  liveNoticeText: {
+    color: '#FFF',
+    fontSize: 12,
+    fontWeight: '400',
     textAlign: 'center',
   },
   partyButton: {

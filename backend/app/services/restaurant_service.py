@@ -17,6 +17,7 @@ from app.models.session_deck import SessionDeck
 from app.models.user import User
 from app.models.vote import Vote
 from app.schemas.restaurant import DeckResponse, RestaurantCardResponse, SoloFilterRequest
+from app.services.google_places_service import GooglePlacesService
 from app.services.osm_fallback_service import OsmFallbackService
 from app.utils.geo import bounding_box, calculate_distance_km
 from app.utils.places import (
@@ -39,7 +40,9 @@ class RestaurantService:
         result = await self.db.execute(self._apply_data_mode(query))
         return [row[0] for row in result.all()]
 
-    async def get_solo_deck(self, filters: SoloFilterRequest, user: User) -> DeckResponse:
+    async def get_solo_deck(
+        self, filters: SoloFilterRequest, user: User, actor_key: str | None = None
+    ) -> DeckResponse:
         """Build a solo-mode deck around the user's own location."""
         restaurants = await self._search(
             latitude=filters.latitude,
@@ -66,13 +69,49 @@ class RestaurantService:
         random.shuffle(available)
         deck = available[: settings.MAX_DECK_SIZE]
 
+        external_status = "not_needed"
+        quota_warning = False
+        google_cards: list[RestaurantCardResponse] = []
+        if self._should_request_google(len(restaurants), filters.radius_km):
+            if (
+                filters.price_level is not None
+                or filters.min_rating is not None
+                or filters.open_now
+            ):
+                # The minimal field mask deliberately omits these attributes,
+                # so live results cannot honestly satisfy these filters.
+                external_status = "filters_unsupported"
+            elif not settings.GOOGLE_PLACES_ENABLED or not settings.GOOGLE_PLACES_API_KEY:
+                external_status = "disabled"
+            else:
+                result = await GooglePlacesService().search_nearby(
+                    latitude=filters.latitude,
+                    longitude=filters.longitude,
+                    radius_km=filters.radius_km,
+                    actor_key=actor_key or str(user.id),
+                    category=filters.category,
+                )
+                external_status = result.status
+                quota_warning = result.quota_warning
+                google_cards = self._deduplicate_google_cards(result.cards, restaurants)
+
+        google_cards = google_cards[: settings.MAX_DECK_SIZE - len(deck)]
         cards = [self.to_card(r, filters.latitude, filters.longitude) for r in deck]
+        cards.extend(google_cards)
+        if google_cards and deck:
+            data_source = "mixed_live"
+        elif google_cards:
+            data_source = "google_live"
+        else:
+            data_source = self._data_source(deck)
         return DeckResponse(
             restaurants=cards,
             total=len(cards),
-            data_source=self._data_source(deck),
-            coverage_status=self._coverage_status(len(available)),
-            suggested_radius_km=self._suggested_radius(filters.radius_km, len(available)),
+            data_source=data_source,
+            coverage_status=self._coverage_status(len(cards)),
+            suggested_radius_km=self._suggested_radius(filters.radius_km, len(cards)),
+            external_status=external_status,
+            quota_warning=quota_warning,
         )
 
     async def create_session_deck(self, session: Session) -> list[Restaurant]:
@@ -200,7 +239,14 @@ class RestaurantService:
 
         within_radius = await self._execute_radius_query(query, latitude, longitude, radius_km)
 
-        if not within_radius and settings.RESTAURANT_FALLBACK_PROVIDER == "osm":
+        google_live_enabled = (
+            settings.GOOGLE_PLACES_ENABLED and bool(settings.GOOGLE_PLACES_API_KEY)
+        )
+        if (
+            not within_radius
+            and settings.RESTAURANT_FALLBACK_PROVIDER == "osm"
+            and not google_live_enabled
+        ):
             # A filter yielding no matches must not trigger an external call if
             # this area is already represented locally. Only a genuinely empty
             # area needs on-demand discovery.
@@ -346,6 +392,36 @@ class RestaurantService:
     def _should_request_fallback(local_count: int, radius_km: float) -> bool:
         """Use external discovery only after local radius expansion is exhausted."""
         return local_count == 0 and radius_km >= settings.MAX_RADIUS_KM
+
+    @staticmethod
+    def _should_request_google(local_count: int, radius_km: float) -> bool:
+        """Google is a last-resort Solo supplement at the maximum radius."""
+        return (
+            local_count < settings.MIN_LOCAL_RESTAURANTS
+            and radius_km >= settings.MAX_RADIUS_KM
+        )
+
+    @staticmethod
+    def _deduplicate_google_cards(
+        google_cards: list[RestaurantCardResponse], local_restaurants: list[Restaurant]
+    ) -> list[RestaurantCardResponse]:
+        """Drop obvious live duplicates without persisting Google content."""
+        unique: list[RestaurantCardResponse] = []
+        for card in google_cards:
+            duplicate = any(
+                card.name.casefold().strip() == local.name.casefold().strip()
+                and calculate_distance_km(
+                    card.latitude,
+                    card.longitude,
+                    local.latitude,
+                    local.longitude,
+                )
+                <= 0.1
+                for local in local_restaurants
+            )
+            if not duplicate:
+                unique.append(card)
+        return unique
 
     @staticmethod
     def _data_source(restaurants: list[Restaurant]) -> str:

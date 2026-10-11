@@ -56,6 +56,19 @@ class Settings(BaseSettings):
     OSM_OVERPASS_SECONDARY_URL: str = "https://maps.mail.ru/osm/tools/overpass/api/interpreter"
     OSM_OVERPASS_TERTIARY_URL: str = "https://overpass-api.de/api/interpreter"
 
+    # ─── Google Places live fallback (Solo only) ───
+    # Disabled until a restricted server-side key is configured. The key must
+    # never be copied into the React Native environment.
+    GOOGLE_PLACES_ENABLED: bool = False
+    GOOGLE_PLACES_API_KEY: str = ""
+    GOOGLE_PLACES_BASE_URL: str = "https://places.googleapis.com/v1"
+    GOOGLE_PLACES_TIMEOUT_SECONDS: float = 8.0
+    GOOGLE_NEARBY_SOFT_LIMIT: int = 800
+    GOOGLE_NEARBY_HARD_LIMIT: int = 1000
+    GOOGLE_PHOTO_SOFT_LIMIT: int = 800
+    GOOGLE_PHOTO_HARD_LIMIT: int = 1000
+    GOOGLE_USER_COOLDOWN_SECONDS: int = 30
+
     # ─── CORS ───
     CORS_ORIGINS: list[str] = ["http://localhost:8081"]
 

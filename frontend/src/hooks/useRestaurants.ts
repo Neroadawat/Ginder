@@ -2,10 +2,13 @@
  * Restaurant hooks — categories, solo deck, session deck.
  */
 
+import {useEffect} from 'react';
 import {useQuery} from '@tanstack/react-query';
 
 import {restaurantApi} from '@/services/api/restaurantApi';
+import {ensureFreshLocation} from '@/services/location';
 import {useLocationStore} from '@/stores/locationStore';
+import {isLocationFresh} from '@/utils/location';
 
 export const useCategories = () => {
   return useQuery({
@@ -29,10 +32,21 @@ interface SoloDeckFilters {
 export const useSoloDeck = (filters: SoloDeckFilters) => {
   const storeLat = useLocationStore(state => state.latitude);
   const storeLng = useLocationStore(state => state.longitude);
+  const capturedAt = useLocationStore(state => state.capturedAt);
 
   const latitude = filters.latitude ?? storeLat;
   const longitude = filters.longitude ?? storeLng;
   const hasCoords = latitude !== null && longitude !== null;
+  const hasLocationOverride =
+    filters.latitude !== undefined && filters.longitude !== undefined;
+  const needsFreshGps =
+    !hasLocationOverride && hasCoords && !isLocationFresh(capturedAt);
+
+  useEffect(() => {
+    if (needsFreshGps) {
+      ensureFreshLocation();
+    }
+  }, [needsFreshGps]);
 
   return useQuery({
     queryKey: [
@@ -56,7 +70,9 @@ export const useSoloDeck = (filters: SoloDeckFilters) => {
         min_rating: filters.minRating ?? undefined,
         open_now: filters.openNow ?? false,
       }),
-    enabled: hasCoords,
+    enabled: hasCoords && !needsFreshGps,
+    // Google live content must not survive the active screen/session cache.
+    gcTime: 0,
     // "Open now" is time-sensitive, so don't serve a stale cached deck.
     staleTime: filters.openNow ? 0 : 1000 * 60 * 5,
   });

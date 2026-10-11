@@ -8,9 +8,11 @@
  */
 
 import {useCallback, useEffect, useState} from 'react';
+import {AppState} from 'react-native';
 
 import {
   checkLocationPermission,
+  ensureFreshLocation,
   getCurrentLocation,
   requestLocationPermission,
 } from '@/services/location';
@@ -59,6 +61,22 @@ export const useAppBootstrap = () => {
     return () => {
       cancelled = true;
     };
+  }, []);
+
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', state => {
+      if (state === 'active') {
+        const refreshLocation = async () => {
+          const status = await checkLocationPermission();
+          if (status === 'granted') {
+            await ensureFreshLocation();
+          }
+        };
+        refreshLocation();
+      }
+    });
+
+    return () => subscription.remove();
   }, []);
 
   return {isReady, requestLocation};

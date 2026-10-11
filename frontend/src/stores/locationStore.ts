@@ -16,11 +16,16 @@ export type PermissionStatus =
 interface LocationState {
   latitude: number | null;
   longitude: number | null;
+  capturedAt: number | null;
   permissionStatus: PermissionStatus;
   isLocating: boolean;
   error: string | null;
 
-  setLocation: (latitude: number, longitude: number) => void;
+  setLocation: (
+    latitude: number,
+    longitude: number,
+    capturedAt?: number,
+  ) => void;
   setPermissionStatus: (status: PermissionStatus) => void;
   setLocating: (isLocating: boolean) => void;
   setError: (error: string | null) => void;
@@ -29,12 +34,13 @@ interface LocationState {
 export const useLocationStore = create<LocationState>(set => ({
   latitude: null,
   longitude: null,
+  capturedAt: null,
   permissionStatus: 'unknown',
   isLocating: false,
   error: null,
 
-  setLocation: (latitude, longitude) =>
-    set({latitude, longitude, error: null, isLocating: false}),
+  setLocation: (latitude, longitude, capturedAt = Date.now()) =>
+    set({latitude, longitude, capturedAt, error: null, isLocating: false}),
 
   setPermissionStatus: permissionStatus => set({permissionStatus}),
 

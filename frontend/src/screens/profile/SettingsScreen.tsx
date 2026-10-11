@@ -15,11 +15,13 @@ import {useNavigation} from '@react-navigation/native';
 
 import {useAuthStore} from '@/stores/authStore';
 import {useDeleteAccount} from '@/hooks/useUser';
+import {useGoogleUsage} from '@/hooks/useUsage';
 
 const SettingsScreen = () => {
   const navigation = useNavigation();
   const logout = useAuthStore(state => state.logout);
   const deleteMutation = useDeleteAccount();
+  const {data: googleUsage} = useGoogleUsage();
 
   const handleLogout = () => {
     Alert.alert('Log Out', 'Are you sure you want to log out?', [
@@ -57,6 +59,27 @@ const SettingsScreen = () => {
         </TouchableOpacity>
         <Text style={styles.title}>Settings</Text>
       </View>
+
+      {googleUsage && (
+        <View style={styles.usageCard}>
+          <Text style={styles.usageTitle}>
+            Google Places · {googleUsage.period}
+          </Text>
+          <Text style={styles.usageText}>
+            Nearby Search: {googleUsage.nearby_search.count} /{' '}
+            {googleUsage.nearby_search.hard_limit}
+          </Text>
+          <Text style={styles.usageText}>
+            Place Photos: {googleUsage.place_photo.count} /{' '}
+            {googleUsage.place_photo.hard_limit}
+          </Text>
+          <Text style={styles.usageStatus}>
+            {googleUsage.enabled
+              ? 'Live fallback enabled'
+              : 'Live fallback disabled'}
+          </Text>
+        </View>
+      )}
 
       <View style={styles.section}>
         <TouchableOpacity
@@ -138,6 +161,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 8,
   },
+  usageCard: {
+    backgroundColor: '#FFF',
+    borderRadius: 16,
+    marginHorizontal: 16,
+    marginBottom: 12,
+    padding: 16,
+  },
+  usageTitle: {fontSize: 15, fontWeight: '700', color: '#333'},
+  usageText: {fontSize: 13, color: '#555', marginTop: 6},
+  usageStatus: {fontSize: 12, color: '#777', marginTop: 10},
   attributionText: {
     color: '#666',
     fontSize: 12,
