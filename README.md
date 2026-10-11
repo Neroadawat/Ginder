@@ -203,6 +203,16 @@ its author credit and a link to the individual source photo on Google Maps.
 
 Copy `.env.example` files in both `backend/` and `frontend/` directories and fill in the values.
 
+## Production deployment
+
+Production assets now include a non-root backend image, automatic migrations,
+private PostgreSQL/Redis networking, Celery services, Caddy HTTPS termination,
+strict production configuration validation, database/Redis readiness checks,
+and Android release signing that never reuses the debug key. Follow
+[`DEPLOYMENT.md`](DEPLOYMENT.md) for secrets, DNS, data import, release build,
+smoke tests, backups, monitoring, and rollback. The user-facing policies are in
+[`PRIVACY.md`](PRIVACY.md) and [`TERMS.md`](TERMS.md).
+
 ## License
 
 Private — All rights reserved.

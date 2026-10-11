@@ -2,6 +2,7 @@
 
 from typing import Literal
 
+from pydantic import model_validator
 from pydantic_settings import BaseSettings
 
 
@@ -10,8 +11,9 @@ class Settings(BaseSettings):
 
     # ─── App ───
     APP_NAME: str = "Ginder"
-    APP_ENV: str = "development"
+    APP_ENV: Literal["development", "test", "production"] = "development"
     DEBUG: bool = True
+    EXPOSE_API_DOCS: bool = True
 
     # ─── Database ───
     DATABASE_URL: str = "postgresql+asyncpg://ginder:ginder_secret@localhost:5432/ginder"
@@ -71,6 +73,7 @@ class Settings(BaseSettings):
 
     # ─── CORS ───
     CORS_ORIGINS: list[str] = ["http://localhost:8081"]
+    ALLOWED_HOSTS: list[str] = ["*"]
 
     # ─── Session Defaults ───
     # Keep the first deck quick to scan. More restaurants are reached by
@@ -89,6 +92,45 @@ class Settings(BaseSettings):
     # ─── Locale ───
     # Opening hours are local time, so "open now" is evaluated here, not in UTC.
     APP_TIMEZONE: str = "Asia/Bangkok"
+
+    @model_validator(mode="after")
+    def validate_production_safety(self) -> "Settings":
+        """Refuse to boot production with development defaults or open origins."""
+        if self.APP_ENV != "production":
+            return self
+
+        errors: list[str] = []
+        if self.DEBUG:
+            errors.append("DEBUG must be false")
+        if self.EXPOSE_API_DOCS:
+            errors.append("EXPOSE_API_DOCS must be false")
+        if (
+            self.SECRET_KEY == "change-me-in-production"
+            or "CHANGE_ME" in self.SECRET_KEY
+            or len(self.SECRET_KEY) < 32
+        ):
+            errors.append("SECRET_KEY must be a unique value of at least 32 characters")
+        if self.RESTAURANT_DATA_MODE != "production":
+            errors.append("RESTAURANT_DATA_MODE must be production")
+        if not self.CORS_ORIGINS or "*" in self.CORS_ORIGINS:
+            errors.append("CORS_ORIGINS must contain explicit HTTPS origins")
+        elif any(not origin.startswith("https://") for origin in self.CORS_ORIGINS):
+            errors.append("every production CORS origin must use HTTPS")
+        if not self.ALLOWED_HOSTS or "*" in self.ALLOWED_HOSTS:
+            errors.append("ALLOWED_HOSTS must contain explicit hostnames")
+        if "localhost" in self.DATABASE_URL or "CHANGE_ME" in self.DATABASE_URL:
+            errors.append("DATABASE_URL must not use localhost")
+        if "localhost" in self.REDIS_URL or "CHANGE_ME" in self.REDIS_URL:
+            errors.append("REDIS_URL must not use localhost")
+        if self.GOOGLE_PLACES_ENABLED and (
+            not self.GOOGLE_PLACES_API_KEY
+            or "CHANGE_ME" in self.GOOGLE_PLACES_API_KEY
+        ):
+            errors.append("GOOGLE_PLACES_API_KEY is required when Google Places is enabled")
+
+        if errors:
+            raise ValueError("Unsafe production configuration: " + "; ".join(errors))
+        return self
 
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8", "case_sensitive": True}
 

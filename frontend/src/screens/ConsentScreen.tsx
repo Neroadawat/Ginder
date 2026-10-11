@@ -11,6 +11,7 @@
 import React, {useState} from 'react';
 import {
   ScrollView,
+  Linking,
   StyleSheet,
   Switch,
   Text,
@@ -19,6 +20,7 @@ import {
 } from 'react-native';
 
 import {useConsentStore} from '@/stores/consentStore';
+import {PRIVACY_POLICY_URL, TERMS_OF_SERVICE_URL} from '@/services/config';
 
 const DATA_POINTS = [
   {
@@ -63,9 +65,20 @@ const ConsentScreen = () => {
         ))}
 
         <Text style={styles.legal}>
-          By continuing you agree to the Terms of Service and acknowledge the
-          Privacy Policy.
+          Review the documents before continuing:
         </Text>
+        <View style={styles.legalLinks}>
+          <TouchableOpacity
+            onPress={() => Linking.openURL(TERMS_OF_SERVICE_URL)}
+            accessibilityRole="link">
+            <Text style={styles.legalLink}>Terms of Service</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => Linking.openURL(PRIVACY_POLICY_URL)}
+            accessibilityRole="link">
+            <Text style={styles.legalLink}>Privacy Policy</Text>
+          </TouchableOpacity>
+        </View>
       </ScrollView>
 
       <View style={styles.footer}>
@@ -151,6 +164,17 @@ const styles = StyleSheet.create({
     color: '#999',
     lineHeight: 19,
     marginTop: 8,
+  },
+  legalLinks: {
+    flexDirection: 'row',
+    gap: 18,
+    marginTop: 8,
+  },
+  legalLink: {
+    color: '#D94747',
+    fontSize: 14,
+    fontWeight: '600',
+    textDecorationLine: 'underline',
   },
   footer: {
     padding: 24,

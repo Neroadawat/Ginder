@@ -1,15 +1,22 @@
 """Ginder Backend — FastAPI Application Entry Point."""
 
+import logging
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.trustedhost import TrustedHostMiddleware
+from fastapi.responses import JSONResponse
+from sqlalchemy import text
 
 from app.api.router import api_router
 from app.core.config import settings
-from app.core.database import engine
+from app.core.database import async_session_factory, engine
+from app.core.redis import redis_client
 from app.websocket.pubsub import start_pubsub_listener, stop_pubsub_listener
 from app.websocket.router import ws_router
+
+logger = logging.getLogger(__name__)
 
 
 @asynccontextmanager
@@ -22,6 +29,7 @@ async def lifespan(app: FastAPI):
     yield
     # Shutdown
     await stop_pubsub_listener()
+    await redis_client.aclose()
     await engine.dispose()
 
 
@@ -30,7 +38,13 @@ app = FastAPI(
     version="0.1.0",
     description="Ginder — Restaurant discovery app with swipe-based voting",
     lifespan=lifespan,
+    docs_url="/docs" if settings.EXPOSE_API_DOCS else None,
+    redoc_url="/redoc" if settings.EXPOSE_API_DOCS else None,
+    openapi_url="/openapi.json" if settings.EXPOSE_API_DOCS else None,
 )
+
+if settings.ALLOWED_HOSTS != ["*"]:
+    app.add_middleware(TrustedHostMiddleware, allowed_hosts=settings.ALLOWED_HOSTS)
 
 # ─── CORS ───
 app.add_middleware(
@@ -50,5 +64,25 @@ app.include_router(ws_router, prefix="/ws")
 
 @app.get("/health")
 async def health_check():
-    """Health check endpoint."""
+    """Backward-compatible liveness endpoint."""
     return {"status": "ok", "app": settings.APP_NAME}
+
+
+@app.get("/health/live")
+async def health_live():
+    """Process liveness; does not touch external dependencies."""
+    return {"status": "ok"}
+
+
+@app.get("/health/ready")
+async def health_ready():
+    """Readiness for traffic: both PostgreSQL and Redis must respond."""
+    try:
+        async with async_session_factory() as db:
+            await db.execute(text("SELECT 1"))
+        if not await redis_client.ping():
+            raise RuntimeError("Redis ping returned false")
+    except Exception:
+        logger.exception("Readiness check failed")
+        return JSONResponse(status_code=503, content={"status": "not_ready"})
+    return {"status": "ready"}

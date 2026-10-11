@@ -38,7 +38,9 @@ frontend/android/local.properties
 *.apk
 *.aab
 *.keystore
+*.jks
 !debug.keystore
+frontend/android/keystore.properties
 
 # ==========================
 # IDE & OS

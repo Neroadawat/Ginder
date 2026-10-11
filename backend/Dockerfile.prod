@@ -1,0 +1,38 @@
+FROM python:3.11-slim AS builder
+
+WORKDIR /build
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    libpq-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY pyproject.toml ./
+COPY app ./app
+RUN pip wheel --no-cache-dir --wheel-dir /wheels .
+
+FROM python:3.11-slim AS runtime
+
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PATH="/home/ginder/.local/bin:${PATH}"
+
+RUN groupadd --gid 10001 ginder \
+    && useradd --uid 10001 --gid ginder --create-home ginder
+
+WORKDIR /app
+
+COPY --from=builder /wheels /wheels
+RUN pip install --no-cache-dir /wheels/* && rm -rf /wheels
+
+COPY --chown=ginder:ginder app ./app
+COPY --chown=ginder:ginder alembic ./alembic
+COPY --chown=ginder:ginder alembic.ini ./alembic.ini
+COPY --chown=ginder:ginder scripts ./scripts
+COPY --chown=ginder:ginder data ./data
+
+USER ginder
+
+EXPOSE 8000
+
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]

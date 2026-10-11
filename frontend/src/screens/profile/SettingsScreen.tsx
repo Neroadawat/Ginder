@@ -16,6 +16,7 @@ import {useNavigation} from '@react-navigation/native';
 import {useAuthStore} from '@/stores/authStore';
 import {useDeleteAccount} from '@/hooks/useUser';
 import {useGoogleUsage} from '@/hooks/useUsage';
+import {PRIVACY_POLICY_URL, TERMS_OF_SERVICE_URL} from '@/services/config';
 
 const SettingsScreen = () => {
   const navigation = useNavigation();
@@ -94,6 +95,21 @@ const SettingsScreen = () => {
           onPress={handleDeleteAccount}
           accessibilityRole="button">
           <Text style={styles.menuTextDanger}>Delete Account</Text>
+        </TouchableOpacity>
+      </View>
+
+      <View style={styles.section}>
+        <TouchableOpacity
+          style={styles.menuItem}
+          onPress={() => Linking.openURL(PRIVACY_POLICY_URL)}
+          accessibilityRole="link">
+          <Text style={styles.menuText}>Privacy Policy</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.menuItemDanger}
+          onPress={() => Linking.openURL(TERMS_OF_SERVICE_URL)}
+          accessibilityRole="link">
+          <Text style={styles.menuText}>Terms of Service</Text>
         </TouchableOpacity>
       </View>
 
