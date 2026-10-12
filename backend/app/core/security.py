@@ -8,7 +8,7 @@ from passlib.context import CryptContext
 
 from app.core.config import settings
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+pwd_context = CryptContext(schemes=["bcrypt_sha256", "bcrypt"], deprecated="auto")
 
 
 # ─── Password Hashing ───
@@ -47,7 +47,7 @@ def password_reset_fingerprint(hashed_password: str) -> str:
     return hashlib.sha256(hashed_password.encode()).hexdigest()
 
 
-def create_password_reset_token(subject: str, hashed_password: str = "") -> str:
+def create_password_reset_token(subject: str, hashed_password: str) -> str:
     """Create a short-lived token for password reset."""
     expire = datetime.now(UTC) + timedelta(minutes=15)
     to_encode = {

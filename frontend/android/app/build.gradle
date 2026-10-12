@@ -9,6 +9,13 @@ project.ext.envConfigFiles = [
 ]
 apply from: project(':react-native-config').projectDir.getPath() + "/dotenv.gradle"
 
+if (project.env.get("FCM_ENABLED") == "true") {
+    if (!file("google-services.json").exists()) {
+        throw new GradleException("FCM_ENABLED=true requires android/app/google-services.json")
+    }
+    apply plugin: "com.google.gms.google-services"
+}
+
 /**
  * This is the configuration block to customize your React Native Android app.
  * By default you don't need to apply any configuration, just uncomment the lines you need.

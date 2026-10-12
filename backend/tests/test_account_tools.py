@@ -59,6 +59,15 @@ async def test_reset_link_is_invalid_after_password_change():
         await service.reset_password(body)
 
 
+def test_long_and_legacy_passwords_are_supported():
+    from app.core.security import pwd_context
+
+    long_password = "รหัสผ่านที่ยาวและไม่ควรถูกตัด" * 3
+    assert verify_password(long_password, hash_password(long_password))
+    old_hash = pwd_context.hash("old-password", scheme="bcrypt")
+    assert verify_password("old-password", old_hash)
+
+
 @pytest.mark.asyncio
 async def test_public_pages_and_script_work_without_authentication():
     async with httpx.AsyncClient(

@@ -12,9 +12,9 @@ export const API_BASE_URL =
   Config.API_BASE_URL || 'http://10.0.2.2:8000/api/v1';
 export const WS_BASE_URL = Config.WS_BASE_URL || 'ws://10.0.2.2:8000/ws';
 export const DEEP_LINK_PREFIX = Config.DEEP_LINK_PREFIX || 'ginder://';
+export const FCM_ENABLED = Config.FCM_ENABLED === 'true';
+const publicOrigin = API_BASE_URL.replace(/\/api\/v1\/?$/, '');
 export const PRIVACY_POLICY_URL =
-  Config.PRIVACY_POLICY_URL ||
-  'https://github.com/Neroadawat/Ginder/blob/main/PRIVACY.md';
+  Config.PRIVACY_POLICY_URL || `${publicOrigin}/privacy`;
 export const TERMS_OF_SERVICE_URL =
-  Config.TERMS_OF_SERVICE_URL ||
-  'https://github.com/Neroadawat/Ginder/blob/main/TERMS.md';
+  Config.TERMS_OF_SERVICE_URL || `${publicOrigin}/terms`;

@@ -1,6 +1,6 @@
 """User business logic — profile, account deletion, FCM token."""
 
-from sqlalchemy import delete, select
+from sqlalchemy import delete, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.friendship import Friendship
@@ -53,6 +53,13 @@ class UserService:
 
     async def update_fcm_token(self, user: User, body: UpdateFCMTokenRequest) -> MessageResponse:
         """Store the device token used for push notifications."""
+        # A device changing accounts must stop receiving the previous account's invitations.
+        if body.fcm_token:
+            await self.db.execute(
+                update(User)
+                .where(User.id != user.id, User.fcm_token == body.fcm_token)
+                .values(fcm_token=None)
+            )
         user.fcm_token = body.fcm_token
         await self.db.flush()
         return MessageResponse(message="FCM token updated")

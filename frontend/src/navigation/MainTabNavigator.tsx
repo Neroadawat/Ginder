@@ -15,6 +15,7 @@ import AppIcon, {AppIconName} from '@/components/AppIcon';
 import {COLORS} from '@/constants/theme';
 import {useNotifications} from '@/hooks/useNotifications';
 import {useCurrentSession} from '@/hooks/useSessions';
+import {usePushNotifications} from '@/hooks/usePushNotifications';
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
 
@@ -62,6 +63,7 @@ const tabScreenOptions = ({
 });
 
 const MainTabNavigator = () => {
+  usePushNotifications();
   const {data: notifications} = useNotifications();
   useCurrentSession();
   return (
@@ -69,28 +71,28 @@ const MainTabNavigator = () => {
       <Tab.Screen
         name="HomeTab"
         component={HomeNavigator}
-        options={{tabBarLabel: 'Swipe'}}
+        options={{tabBarLabel: 'หาร้าน'}}
       />
       <Tab.Screen
         name="ExploreTab"
         component={ExploreNavigator}
-        options={{tabBarLabel: 'Explore'}}
+        options={{tabBarLabel: 'หมวดหมู่'}}
       />
       <Tab.Screen
         name="LikesTab"
         component={LikesScreen}
-        options={{tabBarLabel: 'Likes'}}
+        options={{tabBarLabel: 'ถูกใจ'}}
       />
       <Tab.Screen
         name="HistoryTab"
         component={HistoryScreen}
-        options={{tabBarLabel: 'History'}}
+        options={{tabBarLabel: 'ประวัติ'}}
       />
       <Tab.Screen
         name="ProfileTab"
         component={ProfileNavigator}
         options={{
-          tabBarLabel: 'Profile',
+          tabBarLabel: 'โปรไฟล์',
           tabBarBadge: notifications?.unread_count || undefined,
           tabBarBadgeStyle: {
             backgroundColor: COLORS.accent,
