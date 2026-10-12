@@ -3,10 +3,10 @@
  */
 
 import {create} from 'zustand';
-import {MMKV} from 'react-native-mmkv';
+import {createMMKV} from 'react-native-mmkv';
 import {useSessionStore} from './sessionStore';
 
-const storage = new MMKV();
+const storage = createMMKV();
 
 interface AuthState {
   isAuthenticated: boolean;
@@ -14,12 +14,16 @@ interface AuthState {
   refreshToken: string | null;
   userId: string | null;
 
-  setTokens: (accessToken: string, refreshToken: string, userId: string) => void;
+  setTokens: (
+    accessToken: string,
+    refreshToken: string,
+    userId: string,
+  ) => void;
   logout: () => void;
   hydrate: () => void;
 }
 
-export const useAuthStore = create<AuthState>((set) => ({
+export const useAuthStore = create<AuthState>(set => ({
   isAuthenticated: false,
   accessToken: null,
   refreshToken: null,
@@ -33,11 +37,16 @@ export const useAuthStore = create<AuthState>((set) => ({
   },
 
   logout: () => {
-    storage.delete('access_token');
-    storage.delete('refresh_token');
-    storage.delete('user_id');
+    storage.remove('access_token');
+    storage.remove('refresh_token');
+    storage.remove('user_id');
     useSessionStore.getState().clearSession();
-    set({isAuthenticated: false, accessToken: null, refreshToken: null, userId: null});
+    set({
+      isAuthenticated: false,
+      accessToken: null,
+      refreshToken: null,
+      userId: null,
+    });
   },
 
   hydrate: () => {

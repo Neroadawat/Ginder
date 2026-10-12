@@ -3,9 +3,9 @@
  */
 
 import {create} from 'zustand';
-import {MMKV} from 'react-native-mmkv';
+import {createMMKV} from 'react-native-mmkv';
 
-const storage = new MMKV();
+const storage = createMMKV();
 
 interface SessionState {
   activeSessionId: string | null;
@@ -16,17 +16,17 @@ interface SessionState {
   hydrate: () => void;
 }
 
-export const useSessionStore = create<SessionState>((set) => ({
+export const useSessionStore = create<SessionState>(set => ({
   activeSessionId: null,
   isInSession: false,
 
-  setActiveSession: (sessionId) => {
+  setActiveSession: sessionId => {
     storage.set('active_session_id', sessionId);
     set({activeSessionId: sessionId, isInSession: true});
   },
 
   clearSession: () => {
-    storage.delete('active_session_id');
+    storage.remove('active_session_id');
     set({activeSessionId: null, isInSession: false});
   },
   hydrate: () => {

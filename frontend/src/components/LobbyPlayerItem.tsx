@@ -15,7 +15,12 @@ interface Props {
   onKick: () => void;
 }
 
-const LobbyPlayerItem = ({participant, isHost, isCurrentUser, onKick}: Props) => {
+const LobbyPlayerItem = ({
+  participant,
+  isHost,
+  isCurrentUser,
+  onKick,
+}: Props) => {
   return (
     <View style={styles.container}>
       <View style={styles.avatar}>

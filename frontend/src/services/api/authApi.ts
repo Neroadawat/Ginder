@@ -30,12 +30,16 @@ export const authApi = {
     return response.data;
   },
 
-  forgotPassword: async (data: ForgotPasswordRequest): Promise<MessageResponse> => {
+  forgotPassword: async (
+    data: ForgotPasswordRequest,
+  ): Promise<MessageResponse> => {
     const response = await apiClient.post('/auth/forgot-password', data);
     return response.data;
   },
 
-  resetPassword: async (data: ResetPasswordRequest): Promise<MessageResponse> => {
+  resetPassword: async (
+    data: ResetPasswordRequest,
+  ): Promise<MessageResponse> => {
     const response = await apiClient.post('/auth/reset-password', data);
     return response.data;
   },

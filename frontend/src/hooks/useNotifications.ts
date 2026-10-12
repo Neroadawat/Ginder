@@ -19,7 +19,8 @@ export const useMarkAsRead = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (notificationId: string) => notificationApi.markAsRead(notificationId),
+    mutationFn: (notificationId: string) =>
+      notificationApi.markAsRead(notificationId),
     onSuccess: () => {
       queryClient.invalidateQueries({queryKey: ['notifications']});
     },

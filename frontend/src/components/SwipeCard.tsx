@@ -257,7 +257,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   cardStack: {flex: 1, width: '100%', backgroundColor: '#111'},
-  nextCard: {...StyleSheet.absoluteFillObject},
+  nextCard: {position: 'absolute', top: 0, right: 0, bottom: 0, left: 0},
   overlay: {
     position: 'absolute',
     top: 20,

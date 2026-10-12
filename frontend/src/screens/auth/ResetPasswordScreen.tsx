@@ -11,7 +11,7 @@ import {
   StyleSheet,
   ActivityIndicator,
 } from 'react-native';
-import {useRoute, useNavigation} from '@react-navigation/native';
+import {useRoute} from '@react-navigation/native';
 import {RouteProp} from '@react-navigation/native';
 
 import {useResetPassword} from '@/hooks/useAuth';
@@ -21,7 +21,6 @@ type ResetPasswordRouteProp = RouteProp<AuthStackParamList, 'ResetPassword'>;
 
 const ResetPasswordScreen = () => {
   const route = useRoute<ResetPasswordRouteProp>();
-  const navigation = useNavigation();
   const resetMutation = useResetPassword();
 
   const [newPassword, setNewPassword] = useState('');

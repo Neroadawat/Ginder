@@ -54,7 +54,9 @@ const ExpandRadiusScreen = () => {
             onPress={() => handleExpand(r)}
             accessibilityRole="button"
             accessibilityLabel={`Search within ${formatRadius(r)}`}>
-            <Text style={styles.optionText}>Search within {formatRadius(r)}</Text>
+            <Text style={styles.optionText}>
+              Search within {formatRadius(r)}
+            </Text>
           </TouchableOpacity>
         ))}
       </View>

@@ -30,7 +30,10 @@ const NotificationsScreen = () => {
       inviteCode = undefined;
     }
     if (!inviteCode) {
-      Alert.alert('Invite unavailable', 'This invitation does not contain a valid session code.');
+      Alert.alert(
+        'Invite unavailable',
+        'This invitation does not contain a valid session code.',
+      );
       return;
     }
     joinSession.mutate(inviteCode, {
@@ -53,7 +56,9 @@ const NotificationsScreen = () => {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} accessibilityLabel="Go back">
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          accessibilityLabel="Go back">
           <Text style={styles.back}>‹ Back</Text>
         </TouchableOpacity>
         <Text style={styles.title}>Invitations</Text>
@@ -94,7 +99,9 @@ const NotificationsScreen = () => {
                     disabled={joinSession.isPending}
                     onPress={() => accept(item)}
                     accessibilityLabel="Accept invitation">
-                    <Text style={styles.acceptText}>{joinSession.isPending ? 'Joining…' : 'Accept'}</Text>
+                    <Text style={styles.acceptText}>
+                      {joinSession.isPending ? 'Joining…' : 'Accept'}
+                    </Text>
                   </TouchableOpacity>
                 </View>
               )}
@@ -104,7 +111,9 @@ const NotificationsScreen = () => {
           ListEmptyComponent={
             <View style={styles.empty}>
               <Text style={styles.emptyTitle}>No invitations</Text>
-              <Text style={styles.emptyText}>New party invites will appear here.</Text>
+              <Text style={styles.emptyText}>
+                New party invites will appear here.
+              </Text>
             </View>
           }
         />
@@ -186,7 +195,13 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
   },
   rejectText: {fontSize: 11, color: COLORS.textMuted, fontWeight: '700'},
-  acceptAction: {borderRadius: 10, backgroundColor: COLORS.accent, alignItems: 'center', paddingHorizontal: 10, paddingVertical: 7},
+  acceptAction: {
+    borderRadius: 10,
+    backgroundColor: COLORS.accent,
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+  },
   acceptText: {fontSize: 11, color: '#FFF', fontWeight: '800'},
   closed: {fontSize: 10, color: '#696464', marginLeft: 8},
   centered: {flex: 1, justifyContent: 'center', alignItems: 'center'},

@@ -28,7 +28,7 @@ export const useSessionWebSocket = (sessionId: string) => {
       setIsConnected(true);
     };
 
-    ws.onmessage = (event) => {
+    ws.onmessage = event => {
       try {
         const parsed: WSEvent = JSON.parse(event.data);
         setLastEvent(parsed);

@@ -6,7 +6,14 @@
  */
 
 import React from 'react';
-import {ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View} from 'react-native';
+import {
+  ScrollView,
+  StyleSheet,
+  Switch,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import {useNavigation} from '@react-navigation/native';
 
 import {useFilterStore} from '@/stores/filterStore';
@@ -48,7 +55,9 @@ const FilterSettingsScreen = () => {
           <Text style={styles.resetText}>Reset</Text>
         </TouchableOpacity>
         <Text style={styles.title}>Filters</Text>
-        <TouchableOpacity onPress={() => navigation.goBack()} accessibilityRole="button">
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          accessibilityRole="button">
           <Text style={styles.doneText}>Done</Text>
         </TouchableOpacity>
       </View>
@@ -75,15 +84,19 @@ const FilterSettingsScreen = () => {
         <Text style={styles.sectionTitle}>Category</Text>
         <View style={styles.chipRow}>
           {categoryOptions.map(option => {
-            const selected = option === ALL_LABEL ? !category : category === option;
+            const selected =
+              option === ALL_LABEL ? !category : category === option;
             return (
               <TouchableOpacity
                 key={option}
                 style={[styles.chip, selected && styles.chipActive]}
-                onPress={() => setCategory(option === ALL_LABEL ? null : option)}
+                onPress={() =>
+                  setCategory(option === ALL_LABEL ? null : option)
+                }
                 accessibilityRole="button"
                 accessibilityState={{selected}}>
-                <Text style={[styles.chipText, selected && styles.chipTextActive]}>
+                <Text
+                  style={[styles.chipText, selected && styles.chipTextActive]}>
                   {option}
                 </Text>
               </TouchableOpacity>
@@ -103,7 +116,8 @@ const FilterSettingsScreen = () => {
                 onPress={() => setPriceLevel(option.value)}
                 accessibilityRole="button"
                 accessibilityState={{selected}}>
-                <Text style={[styles.chipText, selected && styles.chipTextActive]}>
+                <Text
+                  style={[styles.chipText, selected && styles.chipTextActive]}>
                   {option.label}
                 </Text>
               </TouchableOpacity>
@@ -123,7 +137,8 @@ const FilterSettingsScreen = () => {
                 onPress={() => setMinRating(option.value)}
                 accessibilityRole="button"
                 accessibilityState={{selected}}>
-                <Text style={[styles.chipText, selected && styles.chipTextActive]}>
+                <Text
+                  style={[styles.chipText, selected && styles.chipTextActive]}>
                   {option.label}
                 </Text>
               </TouchableOpacity>
@@ -143,7 +158,8 @@ const FilterSettingsScreen = () => {
                 onPress={() => setRadiusKm(option)}
                 accessibilityRole="button"
                 accessibilityState={{selected}}>
-                <Text style={[styles.chipText, selected && styles.chipTextActive]}>
+                <Text
+                  style={[styles.chipText, selected && styles.chipTextActive]}>
                   {formatRadius(option)}
                 </Text>
               </TouchableOpacity>

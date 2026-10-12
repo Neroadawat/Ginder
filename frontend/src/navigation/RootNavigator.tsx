@@ -57,7 +57,9 @@ const RootNavigator = ({onRequestLocation}: Props) => {
     return (
       <Stack.Navigator screenOptions={{headerShown: false}}>
         <Stack.Screen name="PermissionGate">
-          {() => <PermissionGateScreen onRequestPermission={onRequestLocation} />}
+          {() => (
+            <PermissionGateScreen onRequestPermission={onRequestLocation} />
+          )}
         </Stack.Screen>
       </Stack.Navigator>
     );

@@ -12,7 +12,14 @@
  */
 
 import React, {useCallback, useEffect, useRef, useState} from 'react';
-import {ActivityIndicator, Alert, StyleSheet, Text, TouchableOpacity, View} from 'react-native';
+import {
+  ActivityIndicator,
+  Alert,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import {RouteProp, useNavigation, useRoute} from '@react-navigation/native';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 
@@ -29,7 +36,10 @@ import {RestaurantCard} from '@/types/restaurant';
 import {COLORS} from '@/constants/theme';
 
 type RouteProps = RouteProp<SessionStackParamList, 'SessionSwipe'>;
-type NavigationProp = NativeStackNavigationProp<SessionStackParamList, 'SessionSwipe'>;
+type NavigationProp = NativeStackNavigationProp<
+  SessionStackParamList,
+  'SessionSwipe'
+>;
 
 const SessionSwipeScreen = () => {
   const route = useRoute<RouteProps>();
@@ -37,7 +47,8 @@ const SessionSwipeScreen = () => {
   const {sessionId} = route.params;
 
   const {data: deck, isLoading} = useSessionDeck(sessionId);
-  const {data: progress, isLoading: isProgressLoading} = useVoteProgress(sessionId);
+  const {data: progress, isLoading: isProgressLoading} =
+    useVoteProgress(sessionId);
   const swipeMutation = useSwipe(sessionId);
   const reportFinished = useReportDeckFinished();
   const {lastEvent} = useSessionWebSocket(sessionId);
@@ -156,9 +167,9 @@ const SessionSwipeScreen = () => {
   };
 
   const completedIds = new Set(progress?.restaurant_ids ?? []);
-  const remainingRestaurants = deck?.restaurants.filter(
-    restaurant => !completedIds.has(restaurant.id),
-  ) ?? [];
+  const remainingRestaurants =
+    deck?.restaurants.filter(restaurant => !completedIds.has(restaurant.id)) ??
+    [];
   const remainingCount = remainingRestaurants.length;
 
   useEffect(() => {
@@ -206,7 +217,9 @@ const SessionSwipeScreen = () => {
                 : 'Waiting for the session to wrap up'}
             </Text>
             {reportFinished.isError && (
-              <TouchableOpacity style={styles.retryButton} onPress={retryFinish}>
+              <TouchableOpacity
+                style={styles.retryButton}
+                onPress={retryFinish}>
                 <Text style={styles.retryText}>Retry connection</Text>
               </TouchableOpacity>
             )}
@@ -261,7 +274,13 @@ const styles = StyleSheet.create({
     color: COLORS.textMuted,
     textAlign: 'center',
   },
-  retryButton: {marginTop: 20, borderRadius: 14, backgroundColor: COLORS.accent, paddingHorizontal: 20, paddingVertical: 11},
+  retryButton: {
+    marginTop: 20,
+    borderRadius: 14,
+    backgroundColor: COLORS.accent,
+    paddingHorizontal: 20,
+    paddingVertical: 11,
+  },
   retryText: {color: '#FFF', fontSize: 13, fontWeight: '800'},
 });
 

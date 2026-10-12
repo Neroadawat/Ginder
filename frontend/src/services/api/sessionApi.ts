@@ -69,8 +69,12 @@ export const sessionApi = {
   },
 
   /** Report that the caller has swiped their whole deck (requirement 12.1). */
-  reportDeckFinished: async (sessionId: string): Promise<DeckFinishedResponse> => {
-    const response = await apiClient.post(`/sessions/${sessionId}/deck/finished`);
+  reportDeckFinished: async (
+    sessionId: string,
+  ): Promise<DeckFinishedResponse> => {
+    const response = await apiClient.post(
+      `/sessions/${sessionId}/deck/finished`,
+    );
     return response.data;
   },
 

@@ -7,10 +7,10 @@
  * to the account (requirement 2.4).
  */
 
-import {MMKV} from 'react-native-mmkv';
+import {createMMKV} from 'react-native-mmkv';
 import {create} from 'zustand';
 
-const storage = new MMKV();
+const storage = createMMKV();
 
 const CONSENT_KEY = 'accepted_terms_at';
 

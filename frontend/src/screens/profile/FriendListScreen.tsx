@@ -35,7 +35,8 @@ const FriendListScreen = () => {
         style: 'destructive',
         onPress: () =>
           unfriendMutation.mutate(friendId, {
-            onError: error => Alert.alert('Could not remove friend', error.message),
+            onError: error =>
+              Alert.alert('Could not remove friend', error.message),
           }),
       },
     ]);
@@ -44,7 +45,9 @@ const FriendListScreen = () => {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} accessibilityRole="button">
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          accessibilityRole="button">
           <Text style={styles.backText}>← Back</Text>
         </TouchableOpacity>
         <Text style={styles.title}>Friends</Text>

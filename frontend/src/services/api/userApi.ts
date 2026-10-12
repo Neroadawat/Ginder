@@ -11,7 +11,9 @@ export const userApi = {
     return response.data;
   },
 
-  updateProfile: async (data: {display_name?: string}): Promise<UserProfile> => {
+  updateProfile: async (data: {
+    display_name?: string;
+  }): Promise<UserProfile> => {
     const response = await apiClient.patch('/users/me', data);
     return response.data;
   },

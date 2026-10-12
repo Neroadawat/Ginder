@@ -13,7 +13,7 @@ export const useCreateSession = () => {
 
   return useMutation({
     mutationFn: (data: CreateSessionRequest) => sessionApi.create(data),
-    onSuccess: (session) => {
+    onSuccess: session => {
       setActiveSession(session.id);
     },
   });
@@ -24,7 +24,7 @@ export const useJoinSession = () => {
 
   return useMutation({
     mutationFn: (inviteCode: string) => sessionApi.join(inviteCode),
-    onSuccess: (lobby) => {
+    onSuccess: lobby => {
       setActiveSession(lobby.session.id);
     },
   });
@@ -51,8 +51,13 @@ export const useCurrentSession = () => {
 
 export const useInviteFriend = () => {
   return useMutation({
-    mutationFn: ({sessionId, friendId}: {sessionId: string; friendId: string}) =>
-      sessionApi.inviteFriend(sessionId, friendId),
+    mutationFn: ({
+      sessionId,
+      friendId,
+    }: {
+      sessionId: string;
+      friendId: string;
+    }) => sessionApi.inviteFriend(sessionId, friendId),
   });
 };
 

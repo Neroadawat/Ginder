@@ -3,6 +3,7 @@
  */
 
 import axios, {AxiosError, InternalAxiosRequestConfig} from 'axios';
+import {jwtDecode} from 'jwt-decode';
 
 import {API_BASE_URL} from '@/services/config';
 import {useAuthStore} from '@/stores/authStore';
@@ -86,7 +87,7 @@ apiClient.interceptors.response.use(
         });
 
         const {access_token, refresh_token} = response.data;
-        const payload = JSON.parse(atob(access_token.split('.')[1]));
+        const payload = jwtDecode<{sub: string}>(access_token);
         useAuthStore
           .getState()
           .setTokens(access_token, refresh_token, payload.sub);

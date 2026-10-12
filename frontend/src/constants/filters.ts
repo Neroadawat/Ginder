@@ -32,13 +32,14 @@ export const PRICE_LEVELS: readonly {label: string; value: number | null}[] = [
 ];
 
 /** Minimum-rating chips. */
-export const RATING_OPTIONS: readonly {label: string; value: number | null}[] = [
-  {label: 'Any', value: null},
-  {label: '3.0+', value: 3.0},
-  {label: '3.5+', value: 3.5},
-  {label: '4.0+', value: 4.0},
-  {label: '4.5+', value: 4.5},
-];
+export const RATING_OPTIONS: readonly {label: string; value: number | null}[] =
+  [
+    {label: 'Any', value: null},
+    {label: '3.0+', value: 3.0},
+    {label: '3.5+', value: 3.5},
+    {label: '4.0+', value: 4.0},
+    {label: '4.5+', value: 4.5},
+  ];
 
 export const SESSION_DURATION_OPTIONS = [
   {label: '1 min', value: 60},

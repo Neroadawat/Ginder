@@ -3,19 +3,23 @@
  */
 
 import {useMutation} from '@tanstack/react-query';
+import {jwtDecode} from 'jwt-decode';
 
 import {authApi} from '@/services/api/authApi';
 import {useAuthStore} from '@/stores/authStore';
-import {LoginRequest, SignUpRequest, ForgotPasswordRequest, ResetPasswordRequest} from '@/types/api';
+import {
+  LoginRequest,
+  SignUpRequest,
+  ForgotPasswordRequest,
+  ResetPasswordRequest,
+} from '@/types/api';
 
 /**
  * Decode a JWT token to extract the user ID (sub claim).
  */
 function decodeUserId(token: string): string {
   try {
-    const payload = token.split('.')[1];
-    const decoded = JSON.parse(atob(payload));
-    return decoded.sub;
+    return jwtDecode<{sub?: string}>(token).sub ?? '';
   } catch {
     return '';
   }
@@ -26,7 +30,7 @@ export const useLogin = () => {
 
   return useMutation({
     mutationFn: (data: LoginRequest) => authApi.login(data),
-    onSuccess: (response) => {
+    onSuccess: response => {
       const userId = decodeUserId(response.access_token);
       setTokens(response.access_token, response.refresh_token, userId);
     },
@@ -38,7 +42,7 @@ export const useSignUp = () => {
 
   return useMutation({
     mutationFn: (data: SignUpRequest) => authApi.signUp(data),
-    onSuccess: (response) => {
+    onSuccess: response => {
       const userId = decodeUserId(response.access_token);
       setTokens(response.access_token, response.refresh_token, userId);
     },

@@ -92,7 +92,11 @@ const MainTabNavigator = () => {
         options={{
           tabBarLabel: 'Profile',
           tabBarBadge: notifications?.unread_count || undefined,
-          tabBarBadgeStyle: {backgroundColor: COLORS.accent, color: '#FFF', fontSize: 10},
+          tabBarBadgeStyle: {
+            backgroundColor: COLORS.accent,
+            color: '#FFF',
+            fontSize: 10,
+          },
         }}
       />
     </Tab.Navigator>

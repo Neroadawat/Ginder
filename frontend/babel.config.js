@@ -1,13 +1,18 @@
+const fs = require('fs');
+const path = require('path');
+
+const projectRoot = fs.realpathSync(__dirname);
+
 module.exports = {
   presets: ['module:@react-native/babel-preset'],
   plugins: [
-    'react-native-reanimated/plugin',
+    'react-native-worklets/plugin',
     [
       'module-resolver',
       {
         root: ['.'],
         alias: {
-          '@': './src',
+          '@': path.join(projectRoot, 'src'),
         },
       },
     ],

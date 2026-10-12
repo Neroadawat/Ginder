@@ -14,7 +14,10 @@ const Stack = createNativeStackNavigator<ExploreStackParamList>();
 const ExploreNavigator = () => {
   return (
     <Stack.Navigator screenOptions={{headerShown: false}}>
-      <Stack.Screen name="ExploreCategories" component={ExploreCategoriesScreen} />
+      <Stack.Screen
+        name="ExploreCategories"
+        component={ExploreCategoriesScreen}
+      />
       <Stack.Screen name="CategoryResults" component={CategoryResultsScreen} />
     </Stack.Navigator>
   );

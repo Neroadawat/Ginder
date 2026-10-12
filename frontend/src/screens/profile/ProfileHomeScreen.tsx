@@ -80,12 +80,22 @@ const ProfileHomeScreen = () => {
       <Section title="Account">
         {currentSession && (
           <Row
-            label={currentSession.session.status === 'lobby' ? 'Resume party lobby' : 'Resume active session'}
+            label={
+              currentSession.session.status === 'lobby'
+                ? 'Resume party lobby'
+                : 'Resume active session'
+            }
             onPress={() => {
               if (currentSession.session.status === 'lobby') {
-                rootNav.navigate('Session', {screen: 'Lobby', params: {sessionId: currentSession.session.id}});
+                rootNav.navigate('Session', {
+                  screen: 'Lobby',
+                  params: {sessionId: currentSession.session.id},
+                });
               } else {
-                rootNav.navigate('Session', {screen: 'SessionSwipe', params: {sessionId: currentSession.session.id}});
+                rootNav.navigate('Session', {
+                  screen: 'SessionSwipe',
+                  params: {sessionId: currentSession.session.id},
+                });
               }
             }}
           />
@@ -96,10 +106,16 @@ const ProfileHomeScreen = () => {
         />
         <Row
           label="Join with invite code"
-          onPress={() => rootNav.navigate('Session', {screen: 'JoinSession', params: {}})}
+          onPress={() =>
+            rootNav.navigate('Session', {screen: 'JoinSession', params: {}})
+          }
         />
         <Row
-          label={`Invitations${notifications?.unread_count ? ` (${notifications.unread_count})` : ''}`}
+          label={`Invitations${
+            notifications?.unread_count
+              ? ` (${notifications.unread_count})`
+              : ''
+          }`}
           onPress={() => navigation.navigate('Notifications')}
         />
         <Row

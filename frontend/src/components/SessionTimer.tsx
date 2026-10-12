@@ -13,7 +13,9 @@ interface Props {
 }
 
 const secondsUntil = (value?: string | null) =>
-  value ? Math.max(0, Math.ceil((new Date(value).getTime() - Date.now()) / 1000)) : null;
+  value
+    ? Math.max(0, Math.ceil((new Date(value).getTime() - Date.now()) / 1000))
+    : null;
 
 const SessionTimer = ({sessionId, initialEndsAt}: Props) => {
   const {data: lobby} = useSession(sessionId);
