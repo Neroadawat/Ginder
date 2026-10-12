@@ -71,4 +71,9 @@ frontend/.env
 requirement.md
 
 # Local documentation
-/docs/
+/docs/*
+!/docs/PLAY_STORE.md
+# Firebase service-account secrets are never source-controlled.
+/secrets/
+**/firebase-credentials.json
+frontend/android/app/google-services.json

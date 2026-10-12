@@ -36,6 +36,24 @@ docker compose --env-file .env.production -f docker-compose.prod.yml config --qu
 
 ## 3. Start and migrate
 
+Set `PUBLIC_BASE_URL=https://<your-domain>` and a monitored `SUPPORT_EMAIL`.
+Configure `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_FROM`,
+and `SMTP_SECURITY` (`starttls` or `ssl`) using your email provider's settings.
+Verify the sender/domain with that provider. Test password recovery with a real
+mailbox before launch; the generic success response does not prove delivery.
+
+Public pages are served by the API at `/privacy`, `/terms`, `/delete-account`,
+and `/reset-password`. Review the policy and specify actual backup retention
+before publishing. Use these HTTPS URLs in the app and Play Console.
+
+For optional Firebase push, put the private service-account file at
+`secrets/firebase-credentials.json`, then add `-f docker-compose.firebase.yml`
+to all production Compose commands. This mounts the credential read-only in
+the API and worker. Never commit or paste the private credential into chat.
+Put the Android Firebase configuration at
+`frontend/android/app/google-services.json` and set `FCM_ENABLED=true` in the
+frontend production environment. Without Firebase, keep `FCM_ENABLED=false`.
+
 ```sh
 docker compose --env-file .env.production -f docker-compose.prod.yml up -d --build
 docker compose --env-file .env.production -f docker-compose.prod.yml ps
@@ -81,9 +99,16 @@ only `https://` and `wss://` URLs. Create an upload key, then copy
 `frontend/android/keystore.properties` and fill in its private values.
 
 ```sh
-cd frontend/android
+cd frontend
+npm run release:check
+cd android
 ./gradlew bundleRelease
 ```
+
+On Windows use the existing short-path checkout `C:\g\frontend\android`
+to avoid native-build path length limits. The release checker intentionally
+rejects placeholder domains. See `docs/PLAY_STORE.md` for store materials and
+owner actions still required for publication.
 
 The release build no longer uses the repository debug key. Back up the upload
 key securely; losing it can prevent future app updates.

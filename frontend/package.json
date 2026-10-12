@@ -13,7 +13,8 @@
     "lint": "eslint . --ext .ts,.tsx",
     "format": "prettier --write \"**/*.{js,ts,tsx,json}\"",
     "format:check": "prettier --check \"**/*.{js,ts,tsx,json}\"",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "release:check": "node scripts/check-release.cjs"
   },
   "dependencies": {
     "@react-native-firebase/app": "26.4.0",

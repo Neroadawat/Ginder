@@ -44,6 +44,12 @@ def main() -> int:
             "ok",
             require_proxy=not args.allow_http,
         )
+        for path in ("/privacy", "/terms", "/delete-account", "/reset-password"):
+            with urlopen(f"{args.base_url.rstrip('/')}{path}", timeout=10) as response:
+                if response.status != 200 or "text/html" not in response.headers.get("Content-Type", ""):
+                    raise RuntimeError(f"{path} is not a public HTML page")
+                if "no-store" not in response.headers.get("Cache-Control", ""):
+                    raise RuntimeError(f"{path} is missing account-page cache protection")
         check(
             args.base_url,
             "/health/ready",
@@ -54,7 +60,7 @@ def main() -> int:
         print(f"FAILED: {exc}", file=sys.stderr)
         return 1
 
-    print("PASS: liveness, database, Redis, and HTTPS proxy checks succeeded")
+    print("PASS: liveness, database, Redis, HTTPS proxy and public account pages")
     return 0
 
 

@@ -1,0 +1,15 @@
+# Apply only after creating secrets/firebase-credentials.json from Firebase Console.
+# docker compose --env-file .env.production -f docker-compose.prod.yml -f docker-compose.firebase.yml up -d --build
+services:
+  backend:
+    secrets:
+      - source: firebase-credentials
+        target: firebase-credentials.json
+  celery-worker:
+    secrets:
+      - source: firebase-credentials
+        target: firebase-credentials.json
+
+secrets:
+  firebase-credentials:
+    file: ./secrets/firebase-credentials.json
