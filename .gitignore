@@ -35,6 +35,7 @@ frontend/android/app/build/
 frontend/android/app/.cxx/
 frontend/android/build/
 frontend/android/.gradle/
+frontend/android/.kotlin/
 frontend/android/local.properties
 *.apk
 *.aab

@@ -37,7 +37,7 @@ docker compose --env-file .env.production -f docker-compose.prod.yml config --qu
 ## 3. Start and migrate
 
 Set `PUBLIC_BASE_URL=https://<your-domain>` and a monitored `SUPPORT_EMAIL`.
-Configure `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_FROM`,
+Configure `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `EMAIL_FROM`,
 and `SMTP_SECURITY` (`starttls` or `ssl`) using your email provider's settings.
 Verify the sender/domain with that provider. Test password recovery with a real
 mailbox before launch; the generic success response does not prove delivery.

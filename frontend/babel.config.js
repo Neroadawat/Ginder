@@ -11,6 +11,7 @@ module.exports = {
       'module-resolver',
       {
         root: ['.'],
+        extensions: ['.js', '.jsx', '.ts', '.tsx', '.json'],
         alias: {
           '@': path.join(projectRoot, 'src'),
         },
