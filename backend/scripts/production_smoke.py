@@ -11,9 +11,7 @@ from urllib.parse import urlparse
 from urllib.request import Request, urlopen
 
 
-def check(
-    base_url: str, path: str, expected_status: str, *, require_proxy: bool
-) -> None:
+def check(base_url: str, path: str, expected_status: str, *, require_proxy: bool) -> None:
     request = Request(f"{base_url.rstrip('/')}{path}", headers={"User-Agent": "GinderSmoke/1"})
     with urlopen(request, timeout=10) as response:
         body = json.load(response)
@@ -46,7 +44,9 @@ def main() -> int:
         )
         for path in ("/privacy", "/terms", "/delete-account", "/reset-password"):
             with urlopen(f"{args.base_url.rstrip('/')}{path}", timeout=10) as response:
-                if response.status != 200 or "text/html" not in response.headers.get("Content-Type", ""):
+                if response.status != 200 or "text/html" not in response.headers.get(
+                    "Content-Type", ""
+                ):
                     raise RuntimeError(f"{path} is not a public HTML page")
                 if "no-store" not in response.headers.get("Cache-Control", ""):
                     raise RuntimeError(f"{path} is missing account-page cache protection")

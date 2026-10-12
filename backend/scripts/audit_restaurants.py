@@ -8,7 +8,11 @@ from pathlib import Path
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("file", nargs="?", default=str(Path(__file__).resolve().parents[1] / "data/thammasat_rangsit_restaurants.csv"))
+    parser.add_argument(
+        "file",
+        nargs="?",
+        default=str(Path(__file__).resolve().parents[1] / "data/thammasat_rangsit_restaurants.csv"),
+    )
     args = parser.parse_args()
     with open(args.file, encoding="utf-8-sig", newline="") as source:
         rows = list(csv.DictReader(source))
