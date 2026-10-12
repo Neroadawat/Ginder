@@ -33,6 +33,10 @@ class Settings(BaseSettings):
     SMTP_USER: str = ""
     SMTP_PASSWORD: str = ""
     EMAIL_FROM: str = "noreply@ginder.app"
+    SMTP_SECURITY: Literal["starttls", "ssl"] = "starttls"
+    SMTP_TIMEOUT_SECONDS: float = 10.0
+    PUBLIC_BASE_URL: str = "http://localhost:8000"
+    SUPPORT_EMAIL: str = ""
 
     # ─── Firebase Cloud Messaging ───
     FCM_CREDENTIALS_PATH: str = "./firebase-credentials.json"

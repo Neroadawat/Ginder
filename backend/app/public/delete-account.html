@@ -1,0 +1,8 @@
+<!doctype html>
+<html lang="th"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ลบบัญชีและข้อมูล — Ginder</title>
+<style>body{font:17px/1.7 system-ui;max-width:580px;margin:40px auto;padding:0 24px;color:#272323}label{display:block;margin:18px 0}input:not([type=checkbox]),button{box-sizing:border-box;width:100%;padding:13px;font:inherit;border:1px solid #aaa;border-radius:9px}button{background:#a92946;color:white;border:0;cursor:pointer}button:disabled{opacity:.5}a{color:#a92946}</style>
+<main><h1>ลบบัญชี Ginder</h1><p>คุณลบบัญชีได้โดยไม่ต้องติดตั้งแอปอีกครั้ง ลงชื่อเข้าใช้ด้วยบัญชีที่ต้องการลบแล้วกดยืนยัน การดำเนินการนี้ย้อนกลับไม่ได้</p>
+<p>ระบบจะลบอีเมล ชื่อ รหัสผ่านที่แฮช โทเค็นแจ้งเตือน เพื่อน โหวต และการแจ้งเตือนของบัญชีออกจากระบบใช้งาน ผลห้องที่จบแล้วอาจยังอยู่ให้สมาชิกคนอื่น โดยไม่ผูกกับบัญชีของคุณ รายละเอียดสำเนาสำรองอยู่ใน <a href="/privacy">นโยบายความเป็นส่วนตัว</a></p>
+<form id="delete-form"><label>อีเมล<input name="email" type="email" autocomplete="username" required></label><label>รหัสผ่าน<input name="password" type="password" autocomplete="current-password" required></label><label><input name="confirmation" type="checkbox" required> ฉันเข้าใจและต้องการลบบัญชีพร้อมข้อมูล</label><button>ยืนยันลบบัญชีและข้อมูล</button></form>
+<p id="status" role="status" aria-live="polite"></p><p>หากเข้าบัญชีไม่ได้หรือมีปัญหา ติดต่อ {{CONTACT}}</p></main><script src="/public/account.js" defer></script></html>

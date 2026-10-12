@@ -42,6 +42,9 @@ build-backend = "setuptools.build_meta"
 [tool.setuptools]
 packages = ["app"]
 
+[tool.setuptools.package-data]
+app = ["public/*.html", "public/*.js"]
+
 [tool.ruff]
 target-version = "py311"
 line-length = 100

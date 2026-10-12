@@ -7,9 +7,11 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 from sqlalchemy import text
 
 from app.api.router import api_router
+from app.api.routes.public import PAGE_DIR, router as public_router
 from app.core.config import settings
 from app.core.database import async_session_factory, engine
 from app.core.redis import redis_client
@@ -57,6 +59,8 @@ app.add_middleware(
 
 # ─── REST API Routes ───
 app.include_router(api_router, prefix="/api/v1")
+app.include_router(public_router)
+app.mount("/public", StaticFiles(directory=PAGE_DIR), name="public")
 
 # ─── WebSocket Routes ───
 app.include_router(ws_router, prefix="/ws")

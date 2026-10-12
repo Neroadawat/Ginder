@@ -5,7 +5,6 @@ import logging
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.config import settings
 from app.core.exceptions import ConflictException, GinderException, UnauthorizedException
 from app.core.security import (
     create_access_token,
@@ -25,6 +24,7 @@ from app.schemas.auth import (
     SignUpRequest,
     TokenResponse,
 )
+from app.services.email_service import send_password_reset
 
 logger = logging.getLogger(__name__)
 
@@ -92,27 +92,14 @@ class AuthService:
         user = result.scalar_one_or_none()
 
         if user:
-            token = create_password_reset_token(str(user.id))
+            token = create_password_reset_token(str(user.id), user.hashed_password)
             await self._deliver_reset_token(user.email, token)
 
         return MessageResponse(message="If the email exists, a reset link has been sent")
 
     async def _deliver_reset_token(self, email: str, token: str) -> None:
-        """Deliver a password reset token to the user.
-
-        Email delivery is not implemented yet. Until it is, the token is logged
-        so the reset flow can still be exercised end to end in development.
-        The log line is suppressed outside development because a reset token is
-        a credential.
-        """
-        # TODO: send a real email using the SMTP_* settings.
-        if settings.DEBUG:
-            logger.warning("Password reset token for %s: %s", email, token)
-        else:
-            logger.error(
-                "Password reset requested for %s but email delivery is not configured.",
-                email,
-            )
+        """Keep the same public response for registered and unknown addresses."""
+        await send_password_reset(email, token)
 
     async def reset_password(self, body: ResetPasswordRequest) -> MessageResponse:
         """Reset the user's password using a valid reset token."""
@@ -121,11 +108,16 @@ class AuthService:
             raise GinderException("Invalid or expired reset token")
 
         user_id = payload.get("sub")
-        result = await self.db.execute(select(User).where(User.id == user_id))
+        result = await self.db.execute(select(User).where(User.id == user_id).with_for_update())
         user = result.scalar_one_or_none()
 
         if not user:
             raise GinderException("Invalid reset token")
+
+        from app.core.security import password_reset_fingerprint
+
+        if payload.get("password_version") != password_reset_fingerprint(user.hashed_password):
+            raise GinderException("Invalid or expired reset token")
 
         user.hashed_password = hash_password(body.new_password)
         return MessageResponse(message="Password has been reset successfully")

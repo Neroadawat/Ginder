@@ -1,5 +1,6 @@
 """JWT token creation/verification and password hashing."""
 
+import hashlib
 from datetime import UTC, datetime, timedelta
 
 from jose import JWTError, jwt
@@ -42,10 +43,19 @@ def create_refresh_token(subject: str) -> str:
     return jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
 
 
-def create_password_reset_token(subject: str) -> str:
+def password_reset_fingerprint(hashed_password: str) -> str:
+    return hashlib.sha256(hashed_password.encode()).hexdigest()
+
+
+def create_password_reset_token(subject: str, hashed_password: str = "") -> str:
     """Create a short-lived token for password reset."""
     expire = datetime.now(UTC) + timedelta(minutes=15)
-    to_encode = {"sub": subject, "exp": expire, "type": "password_reset"}
+    to_encode = {
+        "sub": subject,
+        "exp": expire,
+        "type": "password_reset",
+        "password_version": password_reset_fingerprint(hashed_password),
+    }
     return jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
 
 
