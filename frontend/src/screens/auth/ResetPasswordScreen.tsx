@@ -25,11 +25,18 @@ const ResetPasswordScreen = () => {
 
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [validationError, setValidationError] = useState('');
 
   const handleReset = () => {
-    if (newPassword !== confirmPassword) {
-      return; // TODO: show validation error
+    if (newPassword.length < 8 || newPassword !== confirmPassword) {
+      setValidationError(
+        newPassword.length < 8
+          ? 'ใช้รหัสผ่านอย่างน้อย 8 ตัวอักษร'
+          : 'รหัสผ่านทั้งสองช่องไม่ตรงกัน',
+      );
+      return;
     }
+    setValidationError('');
     resetMutation.mutate({
       token: route.params.token,
       new_password: newPassword,
@@ -38,12 +45,12 @@ const ResetPasswordScreen = () => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Reset Password</Text>
-      <Text style={styles.subtitle}>Enter your new password below.</Text>
+      <Text style={styles.title}>ตั้งรหัสผ่านใหม่</Text>
+      <Text style={styles.subtitle}>กรอกรหัสผ่านใหม่อย่างน้อย 8 ตัวอักษร</Text>
 
       <TextInput
         style={styles.input}
-        placeholder="New Password"
+        placeholder="รหัสผ่านใหม่"
         placeholderTextColor="#999"
         value={newPassword}
         onChangeText={setNewPassword}
@@ -52,7 +59,7 @@ const ResetPasswordScreen = () => {
       />
       <TextInput
         style={styles.input}
-        placeholder="Confirm Password"
+        placeholder="ยืนยันรหัสผ่าน"
         placeholderTextColor="#999"
         value={confirmPassword}
         onChangeText={setConfirmPassword}
@@ -61,18 +68,26 @@ const ResetPasswordScreen = () => {
       />
 
       {resetMutation.isSuccess && (
-        <Text style={styles.successText}>Password reset successfully!</Text>
+        <Text style={styles.successText}>
+          ตั้งรหัสผ่านสำเร็จ กลับไปเข้าสู่ระบบได้เลย
+        </Text>
+      )}
+      {(validationError || resetMutation.isError) && (
+        <Text style={styles.errorText} accessibilityRole="alert">
+          {validationError ||
+            'ตั้งรหัสผ่านไม่สำเร็จ กรุณาขอลิงก์ใหม่หรือลองอีกครั้ง'}
+        </Text>
       )}
 
       <TouchableOpacity
         style={styles.button}
         onPress={handleReset}
-        disabled={resetMutation.isPending}
+        disabled={resetMutation.isPending || resetMutation.isSuccess}
         accessibilityRole="button">
         {resetMutation.isPending ? (
           <ActivityIndicator color="#FFF" />
         ) : (
-          <Text style={styles.buttonText}>Reset Password</Text>
+          <Text style={styles.buttonText}>บันทึกรหัสผ่านใหม่</Text>
         )}
       </TouchableOpacity>
     </View>
@@ -118,6 +133,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '600',
   },
+  errorText: {color: '#B42318', marginBottom: 16},
   successText: {
     color: '#38A169',
     fontSize: 14,

@@ -18,6 +18,7 @@ import {useNavigation} from '@react-navigation/native';
 
 import {useFilterStore} from '@/stores/filterStore';
 import {useCategories} from '@/hooks/useRestaurants';
+import {categoryLabel} from '@/utils/category';
 import {
   PRICE_LEVELS,
   RADIUS_OPTIONS_KM,
@@ -25,7 +26,7 @@ import {
   formatRadius,
 } from '@/constants/filters';
 
-const ALL_LABEL = 'All';
+const ALL_LABEL = 'ทั้งหมด';
 
 const FilterSettingsScreen = () => {
   const navigation = useNavigation();
@@ -52,13 +53,13 @@ const FilterSettingsScreen = () => {
     <View style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={reset} accessibilityRole="button">
-          <Text style={styles.resetText}>Reset</Text>
+          <Text style={styles.resetText}>คืนค่า</Text>
         </TouchableOpacity>
-        <Text style={styles.title}>Filters</Text>
+        <Text style={styles.title}>ตัวกรอง</Text>
         <TouchableOpacity
           onPress={() => navigation.goBack()}
           accessibilityRole="button">
-          <Text style={styles.doneText}>Done</Text>
+          <Text style={styles.doneText}>เสร็จ</Text>
         </TouchableOpacity>
       </View>
 
@@ -66,9 +67,9 @@ const FilterSettingsScreen = () => {
         {/* Open now */}
         <View style={styles.switchRow}>
           <View style={styles.switchLabel}>
-            <Text style={styles.sectionTitle}>Open now</Text>
+            <Text style={styles.sectionTitle}>เปิดอยู่ตอนนี้</Text>
             <Text style={styles.sectionHint}>
-              Only show places serving at this moment
+              แสดงเฉพาะร้านที่มีข้อมูลเวลาเปิดและกำลังเปิดอยู่
             </Text>
           </View>
           <Switch
@@ -81,7 +82,7 @@ const FilterSettingsScreen = () => {
         </View>
 
         {/* Category */}
-        <Text style={styles.sectionTitle}>Category</Text>
+        <Text style={styles.sectionTitle}>ประเภทอาหาร</Text>
         <View style={styles.chipRow}>
           {categoryOptions.map(option => {
             const selected =
@@ -97,7 +98,7 @@ const FilterSettingsScreen = () => {
                 accessibilityState={{selected}}>
                 <Text
                   style={[styles.chipText, selected && styles.chipTextActive]}>
-                  {option}
+                  {categoryLabel(option)}
                 </Text>
               </TouchableOpacity>
             );
@@ -105,7 +106,7 @@ const FilterSettingsScreen = () => {
         </View>
 
         {/* Price */}
-        <Text style={styles.sectionTitle}>Price Range</Text>
+        <Text style={styles.sectionTitle}>ช่วงราคา</Text>
         <View style={styles.chipRow}>
           {PRICE_LEVELS.map(option => {
             const selected = priceLevel === option.value;
@@ -126,7 +127,7 @@ const FilterSettingsScreen = () => {
         </View>
 
         {/* Rating */}
-        <Text style={styles.sectionTitle}>Minimum Rating</Text>
+        <Text style={styles.sectionTitle}>คะแนนขั้นต่ำ</Text>
         <View style={styles.chipRow}>
           {RATING_OPTIONS.map(option => {
             const selected = minRating === option.value;
@@ -147,7 +148,7 @@ const FilterSettingsScreen = () => {
         </View>
 
         {/* Radius */}
-        <Text style={styles.sectionTitle}>Search Radius</Text>
+        <Text style={styles.sectionTitle}>รัศมีค้นหา</Text>
         <View style={styles.chipRow}>
           {RADIUS_OPTIONS_KM.map(option => {
             const selected = radiusKm === option;

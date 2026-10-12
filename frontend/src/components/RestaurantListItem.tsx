@@ -18,6 +18,8 @@ import {RestaurantCard} from '@/types/restaurant';
 import {getRestaurantImageUri} from '@/constants/restaurantImages';
 import {formatDistanceTh} from '@/utils/distance';
 import PhotoAttribution from './PhotoAttribution';
+import DataAttribution from './DataAttribution';
+import {categoryLabel} from '@/utils/category';
 
 interface Props {
   restaurant: RestaurantCard;
@@ -53,7 +55,9 @@ const RestaurantListItem = ({restaurant}: Props) => {
         <Text style={styles.name} numberOfLines={1}>
           {restaurant.name}
         </Text>
-        <Text style={styles.category}>{restaurant.primary_category}</Text>
+        <Text style={styles.category}>
+          {categoryLabel(restaurant.primary_category)}
+        </Text>
 
         <View style={styles.metaRow}>
           {restaurant.price_symbol && (
@@ -69,6 +73,7 @@ const RestaurantListItem = ({restaurant}: Props) => {
           )}
         </View>
         <PhotoAttribution restaurant={restaurant} />
+        <DataAttribution source={restaurant.source} />
       </View>
 
       {canNavigate && <Text style={styles.navigateIcon}>📍</Text>}

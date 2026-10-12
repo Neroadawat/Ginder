@@ -1,6 +1,7 @@
 import React from 'react';
 import {
   Alert,
+  Linking,
   ScrollView,
   StyleSheet,
   Text,
@@ -17,6 +18,7 @@ import {useNotifications} from '@/hooks/useNotifications';
 import {useCurrentSession} from '@/hooks/useSessions';
 import {useAuthStore} from '@/stores/authStore';
 import {ProfileStackParamList, RootStackParamList} from '@/navigation/types';
+import {PRIVACY_POLICY_URL, TERMS_OF_SERVICE_URL} from '@/services/config';
 
 type ProfileNav = NativeStackNavigationProp<
   ProfileStackParamList,
@@ -34,27 +36,29 @@ const ProfileHomeScreen = () => {
   const {data: currentSession} = useCurrentSession();
 
   const confirmLogout = () =>
-    Alert.alert('Log out', 'Are you sure you want to log out?', [
-      {text: 'Cancel'},
-      {text: 'Log out', style: 'destructive', onPress: logout},
+    Alert.alert('ออกจากระบบ', 'ต้องการออกจากระบบหรือไม่?', [
+      {text: 'ยกเลิก'},
+      {text: 'ออกจากระบบ', style: 'destructive', onPress: logout},
     ]);
   const confirmDelete = () =>
     Alert.alert(
-      'Delete account',
-      'This permanently deletes your account and personal data.',
+      'ลบบัญชี',
+      'บัญชีและข้อมูลส่วนบุคคลจะถูกลบถาวรและกู้คืนไม่ได้',
       [
-        {text: 'Cancel'},
+        {text: 'ยกเลิก'},
         {
-          text: 'Delete',
+          text: 'ลบบัญชี',
           style: 'destructive',
           onPress: () => deleteAccount.mutate(undefined, {onSuccess: logout}),
         },
       ],
     );
-  const legal = (title: string) =>
-    Alert.alert(
-      title,
-      `${title} is available during onboarding. The full published document will appear here before release.`,
+  const legal = (url: string) =>
+    Linking.openURL(url).catch(() =>
+      Alert.alert(
+        'เปิดหน้าเว็บไม่สำเร็จ',
+        'กรุณาตรวจการเชื่อมต่อแล้วลองอีกครั้ง',
+      ),
     );
 
   return (
@@ -73,17 +77,17 @@ const ProfileHomeScreen = () => {
           <TouchableOpacity
             style={styles.editButton}
             onPress={() => navigation.navigate('Settings')}>
-            <Text style={styles.editText}>Edit profile</Text>
+            <Text style={styles.editText}>ตั้งค่า</Text>
           </TouchableOpacity>
         </View>
       </View>
-      <Section title="Account">
+      <Section title="บัญชี">
         {currentSession && (
           <Row
             label={
               currentSession.session.status === 'lobby'
-                ? 'Resume party lobby'
-                : 'Resume active session'
+                ? 'กลับเข้าห้องรอ'
+                : 'กลับเข้าห้องที่กำลังเล่น'
             }
             onPress={() => {
               if (currentSession.session.status === 'lobby') {
@@ -101,46 +105,44 @@ const ProfileHomeScreen = () => {
           />
         )}
         <Row
-          label="Create party session"
+          label="สร้างห้องกับเพื่อน"
           onPress={() => rootNav.navigate('Session', {screen: 'CreateSession'})}
         />
         <Row
-          label="Join with invite code"
+          label="เข้าห้องด้วยรหัส"
           onPress={() =>
             rootNav.navigate('Session', {screen: 'JoinSession', params: {}})
           }
         />
         <Row
-          label={`Invitations${
+          label={`คำเชิญ${
             notifications?.unread_count
               ? ` (${notifications.unread_count})`
               : ''
           }`}
           onPress={() => navigation.navigate('Notifications')}
         />
+        <Row label="เพื่อน" onPress={() => navigation.navigate('FriendList')} />
         <Row
-          label="Friends"
-          onPress={() => navigation.navigate('FriendList')}
-        />
-        <Row
-          label="Match history"
+          label="ประวัติร้านที่เลือก"
           onPress={() => navigation.navigate('History')}
         />
       </Section>
-      <Section title="About">
-        <Row label="Privacy Policy" onPress={() => legal('Privacy Policy')} />
-        <Row label="Terms" onPress={() => legal('Terms of Service')} />
-      </Section>
-      <Section title="Danger zone">
-        <Row label="Logout" onPress={confirmLogout} arrow={false} />
+      <Section title="เกี่ยวกับแอป">
         <Row
-          label="Delete Account"
-          onPress={confirmDelete}
-          arrow={false}
-          danger
+          label="ความเป็นส่วนตัว"
+          onPress={() => legal(PRIVACY_POLICY_URL)}
+        />
+        <Row
+          label="ข้อกำหนดการใช้งาน"
+          onPress={() => legal(TERMS_OF_SERVICE_URL)}
         />
       </Section>
-      <Text style={styles.version}>version 0.1.0</Text>
+      <Section title="จัดการบัญชี">
+        <Row label="ออกจากระบบ" onPress={confirmLogout} arrow={false} />
+        <Row label="ลบบัญชี" onPress={confirmDelete} arrow={false} danger />
+      </Section>
+      <Text style={styles.version}>เวอร์ชัน 1.0.0</Text>
     </ScrollView>
   );
 };

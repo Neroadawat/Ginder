@@ -18,6 +18,7 @@ import {useCategories} from '@/hooks/useRestaurants';
 import {getCategoryEmoji} from '@/constants/placeholders';
 import {ExploreStackParamList} from '@/navigation/types';
 import {COLORS} from '@/constants/theme';
+import {categoryLabel} from '@/utils/category';
 
 type NavigationProp = NativeStackNavigationProp<
   ExploreStackParamList,
@@ -35,7 +36,7 @@ const ExploreCategoriesScreen = () => {
       accessibilityRole="button"
       accessibilityLabel={`Browse ${item} restaurants`}>
       <Text style={styles.categoryEmoji}>{getCategoryEmoji(item)}</Text>
-      <Text style={styles.categoryName}>{item}</Text>
+      <Text style={styles.categoryName}>{categoryLabel(item)}</Text>
     </TouchableOpacity>
   );
 
@@ -50,10 +51,8 @@ const ExploreCategoriesScreen = () => {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>Explore</Text>
-        <Text style={styles.subtitle}>
-          Find restaurant in category that you want
-        </Text>
+        <Text style={styles.title}>หมวดหมู่อาหาร</Text>
+        <Text style={styles.subtitle}>ค้นหาร้านตามประเภทอาหารที่อยากกิน</Text>
       </View>
 
       <FlatList

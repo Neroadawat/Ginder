@@ -30,10 +30,7 @@ const NotificationsScreen = () => {
       inviteCode = undefined;
     }
     if (!inviteCode) {
-      Alert.alert(
-        'Invite unavailable',
-        'This invitation does not contain a valid session code.',
-      );
+      Alert.alert('ใช้คำเชิญนี้ไม่ได้', 'คำเชิญนี้ไม่มีรหัสห้องที่ถูกต้อง');
       return;
     }
     joinSession.mutate(inviteCode, {
@@ -48,7 +45,7 @@ const NotificationsScreen = () => {
         if (/started|not found|invalid invite/i.test(joinError.message)) {
           markRead.mutate(item.id);
         }
-        Alert.alert('Could not join', joinError.message);
+        Alert.alert('เข้าห้องไม่สำเร็จ', joinError.message);
       },
     });
   };
@@ -59,12 +56,10 @@ const NotificationsScreen = () => {
         <TouchableOpacity
           onPress={() => navigation.goBack()}
           accessibilityLabel="Go back">
-          <Text style={styles.back}>‹ Back</Text>
+          <Text style={styles.back}>‹ กลับ</Text>
         </TouchableOpacity>
-        <Text style={styles.title}>Invitations</Text>
-        <Text style={styles.subtitle}>
-          Accept a friend's invitation to enter their lobby.
-        </Text>
+        <Text style={styles.title}>คำเชิญ</Text>
+        <Text style={styles.subtitle}>ตอบรับคำเชิญเพื่อเข้าห้องกับเพื่อน</Text>
       </View>
       {isLoading ? (
         <View style={styles.centered}>
@@ -92,7 +87,7 @@ const NotificationsScreen = () => {
                     style={styles.rejectAction}
                     onPress={() => dismiss(item.id)}
                     accessibilityLabel="Dismiss invitation">
-                    <Text style={styles.rejectText}>Decline</Text>
+                    <Text style={styles.rejectText}>ปฏิเสธ</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={styles.acceptAction}
@@ -100,19 +95,19 @@ const NotificationsScreen = () => {
                     onPress={() => accept(item)}
                     accessibilityLabel="Accept invitation">
                     <Text style={styles.acceptText}>
-                      {joinSession.isPending ? 'Joining…' : 'Accept'}
+                      {joinSession.isPending ? 'กำลังเข้าห้อง…' : 'ตอบรับ'}
                     </Text>
                   </TouchableOpacity>
                 </View>
               )}
-              {item.is_read && <Text style={styles.closed}>Closed</Text>}
+              {item.is_read && <Text style={styles.closed}>ปิดแล้ว</Text>}
             </View>
           )}
           ListEmptyComponent={
             <View style={styles.empty}>
-              <Text style={styles.emptyTitle}>No invitations</Text>
+              <Text style={styles.emptyTitle}>ยังไม่มีคำเชิญ</Text>
               <Text style={styles.emptyText}>
-                New party invites will appear here.
+                คำเชิญเข้าห้องใหม่จะแสดงที่นี่
               </Text>
             </View>
           }
@@ -133,13 +128,13 @@ function formatRelativeTime(value: string): string {
     Math.floor((Date.now() - new Date(value).getTime()) / 60000),
   );
   if (minutes < 60) {
-    return `${minutes} minutes ago`;
+    return `${minutes} นาทีที่แล้ว`;
   }
   const hours = Math.floor(minutes / 60);
   if (hours < 24) {
-    return `${hours} hours ago`;
+    return `${hours} ชั่วโมงที่แล้ว`;
   }
-  return new Date(value).toLocaleDateString();
+  return new Date(value).toLocaleDateString('th-TH');
 }
 
 const styles = StyleSheet.create({

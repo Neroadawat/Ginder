@@ -9,15 +9,15 @@
 import {ResolutionType} from '@/types/api';
 
 export const RESOLUTION_LABELS: Record<ResolutionType, string> = {
-  unanimous: '🎉 Everyone agreed',
-  majority: '🗳️ Most votes',
-  spin_wheel_tie: '🎡 Tie broken by the wheel',
-  spin_wheel_no_match: '🎡 Random pick from the wheel',
+  unanimous: '🎉 ทุกคนเลือกตรงกัน',
+  majority: '🗳️ คะแนนโหวตสูงสุด',
+  spin_wheel_tie: '🎡 สุ่มจากร้านที่คะแนนเท่ากัน',
+  spin_wheel_no_match: '🎡 สุ่มเลือกร้าน',
 };
 
 export const RESOLUTION_LABELS_SHORT: Record<ResolutionType, string> = {
-  unanimous: '🎉 Unanimous',
-  majority: '🗳️ Majority',
-  spin_wheel_tie: '🎡 Wheel (tie)',
-  spin_wheel_no_match: '🎡 Wheel',
+  unanimous: '🎉 ทุกคนเห็นตรงกัน',
+  majority: '🗳️ เสียงส่วนใหญ่',
+  spin_wheel_tie: '🎡 สุ่มเมื่อคะแนนเสมอ',
+  spin_wheel_no_match: '🎡 วงล้อ',
 };

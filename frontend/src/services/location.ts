@@ -66,10 +66,10 @@ export async function requestLocationPermission(): Promise<PermissionStatus> {
   const result = await PermissionsAndroid.request(
     PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
     {
-      title: 'Ginder needs your location',
-      message: 'Ginder uses your location to find restaurants near you.',
-      buttonPositive: 'Allow',
-      buttonNegative: 'Deny',
+      title: 'Ginder ต้องใช้ตำแหน่งของคุณ',
+      message: 'ใช้ตำแหน่งเพื่อค้นหาร้านอาหารใกล้คุณ',
+      buttonPositive: 'อนุญาต',
+      buttonNegative: 'ไม่อนุญาต',
     },
   );
 
@@ -152,12 +152,12 @@ function describeLocationError(code: number, fallback: string): string {
   // Codes from react-native-geolocation-service
   switch (code) {
     case 1:
-      return 'Location permission was denied.';
+      return 'ยังไม่ได้รับสิทธิ์ตำแหน่ง';
     case 2:
-      return 'Location is unavailable. Please turn on GPS and try again.';
+      return 'ยังหาตำแหน่งไม่ได้ กรุณาเปิด GPS แล้วลองอีกครั้ง';
     case 3:
-      return 'Finding your location timed out. Please try again.';
+      return 'ค้นหาตำแหน่งนานเกินไป กรุณาลองอีกครั้ง';
     default:
-      return fallback || 'Could not determine your location.';
+      return fallback || 'ยังหาตำแหน่งไม่ได้';
   }
 }

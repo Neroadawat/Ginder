@@ -18,6 +18,7 @@ import {useSoloDeck} from '@/hooks/useRestaurants';
 import {useFilterStore} from '@/stores/filterStore';
 import {ExploreStackParamList} from '@/navigation/types';
 import {COLORS} from '@/constants/theme';
+import {categoryLabel} from '@/utils/category';
 
 type RouteProps = RouteProp<ExploreStackParamList, 'CategoryResults'>;
 
@@ -44,10 +45,10 @@ const CategoryResultsScreen = () => {
         <TouchableOpacity
           onPress={() => navigation.goBack()}
           accessibilityRole="button">
-          <Text style={styles.backText}>← Back</Text>
+          <Text style={styles.backText}>← กลับ</Text>
         </TouchableOpacity>
-        <Text style={styles.title}>{route.params.category}</Text>
-        <Text style={styles.count}>{deck?.total ?? 0} restaurants</Text>
+        <Text style={styles.title}>{categoryLabel(route.params.category)}</Text>
+        <Text style={styles.count}>{deck?.total ?? 0} ร้าน</Text>
       </View>
 
       {isLoading ? (
@@ -63,7 +64,7 @@ const CategoryResultsScreen = () => {
           ListEmptyComponent={
             <View style={styles.empty}>
               <Text style={styles.emptyText}>
-                No restaurants found in this category
+                ยังไม่พบร้านในหมวดนี้ ลองขยายรัศมีหรือปรับตัวกรอง
               </Text>
             </View>
           }

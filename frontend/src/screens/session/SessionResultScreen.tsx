@@ -62,15 +62,13 @@ const SessionResultScreen = () => {
     return (
       <View style={styles.container}>
         <Text style={styles.emoji}>😕</Text>
-        <Text style={styles.title}>No result yet</Text>
-        <Text style={styles.subtitle}>
-          This session has not finished, or the result could not be loaded.
-        </Text>
+        <Text style={styles.title}>ยังไม่มีผล</Text>
+        <Text style={styles.subtitle}>ห้องยังไม่จบหรือยังโหลดผลไม่ได้</Text>
         <TouchableOpacity
           style={styles.homeButton}
           onPress={handleBackHome}
           accessibilityRole="button">
-          <Text style={styles.homeText}>Back to Home</Text>
+          <Text style={styles.homeText}>กลับหน้าหลัก</Text>
         </TouchableOpacity>
       </View>
     );
@@ -80,8 +78,8 @@ const SessionResultScreen = () => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.kicker}>{hasWinner ? 'It’s a' : 'Session'}</Text>
-      <Text style={styles.title}>{hasWinner ? 'Match' : 'Complete'}</Text>
+      <Text style={styles.kicker}>{hasWinner ? 'เลือกร้าน' : 'ห้อง'}</Text>
+      <Text style={styles.title}>{hasWinner ? 'ตรงกัน!' : 'จบแล้ว'}</Text>
       <Text style={styles.subtitle}>
         {RESOLUTION_LABELS[result.resolution_type] ?? result.resolution_type}
       </Text>
@@ -96,7 +94,7 @@ const SessionResultScreen = () => {
           onPress={openMaps}
           accessibilityRole="button"
           accessibilityLabel={`Navigate to ${result.restaurant_name}`}>
-          <Text style={styles.mapsText}>📍 Open in Google Maps</Text>
+          <Text style={styles.mapsText}>📍 เปิดใน Google Maps</Text>
         </TouchableOpacity>
       )}
 
@@ -104,7 +102,7 @@ const SessionResultScreen = () => {
         style={styles.homeButton}
         onPress={handleBackHome}
         accessibilityRole="button">
-        <Text style={styles.homeText}>Back to Home</Text>
+        <Text style={styles.homeText}>กลับหน้าหลัก</Text>
       </TouchableOpacity>
     </View>
   );
@@ -120,12 +118,12 @@ const styles = StyleSheet.create({
   },
   emoji: {fontSize: 64},
   kicker: {
-    fontSize: 58,
+    fontSize: 38,
     color: '#FF1717',
     fontWeight: '900',
   },
   title: {
-    fontSize: 62,
+    fontSize: 42,
     fontStyle: 'italic',
     fontWeight: '900',
     color: '#FF1717',

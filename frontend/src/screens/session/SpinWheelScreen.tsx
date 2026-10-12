@@ -59,11 +59,11 @@ const SpinWheelScreen = () => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Lucky draw</Text>
+      <Text style={styles.title}>สุ่มเลือกร้าน</Text>
       <Text style={styles.subtitle}>
         {candidateIds.length > 1
-          ? 'Your most likes has more than 1. The wheel will choose.'
-          : 'The wheel is choosing your restaurant.'}
+          ? 'มีหลายร้านให้เลือก วงล้อจะช่วยตัดสินใจ'
+          : 'วงล้อกำลังเลือกร้านให้คุณ'}
       </Text>
 
       <View style={styles.wheelContainer}>

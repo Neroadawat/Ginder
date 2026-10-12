@@ -37,8 +37,8 @@ const HistoryScreen = () => {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>History</Text>
-        <Text style={styles.subtitle}>Restaurants from your past matches</Text>
+        <Text style={styles.title}>ประวัติ</Text>
+        <Text style={styles.subtitle}>ร้านที่เลือกจากห้องที่ผ่านมา</Text>
       </View>
 
       <FlatList
@@ -55,7 +55,7 @@ const HistoryScreen = () => {
               </Text>
             </View>
             <Text style={styles.date}>
-              {new Date(item.created_at).toLocaleDateString()}
+              {new Date(item.created_at).toLocaleDateString('th-TH')}
             </Text>
             {item.google_maps_url && (
               <TouchableOpacity
@@ -63,7 +63,7 @@ const HistoryScreen = () => {
                 onPress={() => openMaps(item.google_maps_url)}
                 accessibilityRole="button"
                 accessibilityLabel={`Navigate to ${item.restaurant_name}`}>
-                <Text style={styles.mapsText}>📍 Open in Maps</Text>
+                <Text style={styles.mapsText}>📍 เปิดแผนที่</Text>
               </TouchableOpacity>
             )}
           </View>
@@ -72,9 +72,9 @@ const HistoryScreen = () => {
         contentContainerStyle={styles.list}
         ListEmptyComponent={
           <View style={styles.empty}>
-            <Text style={styles.emptyText}>No history yet</Text>
+            <Text style={styles.emptyText}>ยังไม่มีประวัติ</Text>
             <Text style={styles.emptyHint}>
-              Your matched restaurants will appear here.
+              ร้านที่คุณและเพื่อนเลือกจะแสดงที่นี่
             </Text>
           </View>
         }

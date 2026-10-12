@@ -2,7 +2,7 @@ import React, {useMemo} from 'react';
 import {
   ActivityIndicator,
   FlatList,
-  ImageBackground,
+  Image,
   Linking,
   StyleSheet,
   Text,
@@ -15,6 +15,8 @@ import {useSessionStore} from '@/stores/sessionStore';
 import {RestaurantCard} from '@/types/restaurant';
 import {getRestaurantImageUri} from '@/constants/restaurantImages';
 import PhotoAttribution from '@/components/PhotoAttribution';
+import DataAttribution from '@/components/DataAttribution';
+import {categoryLabel} from '@/utils/category';
 import {COLORS} from '@/constants/theme';
 
 interface GridEntry {
@@ -84,11 +86,9 @@ const LikesGrid = ({
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>Likes</Text>
+        <Text style={styles.title}>ร้านที่ถูกใจ</Text>
         <Text style={styles.subtitle}>
-          {session
-            ? 'Find restaurant that your friends want to eat'
-            : 'Restaurants you want to try again'}
+          {session ? 'ร้านที่เพื่อนในห้องอยากกิน' : 'ร้านที่คุณบันทึกไว้'}
         </Text>
       </View>
       <FlatList
@@ -100,9 +100,9 @@ const LikesGrid = ({
         renderItem={({item}) => <LikeTile entry={item} />}
         ListEmptyComponent={
           <View style={styles.empty}>
-            <Text style={styles.emptyTitle}>Nothing here yet</Text>
+            <Text style={styles.emptyTitle}>ยังไม่มีร้านที่ถูกใจ</Text>
             <Text style={styles.emptyText}>
-              Swipe right on a restaurant to save it.
+              ปัดขวาเพื่อบันทึกร้านที่อยากลอง
             </Text>
           </View>
         }
@@ -121,10 +121,11 @@ const LikeTile = ({entry}: {entry: GridEntry}) => {
       style={styles.tile}
       onPress={open}
       disabled={!restaurant.google_maps_url}>
-      <ImageBackground
-        source={{uri: image}}
-        style={styles.image}
-        imageStyle={styles.imageRadius}>
+      <View style={styles.image}>
+        <Image
+          source={{uri: image}}
+          style={[StyleSheet.absoluteFill, styles.imageRadius]}
+        />
         {entry.people.length > 0 && (
           <View style={styles.avatars}>
             {entry.people.slice(0, 4).map((name, index) => (
@@ -144,11 +145,13 @@ const LikeTile = ({entry}: {entry: GridEntry}) => {
             {restaurant.name}
           </Text>
           <Text style={styles.price}>
-            {restaurant.price_symbol ?? restaurant.primary_category}
+            {restaurant.price_symbol ??
+              categoryLabel(restaurant.primary_category)}
           </Text>
           <PhotoAttribution restaurant={restaurant} light />
         </View>
-      </ImageBackground>
+        <DataAttribution source={restaurant.source} light />
+      </View>
     </TouchableOpacity>
   );
 };

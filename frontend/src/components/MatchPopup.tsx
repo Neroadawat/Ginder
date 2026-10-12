@@ -16,6 +16,7 @@ import {RestaurantCard} from '@/types/restaurant';
 import {getRestaurantImageUri} from '@/constants/restaurantImages';
 import AppIcon from './AppIcon';
 import PhotoAttribution from './PhotoAttribution';
+import DataAttribution from './DataAttribution';
 
 interface Props {
   restaurant: RestaurantCard;
@@ -30,7 +31,7 @@ const MatchPopup = ({restaurant, onDismiss}: Props) => {
           <AppIcon name="close" size={28} />
         </TouchableOpacity>
         <View style={styles.content}>
-          <Text style={styles.title}>It’s a</Text>
+          <Text style={styles.title}>เลือกร้าน</Text>
           <View style={styles.photos}>
             <Image
               source={{uri: getRestaurantImageUri(restaurant)}}
@@ -42,15 +43,16 @@ const MatchPopup = ({restaurant, onDismiss}: Props) => {
             />
           </View>
           <PhotoAttribution restaurant={restaurant} light />
-          <Text style={styles.match}>Match</Text>
-          <Text style={styles.subtitle}>You matched at {restaurant.name}</Text>
+          <DataAttribution source={restaurant.source} light />
+          <Text style={styles.match}>ตรงกัน!</Text>
+          <Text style={styles.subtitle}>ทุกคนเลือกร้าน {restaurant.name}</Text>
 
           <TouchableOpacity
             style={styles.button}
             onPress={onDismiss}
             accessibilityRole="button"
             accessibilityLabel="Continue to results">
-            <Text style={styles.buttonText}>Click to see location</Text>
+            <Text style={styles.buttonText}>ดูผลและตำแหน่งร้าน</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -73,7 +75,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   title: {
-    fontSize: 64,
+    fontSize: 42,
     fontWeight: '800',
     color: '#FF1717',
     marginBottom: 2,

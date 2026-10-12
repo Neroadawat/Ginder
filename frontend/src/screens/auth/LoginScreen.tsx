@@ -33,15 +33,15 @@ const LoginScreen = () => {
   const handleLogin = () => {
     const normalizedEmail = email.trim().toLowerCase();
     if (!normalizedEmail) {
-      setValidationError('Please enter your email address.');
+      setValidationError('กรุณากรอกอีเมล');
       return;
     }
     if (!/^\S+@\S+\.\S+$/.test(normalizedEmail)) {
-      setValidationError('Please enter a valid email address.');
+      setValidationError('กรุณากรอกอีเมลให้ถูกต้อง');
       return;
     }
     if (!password) {
-      setValidationError('Please enter your password.');
+      setValidationError('กรุณากรอกรหัสผ่าน');
       return;
     }
 
@@ -58,13 +58,13 @@ const LoginScreen = () => {
         keyboardShouldPersistTaps="handled">
         <View style={styles.header}>
           <Text style={styles.logo}>🍽️ Ginder</Text>
-          <Text style={styles.subtitle}>Find your next meal together</Text>
+          <Text style={styles.subtitle}>หาร้านมื้อต่อไปด้วยกัน</Text>
         </View>
 
         <View style={styles.form}>
           <TextInput
             style={styles.input}
-            placeholder="Email"
+            placeholder="อีเมล"
             placeholderTextColor="#999"
             value={email}
             onChangeText={setEmail}
@@ -75,7 +75,7 @@ const LoginScreen = () => {
           />
           <TextInput
             style={styles.input}
-            placeholder="Password"
+            placeholder="รหัสผ่าน"
             placeholderTextColor="#999"
             value={password}
             onChangeText={setPassword}
@@ -87,7 +87,7 @@ const LoginScreen = () => {
             <Text style={styles.errorText}>
               {validationError ||
                 loginMutation.error?.message ||
-                'Login failed'}
+                'เข้าสู่ระบบไม่สำเร็จ'}
             </Text>
           )}
 
@@ -100,23 +100,23 @@ const LoginScreen = () => {
             {loginMutation.isPending ? (
               <ActivityIndicator color="#FFF" />
             ) : (
-              <Text style={styles.buttonText}>Login</Text>
+              <Text style={styles.buttonText}>เข้าสู่ระบบ</Text>
             )}
           </TouchableOpacity>
 
           <TouchableOpacity
             onPress={() => navigation.navigate('ForgotPassword')}
             accessibilityRole="button">
-            <Text style={styles.linkText}>Forgot password?</Text>
+            <Text style={styles.linkText}>ลืมรหัสผ่าน?</Text>
           </TouchableOpacity>
         </View>
 
         <View style={styles.footer}>
-          <Text style={styles.footerText}>Don't have an account? </Text>
+          <Text style={styles.footerText}>ยังไม่มีบัญชี? </Text>
           <TouchableOpacity
             onPress={() => navigation.navigate('SignUp')}
             accessibilityRole="button">
-            <Text style={styles.footerLink}>Register</Text>
+            <Text style={styles.footerLink}>สมัครสมาชิก</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>

@@ -56,11 +56,11 @@ const JoinSessionScreen = () => {
         <Text style={styles.backText}>‹</Text>
       </TouchableOpacity>
       <View style={styles.content}>
-        <Text style={styles.eyebrow}>PLAY TOGETHER</Text>
-        <Text style={styles.title}>Join a session</Text>
+        <Text style={styles.eyebrow}>เลือกร้านกับเพื่อน</Text>
+        <Text style={styles.title}>เข้าห้องเพื่อน</Text>
         <Text style={styles.message}>
-          Paste the invite code a friend sent you. Opening their Ginder link
-          fills it automatically.
+          กรอกรหัสคำเชิญจากเพื่อน เมื่อเปิดลิงก์คำเชิญของ Ginder
+          รหัสจะถูกกรอกให้อัตโนมัติ
         </Text>
         <TextInput
           value={code}
@@ -71,7 +71,7 @@ const JoinSessionScreen = () => {
             }
           }}
           style={styles.input}
-          placeholder="INVITE CODE"
+          placeholder="รหัสคำเชิญ"
           placeholderTextColor="#6F6969"
           autoCapitalize="characters"
           autoCorrect={false}
@@ -90,11 +90,11 @@ const JoinSessionScreen = () => {
           {join.isPending ? (
             <ActivityIndicator color="#FFF" />
           ) : (
-            <Text style={styles.buttonText}>Join session</Text>
+            <Text style={styles.buttonText}>เข้าห้อง</Text>
           )}
         </TouchableOpacity>
         <Text style={styles.hint}>
-          Joining automatically adds the host to your friends list.
+          เมื่อเข้าห้อง เจ้าของห้องจะถูกเพิ่มเป็นเพื่อนของคุณ
         </Text>
       </View>
     </KeyboardAvoidingView>

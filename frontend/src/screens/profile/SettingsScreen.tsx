@@ -25,20 +25,20 @@ const SettingsScreen = () => {
   const {data: googleUsage} = useGoogleUsage();
 
   const handleLogout = () => {
-    Alert.alert('Log Out', 'Are you sure you want to log out?', [
-      {text: 'Cancel', style: 'cancel'},
-      {text: 'Log Out', style: 'destructive', onPress: () => logout()},
+    Alert.alert('ออกจากระบบ', 'ต้องการออกจากระบบหรือไม่?', [
+      {text: 'ยกเลิก', style: 'cancel'},
+      {text: 'ออกจากระบบ', style: 'destructive', onPress: () => logout()},
     ]);
   };
 
   const handleDeleteAccount = () => {
     Alert.alert(
-      'Delete Account',
-      'This action is permanent. All your data will be deleted.',
+      'ลบบัญชี',
+      'บัญชีและข้อมูลส่วนบุคคลจะถูกลบถาวรและกู้คืนไม่ได้',
       [
-        {text: 'Cancel', style: 'cancel'},
+        {text: 'ยกเลิก', style: 'cancel'},
         {
-          text: 'Delete',
+          text: 'ลบบัญชี',
           style: 'destructive',
           onPress: () => {
             deleteMutation.mutate(undefined, {
@@ -56,9 +56,9 @@ const SettingsScreen = () => {
         <TouchableOpacity
           onPress={() => navigation.goBack()}
           accessibilityRole="button">
-          <Text style={styles.backText}>← Back</Text>
+          <Text style={styles.backText}>← กลับ</Text>
         </TouchableOpacity>
-        <Text style={styles.title}>Settings</Text>
+        <Text style={styles.title}>ตั้งค่า</Text>
       </View>
 
       {googleUsage && (
@@ -87,14 +87,14 @@ const SettingsScreen = () => {
           style={styles.menuItem}
           onPress={handleLogout}
           accessibilityRole="button">
-          <Text style={styles.menuText}>Log Out</Text>
+          <Text style={styles.menuText}>ออกจากระบบ</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
           style={styles.menuItemDanger}
           onPress={handleDeleteAccount}
           accessibilityRole="button">
-          <Text style={styles.menuTextDanger}>Delete Account</Text>
+          <Text style={styles.menuTextDanger}>ลบบัญชี</Text>
         </TouchableOpacity>
       </View>
 
@@ -103,13 +103,13 @@ const SettingsScreen = () => {
           style={styles.menuItem}
           onPress={() => Linking.openURL(PRIVACY_POLICY_URL)}
           accessibilityRole="link">
-          <Text style={styles.menuText}>Privacy Policy</Text>
+          <Text style={styles.menuText}>ความเป็นส่วนตัว</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.menuItemDanger}
           onPress={() => Linking.openURL(TERMS_OF_SERVICE_URL)}
           accessibilityRole="link">
-          <Text style={styles.menuText}>Terms of Service</Text>
+          <Text style={styles.menuText}>ข้อกำหนดการใช้งาน</Text>
         </TouchableOpacity>
       </View>
 

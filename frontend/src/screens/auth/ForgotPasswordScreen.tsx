@@ -22,7 +22,7 @@ const ForgotPasswordScreen = () => {
   const [email, setEmail] = useState('');
 
   const handleSubmit = () => {
-    forgotMutation.mutate({email});
+    forgotMutation.mutate({email: email.trim()});
   };
 
   return (
@@ -32,17 +32,17 @@ const ForgotPasswordScreen = () => {
         style={styles.backButton}
         accessibilityRole="button"
         accessibilityLabel="Go back">
-        <Text style={styles.backText}>← Back</Text>
+        <Text style={styles.backText}>← กลับ</Text>
       </TouchableOpacity>
 
-      <Text style={styles.title}>Forgot Password</Text>
+      <Text style={styles.title}>ลืมรหัสผ่าน</Text>
       <Text style={styles.subtitle}>
-        Enter your email and we'll send you a link to reset your password.
+        กรอกอีเมลของบัญชีเพื่อรับลิงก์ตั้งรหัสผ่านใหม่
       </Text>
 
       <TextInput
         style={styles.input}
-        placeholder="Email"
+        placeholder="อีเมล"
         placeholderTextColor="#999"
         value={email}
         onChangeText={setEmail}
@@ -53,19 +53,25 @@ const ForgotPasswordScreen = () => {
 
       {forgotMutation.isSuccess && (
         <Text style={styles.successText}>
-          If the email exists, a reset link has been sent.
+          หากมีบัญชีนี้ เราจะส่งลิงก์ให้ทางอีเมล
+          กรุณาตรวจกล่องจดหมายและจดหมายขยะ
+        </Text>
+      )}
+      {forgotMutation.isError && (
+        <Text style={styles.errorText} accessibilityRole="alert">
+          ส่งคำขอไม่สำเร็จ กรุณาตรวจอีเมลและการเชื่อมต่อแล้วลองอีกครั้ง
         </Text>
       )}
 
       <TouchableOpacity
         style={styles.button}
         onPress={handleSubmit}
-        disabled={forgotMutation.isPending}
+        disabled={forgotMutation.isPending || !email.trim()}
         accessibilityRole="button">
         {forgotMutation.isPending ? (
           <ActivityIndicator color="#FFF" />
         ) : (
-          <Text style={styles.buttonText}>Send Reset Link</Text>
+          <Text style={styles.buttonText}>ส่งลิงก์ตั้งรหัสผ่าน</Text>
         )}
       </TouchableOpacity>
     </View>
@@ -120,6 +126,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '600',
   },
+  errorText: {color: '#B42318', marginBottom: 16},
   successText: {
     color: '#38A169',
     fontSize: 14,

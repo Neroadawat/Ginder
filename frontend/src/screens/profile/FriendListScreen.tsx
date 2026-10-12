@@ -28,15 +28,14 @@ const FriendListScreen = () => {
   const displayList = searchQuery ? searchResults?.friends : friends?.friends;
 
   const handleUnfriend = (friendId: string, name: string) => {
-    Alert.alert('Unfriend', `Remove ${name} from your friends?`, [
-      {text: 'Cancel', style: 'cancel'},
+    Alert.alert('ลบเพื่อน', `ต้องการลบ ${name} จากรายชื่อเพื่อนหรือไม่?`, [
+      {text: 'ยกเลิก', style: 'cancel'},
       {
-        text: 'Unfriend',
+        text: 'ลบเพื่อน',
         style: 'destructive',
         onPress: () =>
           unfriendMutation.mutate(friendId, {
-            onError: error =>
-              Alert.alert('Could not remove friend', error.message),
+            onError: error => Alert.alert('ลบเพื่อนไม่สำเร็จ', error.message),
           }),
       },
     ]);
@@ -48,15 +47,15 @@ const FriendListScreen = () => {
         <TouchableOpacity
           onPress={() => navigation.goBack()}
           accessibilityRole="button">
-          <Text style={styles.backText}>← Back</Text>
+          <Text style={styles.backText}>← กลับ</Text>
         </TouchableOpacity>
-        <Text style={styles.title}>Friends</Text>
-        <Text style={styles.count}>{friends?.total ?? 0} friends</Text>
+        <Text style={styles.title}>เพื่อน</Text>
+        <Text style={styles.count}>{friends?.total ?? 0} คน</Text>
       </View>
 
       <TextInput
         style={styles.searchInput}
-        placeholder="Search friends..."
+        placeholder="ค้นหาเพื่อน..."
         placeholderTextColor="#999"
         value={searchQuery}
         onChangeText={setSearchQuery}
@@ -85,7 +84,7 @@ const FriendListScreen = () => {
                 onPress={() => handleUnfriend(item.id, item.display_name)}
                 accessibilityRole="button"
                 accessibilityLabel={`Unfriend ${item.display_name}`}>
-                <Text style={styles.unfriendText}>Remove</Text>
+                <Text style={styles.unfriendText}>ลบ</Text>
               </TouchableOpacity>
             </View>
           )}
@@ -94,7 +93,7 @@ const FriendListScreen = () => {
           ListEmptyComponent={
             <View style={styles.empty}>
               <Text style={styles.emptyText}>
-                {searchQuery ? 'No friends found' : 'No friends yet'}
+                {searchQuery ? 'ไม่พบเพื่อนที่ค้นหา' : 'ยังไม่มีเพื่อน'}
               </Text>
             </View>
           }

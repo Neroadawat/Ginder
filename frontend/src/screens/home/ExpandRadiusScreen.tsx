@@ -32,17 +32,16 @@ const ExpandRadiusScreen = () => {
   return (
     <View style={styles.container}>
       <Text style={styles.emoji}>🍽️</Text>
-      <Text style={styles.title}>You've seen every restaurant</Text>
+      <Text style={styles.title}>ดูร้านในสำรับครบแล้ว</Text>
 
       {atMaxRadius ? (
         <Text style={styles.subtitle}>
-          You're already searching the full {formatRadius(MAX_RADIUS_KM)} area.
-          Try changing your filters to see more places.
+          ค้นหาถึงระยะสูงสุด {formatRadius(MAX_RADIUS_KM)} แล้ว
+          ลองปรับตัวกรองเพื่อดูร้านเพิ่มเติม
         </Text>
       ) : (
         <Text style={styles.subtitle}>
-          Currently searching within {formatRadius(radiusKm)}. Widen the radius
-          to find more options.
+          กำลังค้นหาภายใน {formatRadius(radiusKm)} ขยายรัศมี เพื่อค้นหาร้านเพิ่ม
         </Text>
       )}
 
@@ -54,9 +53,7 @@ const ExpandRadiusScreen = () => {
             onPress={() => handleExpand(r)}
             accessibilityRole="button"
             accessibilityLabel={`Search within ${formatRadius(r)}`}>
-            <Text style={styles.optionText}>
-              Search within {formatRadius(r)}
-            </Text>
+            <Text style={styles.optionText}>ค้นหาภายใน {formatRadius(r)}</Text>
           </TouchableOpacity>
         ))}
       </View>
@@ -65,7 +62,7 @@ const ExpandRadiusScreen = () => {
         style={styles.cancelButton}
         onPress={() => navigation.goBack()}
         accessibilityRole="button">
-        <Text style={styles.cancelText}>Go Back</Text>
+        <Text style={styles.cancelText}>กลับ</Text>
       </TouchableOpacity>
     </View>
   );

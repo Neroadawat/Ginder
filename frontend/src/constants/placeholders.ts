@@ -5,26 +5,28 @@
  * back to the same image for a given category.
  */
 
-const PLACEHOLDER_BY_CATEGORY: Record<string, string> = {
-  Thai: 'https://placehold.co/600x450/FF6B6B/FFFFFF?text=Thai',
-  Japanese: 'https://placehold.co/600x450/FF6B6B/FFFFFF?text=Japanese',
-  Korean: 'https://placehold.co/600x450/FF6B6B/FFFFFF?text=Korean',
-  Chinese: 'https://placehold.co/600x450/FF6B6B/FFFFFF?text=Chinese',
-  Italian: 'https://placehold.co/600x450/FF6B6B/FFFFFF?text=Italian',
-  'Fast Food': 'https://placehold.co/600x450/FF6B6B/FFFFFF?text=Fast+Food',
-  Cafe: 'https://placehold.co/600x450/FF6B6B/FFFFFF?text=Cafe',
-  Dessert: 'https://placehold.co/600x450/FF6B6B/FFFFFF?text=Dessert',
-  'Food Court': 'https://placehold.co/600x450/FF6B6B/FFFFFF?text=Food+Court',
-  Steak: 'https://placehold.co/600x450/FF6B6B/FFFFFF?text=Steak',
-  'Hot Pot': 'https://placehold.co/600x450/FF6B6B/FFFFFF?text=Hot+Pot',
-  Indian: 'https://placehold.co/600x450/FF6B6B/FFFFFF?text=Indian',
+import {Image} from 'react-native';
+const PLACEHOLDER_BY_CATEGORY: Record<string, number> = {
+  Thai: require('../assets/placeholders/thai.png'),
+  Japanese: require('../assets/placeholders/japanese.png'),
+  Korean: require('../assets/placeholders/korean.png'),
+  Chinese: require('../assets/placeholders/chinese.png'),
+  Italian: require('../assets/placeholders/italian.png'),
+  'Fast Food': require('../assets/placeholders/fast-food.png'),
+  Cafe: require('../assets/placeholders/cafe.png'),
+  Dessert: require('../assets/placeholders/dessert.png'),
+  'Food Court': require('../assets/placeholders/food-court.png'),
+  Steak: require('../assets/placeholders/steak.png'),
+  'Hot Pot': require('../assets/placeholders/hot-pot.png'),
+  Indian: require('../assets/placeholders/indian.png'),
 };
 
-const FALLBACK = 'https://placehold.co/600x450/FF6B6B/FFFFFF?text=Restaurant';
+const FALLBACK = require('../assets/placeholders/other.png');
 
 /** Placeholder image URL for a display category. */
 export const getPlaceholderImage = (category: string): string =>
-  PLACEHOLDER_BY_CATEGORY[category] ?? FALLBACK;
+  Image.resolveAssetSource(PLACEHOLDER_BY_CATEGORY[category] ?? FALLBACK)
+    ?.uri ?? '';
 
 /** Emoji used on the Explore tiles and empty list rows. */
 export const CATEGORY_EMOJI: Record<string, string> = {

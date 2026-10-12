@@ -1,5 +1,5 @@
 const React = require('react');
-const {ImageBackground} = require('react-native');
+const {Image} = require('react-native');
 const {act, create} = require('react-test-renderer');
 
 let mockPhotoResult;
@@ -42,7 +42,7 @@ it('shows a resolved live photo without using image cache', () => {
     tree = create(<RestaurantCardContent restaurant={liveRestaurant} />);
   });
 
-  expect(tree.root.findByType(ImageBackground).props.source).toEqual({
+  expect(tree.root.findByType(Image).props.source).toEqual({
     uri: 'https://lh3.googleusercontent.com/photo',
     cache: 'reload',
   });
@@ -59,7 +59,7 @@ it('keeps the placeholder when live photo resolution fails', () => {
     tree = create(<RestaurantCardContent restaurant={liveRestaurant} />);
   });
 
-  expect(tree.root.findByType(ImageBackground).props.source).toEqual({
+  expect(tree.root.findByType(Image).props.source).toEqual({
     uri: 'placeholder-image',
     cache: 'default',
   });

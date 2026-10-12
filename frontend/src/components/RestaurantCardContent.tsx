@@ -6,13 +6,15 @@
  */
 
 import React from 'react';
-import {ImageBackground, StyleSheet, Text, View} from 'react-native';
+import {Image, StyleSheet, Text, View} from 'react-native';
 
 import {RestaurantCard} from '@/types/restaurant';
 import {getRestaurantImageUri} from '@/constants/restaurantImages';
 import {formatDistanceTh} from '@/utils/distance';
 import {useGooglePhoto} from '@/hooks/useGooglePhoto';
 import PhotoAttribution from './PhotoAttribution';
+import DataAttribution from './DataAttribution';
+import {categoryLabel} from '@/utils/category';
 
 interface Props {
   restaurant: RestaurantCard;
@@ -29,28 +31,32 @@ const RestaurantCardContent = ({restaurant}: Props) => {
     restaurant.source === 'google_live' && googlePhoto?.status === 'available';
 
   return (
-    <ImageBackground
-      key={imageUri}
-      source={{
-        uri: imageUri,
-        cache: isGooglePhotoVisible ? 'reload' : 'default',
-      }}
-      fadeDuration={0}
-      style={styles.image}
-      resizeMode="cover"
-      accessibilityLabel={`Photo of ${restaurant.name}`}>
+    <View style={styles.image}>
+      <Image
+        key={imageUri}
+        source={{
+          uri: imageUri,
+          cache: isGooglePhotoVisible ? 'reload' : 'default',
+        }}
+        fadeDuration={0}
+        style={StyleSheet.absoluteFill}
+        resizeMode="cover"
+        accessibilityLabel={`ภาพประกอบร้าน ${restaurant.name}`}
+      />
       <View style={styles.scrim} />
       <View style={styles.info}>
         <View style={styles.openPill}>
           <View style={styles.openDot} />
-          <Text style={styles.openText}>Restaurant</Text>
+          <Text style={styles.openText}>ร้านอาหาร</Text>
         </View>
         <Text style={styles.name} numberOfLines={1}>
           {restaurant.name}
         </Text>
 
         <View style={styles.metaRow}>
-          <Text style={styles.category}>{restaurant.primary_category}</Text>
+          <Text style={styles.category}>
+            {categoryLabel(restaurant.primary_category)}
+          </Text>
           {restaurant.price_symbol && (
             <Text style={styles.price}>{restaurant.price_symbol}</Text>
           )}
@@ -68,11 +74,12 @@ const RestaurantCardContent = ({restaurant}: Props) => {
           light
           photoVisible={isGooglePhotoVisible}
         />
+        <DataAttribution source={restaurant.source} light />
         {restaurant.source === 'google_live' && (
           <Text style={styles.googleAttribution}>Google Maps</Text>
         )}
       </View>
-    </ImageBackground>
+    </View>
   );
 };
 

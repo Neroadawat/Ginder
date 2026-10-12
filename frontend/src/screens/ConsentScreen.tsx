@@ -25,18 +25,18 @@ import {PRIVACY_POLICY_URL, TERMS_OF_SERVICE_URL} from '@/services/config';
 const DATA_POINTS = [
   {
     icon: '📍',
-    title: 'Your location',
-    body: 'Used to find restaurants near you and to centre a group session. Never shared with other users as a precise position.',
+    title: 'ตำแหน่งของคุณ',
+    body: 'ใช้ค้นหาร้านใกล้คุณและเป็นจุดอ้างอิงของห้อง ไม่ติดตามตำแหน่งในเบื้องหลัง',
   },
   {
     icon: '📧',
-    title: 'Your email and display name',
-    body: 'Used to sign you in and to show who you are to friends you invite.',
+    title: 'อีเมลและชื่อที่แสดง',
+    body: 'ใช้เข้าสู่ระบบ รับอีเมลตั้งรหัสผ่าน และแสดงชื่อให้เพื่อนในห้อง',
   },
   {
     icon: '❤️',
-    title: 'Your swipes and match history',
-    body: 'Stored so you can revisit places you liked and past group results.',
+    title: 'การปัดและประวัติร้านที่เลือก',
+    body: 'เก็บเพื่อให้กลับมาดูร้านที่ถูกใจและผลห้องที่ผ่านมาได้',
   },
 ];
 
@@ -48,10 +48,10 @@ const ConsentScreen = () => {
     <View style={styles.container}>
       <ScrollView contentContainerStyle={styles.content}>
         <Text style={styles.logo}>🍽️ Ginder</Text>
-        <Text style={styles.title}>Before you start</Text>
+        <Text style={styles.title}>ก่อนเริ่มใช้งาน</Text>
         <Text style={styles.intro}>
-          Here is what Ginder collects and why. You can delete your account and
-          all of this data at any time from Settings.
+          Ginder ใช้ข้อมูลต่อไปนี้เพื่อให้บริการ คุณลบบัญชีและ
+          ข้อมูลส่วนบุคคลได้จากการตั้งค่า
         </Text>
 
         {DATA_POINTS.map(point => (
@@ -64,19 +64,17 @@ const ConsentScreen = () => {
           </View>
         ))}
 
-        <Text style={styles.legal}>
-          Review the documents before continuing:
-        </Text>
+        <Text style={styles.legal}>อ่านรายละเอียดก่อนดำเนินการต่อ:</Text>
         <View style={styles.legalLinks}>
           <TouchableOpacity
             onPress={() => Linking.openURL(TERMS_OF_SERVICE_URL)}
             accessibilityRole="link">
-            <Text style={styles.legalLink}>Terms of Service</Text>
+            <Text style={styles.legalLink}>ข้อกำหนดการใช้งาน</Text>
           </TouchableOpacity>
           <TouchableOpacity
             onPress={() => Linking.openURL(PRIVACY_POLICY_URL)}
             accessibilityRole="link">
-            <Text style={styles.legalLink}>Privacy Policy</Text>
+            <Text style={styles.legalLink}>ความเป็นส่วนตัว</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -91,7 +89,7 @@ const ConsentScreen = () => {
             accessibilityLabel="Agree to the Terms of Service and Privacy Policy"
           />
           <Text style={styles.agreeText}>
-            I agree to the Terms of Service and Privacy Policy
+            ฉันยอมรับข้อกำหนดและนโยบายความเป็นส่วนตัว
           </Text>
         </View>
 
@@ -102,7 +100,7 @@ const ConsentScreen = () => {
           accessibilityRole="button"
           accessibilityLabel="Continue"
           accessibilityState={{disabled: !agreed}}>
-          <Text style={styles.buttonText}>Continue</Text>
+          <Text style={styles.buttonText}>ดำเนินการต่อ</Text>
         </TouchableOpacity>
       </View>
     </View>

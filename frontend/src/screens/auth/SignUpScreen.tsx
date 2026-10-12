@@ -42,24 +42,24 @@ const SignUpScreen = () => {
     const normalizedName = displayName.trim();
 
     if (!normalizedName) {
-      setValidationError('Please enter a display name.');
+      setValidationError('กรุณากรอกชื่อที่แสดง');
       return;
     }
     if (!normalizedEmail || !/^\S+@\S+\.\S+$/.test(normalizedEmail)) {
-      setValidationError('Please enter a valid email address.');
+      setValidationError('กรุณากรอกอีเมลให้ถูกต้อง');
       return;
     }
     if (password.length < 8) {
-      setValidationError('Password must be at least 8 characters.');
+      setValidationError('รหัสผ่านต้องมีอย่างน้อย 8 ตัวอักษร');
       return;
     }
     if (password.length > 128) {
-      setValidationError('Password must be no more than 128 characters.');
+      setValidationError('รหัสผ่านต้องไม่เกิน 128 ตัวอักษร');
       return;
     }
     if (!hasConsented) {
       setValidationError(
-        'You must accept the Terms of Service and Privacy Policy.',
+        'กรุณายอมรับข้อกำหนดการใช้งานและนโยบายความเป็นส่วนตัว',
       );
       return;
     }
@@ -81,14 +81,14 @@ const SignUpScreen = () => {
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled">
         <View style={styles.header}>
-          <Text style={styles.title}>Register</Text>
-          <Text style={styles.subtitle}>Join Ginder and find great food</Text>
+          <Text style={styles.title}>สมัครสมาชิก</Text>
+          <Text style={styles.subtitle}>เริ่มหาร้านที่อยากกินกับ Ginder</Text>
         </View>
 
         <View style={styles.form}>
           <TextInput
             style={styles.input}
-            placeholder="Display Name"
+            placeholder="ชื่อที่แสดง"
             placeholderTextColor="#999"
             value={displayName}
             onChangeText={setDisplayName}
@@ -96,7 +96,7 @@ const SignUpScreen = () => {
           />
           <TextInput
             style={styles.input}
-            placeholder="Email"
+            placeholder="อีเมล"
             placeholderTextColor="#999"
             value={email}
             onChangeText={setEmail}
@@ -107,7 +107,7 @@ const SignUpScreen = () => {
           />
           <TextInput
             style={styles.input}
-            placeholder="Password"
+            placeholder="รหัสผ่าน"
             placeholderTextColor="#999"
             value={password}
             onChangeText={setPassword}
@@ -117,15 +117,13 @@ const SignUpScreen = () => {
 
           <View style={styles.requirements}>
             <Text style={styles.requirementsTitle}>
-              Registration requirements
+              ข้อมูลสำหรับสมัครสมาชิก
             </Text>
-            <Text style={styles.requirement}>• Display name is required</Text>
-            <Text style={styles.requirement}>• Use a valid email address</Text>
+            <Text style={styles.requirement}>• กรอกชื่อที่แสดง</Text>
+            <Text style={styles.requirement}>• ใช้อีเมลที่รับจดหมายได้</Text>
+            <Text style={styles.requirement}>• รหัสผ่าน 8–128 ตัวอักษร</Text>
             <Text style={styles.requirement}>
-              • Password must be 8–128 characters
-            </Text>
-            <Text style={styles.requirement}>
-              • Accept the Terms of Service and Privacy Policy
+              • ยอมรับข้อกำหนดและนโยบายความเป็นส่วนตัว
             </Text>
           </View>
 
@@ -133,7 +131,7 @@ const SignUpScreen = () => {
             <Text style={styles.errorText}>
               {validationError ||
                 signUpMutation.error?.message ||
-                'Registration failed'}
+                'สมัครสมาชิกไม่สำเร็จ'}
             </Text>
           )}
 
@@ -146,17 +144,17 @@ const SignUpScreen = () => {
             {signUpMutation.isPending ? (
               <ActivityIndicator color="#FFF" />
             ) : (
-              <Text style={styles.buttonText}>Register</Text>
+              <Text style={styles.buttonText}>สมัครสมาชิก</Text>
             )}
           </TouchableOpacity>
         </View>
 
         <View style={styles.footer}>
-          <Text style={styles.footerText}>Already have an account? </Text>
+          <Text style={styles.footerText}>มีบัญชีแล้ว? </Text>
           <TouchableOpacity
             onPress={() => navigation.navigate('Login')}
             accessibilityRole="button">
-            <Text style={styles.footerLink}>Login</Text>
+            <Text style={styles.footerLink}>เข้าสู่ระบบ</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>

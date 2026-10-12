@@ -44,7 +44,7 @@ const externalMessage = (status: string | undefined): string => {
     case 'filters_unsupported':
       return 'ตัวกรองนี้ใช้กับผลลัพธ์สดไม่ได้ ลองปิดตัวกรองราคา เรตติ้ง หรือเปิดอยู่';
     default:
-      return 'Expand the search radius or change filters to see more places.';
+      return 'ลองขยายรัศมีหรือปรับตัวกรองเพื่อค้นหาร้านเพิ่มเติม';
   }
 };
 
@@ -75,8 +75,8 @@ const SoloSwipeScreen = () => {
   const openPartyMenu = () => {
     if (hasGoogleLive) {
       Alert.alert(
-        'Group unavailable for live places',
-        'Google Maps results are temporary previews. Group sessions use reviewed OSM or manual restaurants only.',
+        'ร้านนี้ยังใช้กับห้องเพื่อนไม่ได้',
+        'ผลจาก Google Maps เป็นข้อมูลชั่วคราว ห้องเพื่อนใช้ร้านที่บันทึกในระบบเท่านั้น',
       );
       return;
     }
@@ -84,12 +84,12 @@ const SoloSwipeScreen = () => {
       | NativeStackNavigationProp<RootStackParamList>
       | undefined;
     Alert.alert(
-      'Play with friends',
-      'Create a new lobby or join with an invite code.',
+      'เลือกร้านกับเพื่อน',
+      'สร้างห้องใหม่หรือเข้าห้องด้วยรหัสคำเชิญ',
       [
-        {text: 'Cancel', style: 'cancel'},
+        {text: 'ยกเลิก', style: 'cancel'},
         {
-          text: 'Join',
+          text: 'เข้าห้อง',
           onPress: () =>
             rootNavigation?.navigate('Session', {
               screen: 'JoinSession',
@@ -97,7 +97,7 @@ const SoloSwipeScreen = () => {
             }),
         },
         {
-          text: 'Create',
+          text: 'สร้างห้อง',
           onPress: () =>
             rootNavigation?.navigate('Session', {screen: 'CreateSession'}),
         },
@@ -141,7 +141,7 @@ const SoloSwipeScreen = () => {
       <View style={styles.centered}>
         <ActivityIndicator size="large" color="#FF6B6B" />
         <Text style={styles.loadingText}>
-          {needsFreshGps ? 'กำลังอัปเดตตำแหน่ง...' : 'Finding restaurants...'}
+          {needsFreshGps ? 'กำลังอัปเดตตำแหน่ง...' : 'กำลังค้นหาร้าน...'}
         </Text>
       </View>
     );
@@ -158,10 +158,10 @@ const SoloSwipeScreen = () => {
           <AppIcon name="filter" />
         </TouchableOpacity>
         <View style={styles.modePill}>
-          <Text style={styles.modeText}>Solo</Text>
+          <Text style={styles.modeText}>คนเดียว</Text>
         </View>
         <View style={styles.deckPill}>
-          <Text style={styles.deckText}>{deck?.total ?? 0} places</Text>
+          <Text style={styles.deckText}>{deck?.total ?? 0} ร้าน</Text>
         </View>
         <TouchableOpacity
           style={styles.partyButton}
@@ -179,8 +179,8 @@ const SoloSwipeScreen = () => {
           accessibilityRole="button">
           <Text style={styles.coverageText}>
             {deck.suggested_radius_km
-              ? `Only ${deck.total} new places here. Expand to ${deck.suggested_radius_km} km for more.`
-              : `Only ${deck.total} new places here. Try changing your filters.`}
+              ? `พบร้านใหม่ ${deck.total} ร้าน ลองขยายเป็น ${deck.suggested_radius_km} กม.`
+              : `พบร้านใหม่ ${deck.total} ร้าน ลองปรับตัวกรอง`}
           </Text>
         </TouchableOpacity>
       )}
@@ -188,8 +188,8 @@ const SoloSwipeScreen = () => {
       {hasGoogleLive && (
         <View style={styles.liveNotice}>
           <Text style={styles.liveNoticeText}>
-            Live preview from Google Maps · Like and Group are unavailable
-            {deck?.quota_warning ? ' · Monthly soft limit reached' : ''}
+            ข้อมูลสดจาก Google Maps · ยังบันทึกถูกใจหรือใช้กับห้องเพื่อนไม่ได้
+            {deck?.quota_warning ? ' · ใกล้ถึงขีดจำกัดเดือนนี้' : ''}
           </Text>
         </View>
       )}
@@ -206,8 +206,8 @@ const SoloSwipeScreen = () => {
             <Text style={styles.emptyEmoji}>🔍</Text>
             <Text style={styles.emptyTitle}>
               {deck?.coverage_status === 'unsupported'
-                ? 'No new restaurants nearby'
-                : 'You have seen this deck'}
+                ? 'ยังไม่พบร้านใหม่ใกล้คุณ'
+                : 'ดูร้านในสำรับนี้ครบแล้ว'}
             </Text>
             <Text style={styles.emptySubtitle}>
               {externalMessage(deck?.external_status)}
@@ -216,7 +216,7 @@ const SoloSwipeScreen = () => {
               style={styles.retryButton}
               onPress={() => navigation.navigate('ExpandRadius')}
               accessibilityRole="button">
-              <Text style={styles.retryText}>Expand search radius</Text>
+              <Text style={styles.retryText}>ขยายรัศมีค้นหา</Text>
             </TouchableOpacity>
           </View>
         )}

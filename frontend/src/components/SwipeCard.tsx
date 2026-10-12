@@ -139,11 +139,11 @@ const CardLayer = forwardRef<CardHandle, CardLayerProps>(
           style={[styles.card, styles.nextCard, animatedStyle]}>
           <Animated.View
             style={[styles.overlay, styles.likeOverlay, likeOpacity]}>
-            <Text style={styles.overlayText}>LIKE ❤️</Text>
+            <Text style={styles.overlayText}>ถูกใจ ❤️</Text>
           </Animated.View>
           <Animated.View
             style={[styles.overlay, styles.skipOverlay, skipOpacity]}>
-            <Text style={styles.overlayText}>SKIP ✕</Text>
+            <Text style={styles.overlayText}>ข้าม ✕</Text>
           </Animated.View>
           <RestaurantCardContent restaurant={restaurant} />
         </Animated.View>

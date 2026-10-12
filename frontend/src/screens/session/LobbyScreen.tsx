@@ -69,11 +69,11 @@ const LobbyScreen = () => {
       clearSession();
       Alert.alert(
         lastEvent.data.session_cancelled
-          ? 'Session cancelled'
-          : 'You left the lobby',
+          ? 'ห้องถูกยกเลิก'
+          : 'คุณออกจากห้องแล้ว',
         lastEvent.data.session_cancelled
-          ? 'The host closed this session.'
-          : 'You are no longer in this session.',
+          ? 'เจ้าของห้องปิดห้องแล้ว'
+          : 'คุณไม่ได้อยู่ในห้องนี้แล้ว',
       );
       navigation.getParent()?.goBack();
       return;
@@ -113,14 +113,11 @@ const LobbyScreen = () => {
     }
     try {
       await Share.share({
-        title: 'Join my Ginder session',
-        message: `Join my Ginder session. Code: ${lobby.session.invite_code}\nginder://session/join?code=${lobby.session.invite_code}`,
+        title: 'เข้าห้อง Ginder กับฉัน',
+        message: `เข้าห้อง Ginder กับฉัน. รหัส: ${lobby.session.invite_code}\nginder://session/join?code=${lobby.session.invite_code}`,
       });
     } catch {
-      Alert.alert(
-        'Could not share',
-        'Please try again, or send the invite code shown above.',
-      );
+      Alert.alert('แชร์ไม่สำเร็จ', 'ลองอีกครั้งหรือส่งรหัสห้องให้เพื่อน');
     }
   };
 
@@ -131,12 +128,12 @@ const LobbyScreen = () => {
         onSuccess: response => {
           setInvitedIds(ids => [...new Set([...ids, friendId])]);
           Alert.alert(
-            'Invite sent',
-            `${name} can accept it from Invitations.\n\n${response.message}`,
+            'ส่งคำเชิญแล้ว',
+            `${name} ตอบรับได้จากหน้าคำเชิญ\n\n${response.message}`,
           );
         },
         onError: inviteError =>
-          Alert.alert('Could not invite', inviteError.message),
+          Alert.alert('ส่งคำเชิญไม่สำเร็จ', inviteError.message),
       },
     );
   };
@@ -148,22 +145,23 @@ const LobbyScreen = () => {
           sessionId: route.params.sessionId,
           endsAt: response.ends_at,
         }),
-      onError: startError => Alert.alert('Could not start', startError.message),
+      onError: startError =>
+        Alert.alert('เริ่มห้องไม่สำเร็จ', startError.message),
     });
   };
 
   const kick = (kickUserId: string, name: string) => {
-    Alert.alert('Remove participant?', `${name} will leave this lobby.`, [
-      {text: 'Cancel', style: 'cancel'},
+    Alert.alert('นำสมาชิกออกจากห้อง?', `${name} จะออกจากห้องนี้`, [
+      {text: 'ยกเลิก', style: 'cancel'},
       {
-        text: 'Remove',
+        text: 'นำออก',
         style: 'destructive',
         onPress: () =>
           kickMutation.mutate(
             {sessionId: route.params.sessionId, userId: kickUserId},
             {
               onError: kickError =>
-                Alert.alert('Could not remove', kickError.message),
+                Alert.alert('นำออกไม่สำเร็จ', kickError.message),
             },
           ),
       },
@@ -171,20 +169,20 @@ const LobbyScreen = () => {
   };
 
   const leave = () => {
-    const title = isHost ? 'Cancel this session?' : 'Leave this lobby?';
+    const title = isHost ? 'ยกเลิกห้องนี้?' : 'ออกจากห้องนี้?';
     const message = isHost
-      ? 'The lobby will close for everyone.'
-      : 'You can rejoin later while the lobby is still open.';
+      ? 'ห้องจะปิดสำหรับทุกคน'
+      : 'กลับเข้ามาได้ขณะห้องยังเปิดอยู่';
     Alert.alert(title, message, [
-      {text: 'Stay', style: 'cancel'},
+      {text: 'อยู่ต่อ', style: 'cancel'},
       {
-        text: isHost ? 'Cancel session' : 'Leave',
+        text: isHost ? 'ยกเลิกห้อง' : 'ออกจากห้อง',
         style: 'destructive',
         onPress: () =>
           leaveMutation.mutate(route.params.sessionId, {
             onSuccess: () => navigation.getParent()?.goBack(),
             onError: leaveError =>
-              Alert.alert('Could not leave', leaveError.message),
+              Alert.alert('ออกจากห้องไม่สำเร็จ', leaveError.message),
           }),
       },
     ]);
@@ -200,14 +198,14 @@ const LobbyScreen = () => {
   if (isError || !lobby) {
     return (
       <View style={styles.centered}>
-        <Text style={styles.errorTitle}>Lobby unavailable</Text>
+        <Text style={styles.errorTitle}>ยังโหลดห้องไม่ได้</Text>
         <Text style={styles.muted}>
-          {error?.message ?? 'This session no longer exists.'}
+          {error?.message ?? 'ห้องนี้ไม่มีอยู่แล้ว'}
         </Text>
         <TouchableOpacity
           style={styles.secondaryButton}
           onPress={() => refetch()}>
-          <Text style={styles.secondaryText}>Try again</Text>
+          <Text style={styles.secondaryText}>ลองอีกครั้ง</Text>
         </TouchableOpacity>
       </View>
     );
@@ -218,38 +216,38 @@ const LobbyScreen = () => {
       <View style={styles.header}>
         <View>
           <Text style={styles.eyebrow}>
-            {isHost ? 'YOUR PARTY' : 'FRIEND PARTY'}
+            {isHost ? 'ห้องของคุณ' : 'ห้องเพื่อน'}
           </Text>
-          <Text style={styles.title}>Lobby</Text>
+          <Text style={styles.title}>ห้องรอ</Text>
         </View>
         <View style={[styles.connection, isConnected && styles.connected]}>
           <Text style={styles.connectionText}>
-            {isConnected ? 'Live' : 'Reconnecting'}
+            {isConnected ? 'เชื่อมต่อแล้ว' : 'กำลังเชื่อมต่อ'}
           </Text>
         </View>
       </View>
       <View style={styles.codeCard}>
-        <Text style={styles.codeLabel}>INVITE CODE</Text>
+        <Text style={styles.codeLabel}>รหัสคำเชิญ</Text>
         <Text selectable style={styles.code}>
           {lobby.session.invite_code}
         </Text>
         <Text style={styles.settings}>
-          {lobby.session.radius_km} km · {lobby.session.duration_seconds / 60}{' '}
-          min
+          {lobby.session.radius_km} กม. · {lobby.session.duration_seconds / 60}{' '}
+          นาที
         </Text>
         <View style={styles.inviteActions}>
           <TouchableOpacity
             style={styles.inviteButton}
             onPress={() => setInviteOpen(true)}>
-            <Text style={styles.inviteButtonText}>Invite friends</Text>
+            <Text style={styles.inviteButtonText}>ชวนเพื่อน</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.shareButton} onPress={shareInvite}>
-            <Text style={styles.shareButtonText}>Share link</Text>
+            <Text style={styles.shareButtonText}>แชร์ลิงก์</Text>
           </TouchableOpacity>
         </View>
       </View>
       <Text style={styles.participantsTitle}>
-        In the lobby · {lobby.participants.length}
+        สมาชิกในห้อง · {lobby.participants.length} คน
       </Text>
       <FlatList
         data={lobby.participants}
@@ -272,18 +270,18 @@ const LobbyScreen = () => {
           {startMutation.isPending ? (
             <ActivityIndicator color="#FFF" />
           ) : (
-            <Text style={styles.startText}>Start session</Text>
+            <Text style={styles.startText}>เริ่มโหวต</Text>
           )}
         </TouchableOpacity>
       ) : (
-        <Text style={styles.waiting}>Waiting for the host to start…</Text>
+        <Text style={styles.waiting}>รอเจ้าของห้องเริ่มโหวต…</Text>
       )}
       <TouchableOpacity
         style={styles.leaveButton}
         onPress={leave}
         disabled={leaveMutation.isPending}>
         <Text style={styles.leaveText}>
-          {isHost ? 'Cancel session' : 'Leave lobby'}
+          {isHost ? 'ยกเลิกห้อง' : 'ออกจากห้อง'}
         </Text>
       </TouchableOpacity>
 
@@ -299,9 +297,9 @@ const LobbyScreen = () => {
         />
         <View style={styles.sheet}>
           <View style={styles.sheetHandle} />
-          <Text style={styles.sheetTitle}>Invite friends</Text>
+          <Text style={styles.sheetTitle}>ชวนเพื่อน</Text>
           <Text style={styles.sheetSubtitle}>
-            They receive an in-app invitation and can accept with one tap.
+            เพื่อนจะได้รับคำเชิญในแอปและกดตอบรับได้
           </Text>
           {friendsLoading ? (
             <ActivityIndicator
@@ -331,7 +329,7 @@ const LobbyScreen = () => {
                       disabled={sent || inviteMutation.isPending}
                       onPress={() => invite(item.id, item.display_name)}>
                       <Text style={styles.sendText}>
-                        {sent ? 'Sent' : 'Invite'}
+                        {sent ? 'ส่งแล้ว' : 'ชวน'}
                       </Text>
                     </TouchableOpacity>
                   </View>
@@ -339,8 +337,8 @@ const LobbyScreen = () => {
               }}
               ListEmptyComponent={
                 <Text style={styles.emptyFriends}>
-                  No friends available yet. Share the link instead—joining will
-                  add each other as friends.
+                  ยังไม่มีเพื่อนให้ชวน ลองแชร์ลิงก์ เมื่อเข้าห้องจะ
+                  เพิ่มเป็นเพื่อนกันอัตโนมัติ
                 </Text>
               }
             />
@@ -348,7 +346,7 @@ const LobbyScreen = () => {
           <TouchableOpacity
             style={styles.doneButton}
             onPress={() => setInviteOpen(false)}>
-            <Text style={styles.doneText}>Done</Text>
+            <Text style={styles.doneText}>เสร็จ</Text>
           </TouchableOpacity>
         </View>
       </Modal>

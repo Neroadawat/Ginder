@@ -25,7 +25,7 @@ export const RADIUS_STEP_KM = 0.5;
  * server expands tier 1 to price_level 0-1 and tier 3 to 3-4.
  */
 export const PRICE_LEVELS: readonly {label: string; value: number | null}[] = [
-  {label: 'Any', value: null},
+  {label: 'ไม่จำกัด', value: null},
   {label: '฿', value: 1},
   {label: '฿฿', value: 2},
   {label: '฿฿฿', value: 3},
@@ -34,7 +34,7 @@ export const PRICE_LEVELS: readonly {label: string; value: number | null}[] = [
 /** Minimum-rating chips. */
 export const RATING_OPTIONS: readonly {label: string; value: number | null}[] =
   [
-    {label: 'Any', value: null},
+    {label: 'ไม่จำกัด', value: null},
     {label: '3.0+', value: 3.0},
     {label: '3.5+', value: 3.5},
     {label: '4.0+', value: 4.0},
@@ -42,15 +42,15 @@ export const RATING_OPTIONS: readonly {label: string; value: number | null}[] =
   ];
 
 export const SESSION_DURATION_OPTIONS = [
-  {label: '1 min', value: 60},
-  {label: '3 min', value: 180},
-  {label: '5 min', value: 300},
-  {label: '10 min', value: 600},
+  {label: '1 นาที', value: 60},
+  {label: '3 นาที', value: 180},
+  {label: '5 นาที', value: 300},
+  {label: '10 นาที', value: 600},
 ] as const;
 
 /** Formats a radius for display, dropping the trailing ".0" on whole numbers. */
 export const formatRadius = (km: number): string =>
-  `${Number.isInteger(km) ? km : km.toFixed(1)} km`;
+  `${Number.isInteger(km) ? km : km.toFixed(1)} กม.`;
 
 /** Radius choices larger than the current one, for the expand-radius screen. */
 export const getWiderRadiusOptions = (currentKm: number): number[] =>

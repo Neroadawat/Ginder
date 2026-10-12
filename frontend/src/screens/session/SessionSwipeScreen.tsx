@@ -133,7 +133,7 @@ const SessionSwipeScreen = () => {
               resolve(true);
             },
             onError: swipeError => {
-              Alert.alert('Swipe not saved', swipeError.message);
+              Alert.alert('บันทึกการปัดไม่สำเร็จ', swipeError.message);
               resolve(false);
             },
           },
@@ -187,7 +187,7 @@ const SessionSwipeScreen = () => {
     return (
       <View style={styles.centered}>
         <ActivityIndicator size="large" color="#FF6B6B" />
-        <Text style={styles.loadingText}>Loading restaurants...</Text>
+        <Text style={styles.loadingText}>กำลังโหลดร้าน...</Text>
       </View>
     );
   }
@@ -209,18 +209,16 @@ const SessionSwipeScreen = () => {
           <View style={styles.waiting}>
             <Text style={styles.waitingEmoji}>⏳</Text>
             <Text style={styles.waitingTitle}>
-              {hasCards ? "That's everything!" : 'No restaurants found'}
+              {hasCards ? 'ดูครบแล้ว!' : 'ไม่พบร้านอาหาร'}
             </Text>
             <Text style={styles.waitingText}>
-              {hasCards
-                ? 'Waiting for the others to finish'
-                : 'Waiting for the session to wrap up'}
+              {hasCards ? 'กำลังรอเพื่อนปัดให้ครบ' : 'กำลังรอผลของห้อง'}
             </Text>
             {reportFinished.isError && (
               <TouchableOpacity
                 style={styles.retryButton}
                 onPress={retryFinish}>
-                <Text style={styles.retryText}>Retry connection</Text>
+                <Text style={styles.retryText}>เชื่อมต่ออีกครั้ง</Text>
               </TouchableOpacity>
             )}
           </View>

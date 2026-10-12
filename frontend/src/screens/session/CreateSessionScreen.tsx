@@ -18,6 +18,7 @@ import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import {useCreateSession, useCurrentSession} from '@/hooks/useSessions';
 import {COLORS} from '@/constants/theme';
 import {useCategories} from '@/hooks/useRestaurants';
+import {categoryLabel} from '@/utils/category';
 import {useLocationStore} from '@/stores/locationStore';
 import {ensureFreshLocation} from '@/services/location';
 import {SessionStackParamList} from '@/navigation/types';
@@ -35,7 +36,7 @@ type NavigationProp = NativeStackNavigationProp<
   'CreateSession'
 >;
 
-const ALL_LABEL = 'All';
+const ALL_LABEL = 'ทั้งหมด';
 
 const CreateSessionScreen = () => {
   const navigation = useNavigation<NavigationProp>();
@@ -84,17 +85,15 @@ const CreateSessionScreen = () => {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <Text style={styles.title}>🎉 Create Session</Text>
-      <Text style={styles.subtitle}>Set up a group food hunt</Text>
+      <Text style={styles.title}>🎉 สร้างห้องกับเพื่อน</Text>
+      <Text style={styles.subtitle}>ตั้งค่าการค้นหาร้านและเวลาโหวต</Text>
 
       {currentSession && (
         <View style={styles.resumeCard}>
           <View style={styles.resumeCopy}>
-            <Text style={styles.resumeTitle}>
-              You already have an open session
-            </Text>
+            <Text style={styles.resumeTitle}>คุณมีห้องที่ยังไม่จบอยู่</Text>
             <Text style={styles.resumeHint}>
-              Resume it before creating another one.
+              กลับเข้าห้องเดิมก่อนสร้างห้องใหม่
             </Text>
           </View>
           <TouchableOpacity
@@ -110,13 +109,13 @@ const CreateSessionScreen = () => {
                 });
               }
             }}>
-            <Text style={styles.resumeText}>Resume</Text>
+            <Text style={styles.resumeText}>กลับเข้าห้อง</Text>
           </TouchableOpacity>
         </View>
       )}
 
       {/* Radius */}
-      <Text style={styles.sectionTitle}>Search Radius</Text>
+      <Text style={styles.sectionTitle}>รัศมีค้นหา</Text>
       <View style={styles.chipRow}>
         {RADIUS_OPTIONS_KM.map(r => (
           <TouchableOpacity
@@ -137,7 +136,7 @@ const CreateSessionScreen = () => {
       </View>
 
       {/* Category */}
-      <Text style={styles.sectionTitle}>Category</Text>
+      <Text style={styles.sectionTitle}>ประเภทอาหาร</Text>
       <View style={styles.chipRow}>
         {categoryOptions.map(option => {
           const selected =
@@ -151,7 +150,7 @@ const CreateSessionScreen = () => {
               accessibilityState={{selected}}>
               <Text
                 style={[styles.chipText, selected && styles.chipTextActive]}>
-                {option}
+                {categoryLabel(option)}
               </Text>
             </TouchableOpacity>
           );
@@ -159,7 +158,7 @@ const CreateSessionScreen = () => {
       </View>
 
       {/* Price */}
-      <Text style={styles.sectionTitle}>Price Range</Text>
+      <Text style={styles.sectionTitle}>ช่วงราคา</Text>
       <View style={styles.chipRow}>
         {PRICE_LEVELS.map(option => {
           const selected = priceLevel === option.value;
@@ -180,7 +179,7 @@ const CreateSessionScreen = () => {
       </View>
 
       {/* Rating */}
-      <Text style={styles.sectionTitle}>Minimum Rating</Text>
+      <Text style={styles.sectionTitle}>คะแนนขั้นต่ำ</Text>
       <View style={styles.chipRow}>
         {RATING_OPTIONS.map(option => {
           const selected = minRating === option.value;
@@ -203,9 +202,9 @@ const CreateSessionScreen = () => {
       {/* Open now */}
       <View style={styles.switchRow}>
         <View style={styles.switchLabel}>
-          <Text style={styles.sectionTitle}>Open now</Text>
+          <Text style={styles.sectionTitle}>เปิดอยู่ตอนนี้</Text>
           <Text style={styles.sectionHint}>
-            Only show places serving at this moment
+            เฉพาะร้านที่มีข้อมูลเวลาเปิดและกำลังเปิดอยู่
           </Text>
         </View>
         <Switch
@@ -218,7 +217,7 @@ const CreateSessionScreen = () => {
       </View>
 
       {/* Timer */}
-      <Text style={styles.sectionTitle}>Session Timer</Text>
+      <Text style={styles.sectionTitle}>เวลาโหวต</Text>
       <View style={styles.chipRow}>
         {SESSION_DURATION_OPTIONS.map(t => (
           <TouchableOpacity
@@ -256,7 +255,7 @@ const CreateSessionScreen = () => {
         {createMutation.isPending || isCheckingSession || isLocating ? (
           <ActivityIndicator color="#FFF" />
         ) : (
-          <Text style={styles.createText}>Create Session</Text>
+          <Text style={styles.createText}>สร้างห้อง</Text>
         )}
       </TouchableOpacity>
       {createMutation.isError && (

@@ -77,9 +77,7 @@ const PermissionGateScreen = ({onRequestPermission}: Props) => {
       </TouchableOpacity>
 
       {isBlocked && (
-        <Text style={styles.hint}>
-          Settings → Permissions → Location → Allow
-        </Text>
+        <Text style={styles.hint}>การตั้งค่า → สิทธิ์ → ตำแหน่ง → อนุญาต</Text>
       )}
     </View>
   );
@@ -88,27 +86,27 @@ const PermissionGateScreen = ({onRequestPermission}: Props) => {
 function getCopy(isBlocked: boolean, isLocationFailure: boolean) {
   if (isBlocked) {
     return {
-      title: 'Location access is blocked',
+      title: 'ยังไม่ได้อนุญาตให้เข้าถึงตำแหน่ง',
       message:
-        'Ginder needs your location to find restaurants near you. Please enable it in your device settings to continue.',
-      buttonLabel: 'Open Settings',
+        'Ginder ใช้ตำแหน่งเพื่อค้นหาร้านใกล้คุณ กรุณาเปิดสิทธิ์ในการตั้งค่าอุปกรณ์',
+      buttonLabel: 'เปิดการตั้งค่า',
     };
   }
 
   if (isLocationFailure) {
     return {
-      title: "Can't find your location",
+      title: 'ยังค้นหาตำแหน่งไม่ได้',
       message:
-        'Ginder has permission but could not get a GPS fix. Make sure location services are turned on.',
-      buttonLabel: 'Try Again',
+        'ได้รับสิทธิ์แล้วแต่ยังค้นหาตำแหน่งไม่ได้ กรุณาเปิดบริการตำแหน่งของอุปกรณ์',
+      buttonLabel: 'ลองอีกครั้ง',
     };
   }
 
   return {
-    title: 'Location required',
+    title: 'ต้องใช้ตำแหน่งเพื่อหาร้าน',
     message:
-      'Ginder finds restaurants around you, so it needs access to your location to work.',
-    buttonLabel: 'Allow Location',
+      'Ginder ใช้ตำแหน่งเพื่อค้นหาร้านใกล้คุณ กรุณาอนุญาตตำแหน่งขณะใช้แอป',
+    buttonLabel: 'อนุญาตตำแหน่ง',
   };
 }
 
