@@ -2,10 +2,14 @@
 # docker compose --env-file .env.production -f docker-compose.prod.yml -f docker-compose.firebase.yml up -d --build
 services:
   backend:
+    environment:
+      FCM_ENABLED: "true"
     secrets:
       - source: firebase-credentials
         target: firebase-credentials.json
   celery-worker:
+    environment:
+      FCM_ENABLED: "true"
     secrets:
       - source: firebase-credentials
         target: firebase-credentials.json

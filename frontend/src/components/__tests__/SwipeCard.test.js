@@ -67,7 +67,7 @@ it('keeps the preloaded next image mounted, and submits only once during exit', 
     );
   });
   const nextImage = tree.root.findByProps({testID: 'b'});
-  const button = tree.root.findByProps({accessibilityLabel: 'Like restaurant'});
+  const button = tree.root.findByProps({accessibilityLabel: 'บันทึกร้านนี้'});
   act(() => {
     button.props.onPress();
     button.props.onPress();
@@ -105,7 +105,7 @@ it.each([false, 'reject'])(
     });
     act(() =>
       tree.root
-        .findByProps({accessibilityLabel: 'Skip restaurant'})
+        .findByProps({accessibilityLabel: 'ข้ามร้านนี้'})
         .props.onPress(),
     );
     act(() => mockAnimations.shift()(true));
@@ -130,7 +130,7 @@ it('does not vote when the exit animation is cancelled', () => {
   });
   act(() =>
     tree.root
-      .findByProps({accessibilityLabel: 'Like restaurant'})
+      .findByProps({accessibilityLabel: 'บันทึกร้านนี้'})
       .props.onPress(),
   );
   act(() => mockAnimations.shift()(false));
@@ -157,7 +157,7 @@ it('disables likes for ephemeral Google places but still allows skipping', () =>
   });
 
   const likeButton = tree.root.findByProps({
-    accessibilityLabel: 'Like unavailable for live Google place',
+    accessibilityLabel: 'ยังบันทึกร้านจาก Google แบบสดไม่ได้',
   });
   expect(likeButton.props.disabled).toBe(true);
   act(() => likeButton.props.onPress());
@@ -165,7 +165,7 @@ it('disables likes for ephemeral Google places but still allows skipping', () =>
 
   act(() =>
     tree.root
-      .findByProps({accessibilityLabel: 'Skip restaurant'})
+      .findByProps({accessibilityLabel: 'ข้ามร้านนี้'})
       .props.onPress(),
   );
   expect(mockAnimations).toHaveLength(1);

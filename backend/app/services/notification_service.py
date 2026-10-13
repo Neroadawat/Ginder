@@ -98,8 +98,8 @@ class NotificationService:
         notification = Notification(
             user_id=to_user_id,
             type=NotificationType.SESSION_INVITE,
-            title="Session Invite",
-            body=f"{from_user.display_name} invited you to a Ginder session!",
+            title="คำเชิญเข้าห้อง",
+            body=f"{from_user.display_name} เชิญคุณมาเลือกร้านอาหารด้วยกัน",
             data=json.dumps({
                 "session_id": str(session.id),
                 "invite_code": session.invite_code,

@@ -9,12 +9,12 @@ const SplashScreen = () => {
   return (
     <View style={styles.container}>
       <Text style={styles.logo}>🍽️ Ginder</Text>
-      <Text style={styles.tagline}>Find your next meal together</Text>
+      <Text style={styles.tagline}>หาร้านมื้อต่อไปไปด้วยกัน</Text>
       <ActivityIndicator
         size="large"
         color="#FF6B6B"
         style={styles.spinner}
-        accessibilityLabel="Loading"
+        accessibilityLabel="กำลังโหลด"
       />
     </View>
   );

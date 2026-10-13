@@ -71,7 +71,7 @@ const LoginScreen = () => {
             keyboardType="email-address"
             autoCapitalize="none"
             autoCorrect={false}
-            accessibilityLabel="Email input"
+            accessibilityLabel="ช่องกรอกอีเมล"
           />
           <TextInput
             style={styles.input}
@@ -80,7 +80,7 @@ const LoginScreen = () => {
             value={password}
             onChangeText={setPassword}
             secureTextEntry
-            accessibilityLabel="Password input"
+            accessibilityLabel="ช่องกรอกรหัสผ่าน"
           />
 
           {(validationError || loginMutation.isError) && (
@@ -96,7 +96,7 @@ const LoginScreen = () => {
             onPress={handleLogin}
             disabled={loginMutation.isPending}
             accessibilityRole="button"
-            accessibilityLabel="Login">
+            accessibilityLabel="เข้าสู่ระบบ">
             {loginMutation.isPending ? (
               <ActivityIndicator color="#FFF" />
             ) : (

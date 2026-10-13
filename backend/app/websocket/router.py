@@ -10,32 +10,64 @@ endpoints, which validate the request and then call
 import json
 from uuid import UUID
 
-from fastapi import APIRouter, Query, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, Header, WebSocket, WebSocketDisconnect
+from sqlalchemy import select
 
+from app.core.database import async_session_factory
 from app.core.security import decode_token
+from app.models.session import SessionParticipant
+from app.models.user import User
 from app.websocket.connection_manager import manager
 from app.websocket.events import EVENT_ERROR, EVENT_PING, EVENT_PONG
 
 ws_router = APIRouter()
 
 
+async def authorize_session(token: str, session_id: UUID, db) -> UUID | None:
+    """Return the member ID only for a current, active access token."""
+    payload = decode_token(token)
+    if not payload or payload.get("type") != "access":
+        return None
+    try:
+        user_id = UUID(payload["sub"])
+    except (KeyError, TypeError, ValueError):
+        return None
+
+    result = await db.execute(
+        select(User)
+        .join(SessionParticipant, SessionParticipant.user_id == User.id)
+        .where(
+            User.id == user_id,
+            User.is_active.is_(True),
+            User.token_version == payload.get("ver"),
+            SessionParticipant.session_id == session_id,
+        )
+    )
+    if result.scalar_one_or_none() is None:
+        return None
+    return user_id
+
+
 @ws_router.websocket("/session/{session_id}")
 async def session_websocket(
     websocket: WebSocket,
     session_id: UUID,
-    token: str = Query(...),
+    authorization: str | None = Header(default=None),
 ):
     """WebSocket endpoint for real-time session events.
 
-    Connect with: ws://host/ws/session/{session_id}?token=<jwt_token>
+    Connect with an ``Authorization: Bearer <jwt_token>`` header.
     """
-    # Authenticate via token query param
-    payload = decode_token(token)
-    if not payload or payload.get("type") != "access":
-        await websocket.close(code=4001, reason="Invalid token")
+    if not authorization or not authorization.startswith("Bearer "):
+        await websocket.close(code=4001, reason="Missing token")
         return
 
-    user_id = UUID(payload["sub"])
+    token = authorization.removeprefix("Bearer ").strip()
+    async with async_session_factory() as db:
+        user_id = await authorize_session(token, session_id, db)
+        if user_id is None:
+            await websocket.close(code=4003, reason="Session access denied")
+            return
 
     # Connect
     await manager.connect(websocket, session_id, user_id)

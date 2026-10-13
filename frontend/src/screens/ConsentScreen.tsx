@@ -86,7 +86,7 @@ const ConsentScreen = () => {
             onValueChange={setAgreed}
             trackColor={{false: '#DDD', true: '#FF6B6B'}}
             thumbColor="#FFF"
-            accessibilityLabel="Agree to the Terms of Service and Privacy Policy"
+            accessibilityLabel="ยอมรับข้อกำหนดการใช้งานและนโยบายความเป็นส่วนตัว"
           />
           <Text style={styles.agreeText}>
             ฉันยอมรับข้อกำหนดและนโยบายความเป็นส่วนตัว
@@ -98,7 +98,7 @@ const ConsentScreen = () => {
           onPress={accept}
           disabled={!agreed}
           accessibilityRole="button"
-          accessibilityLabel="Continue"
+          accessibilityLabel="ดำเนินการต่อ"
           accessibilityState={{disabled: !agreed}}>
           <Text style={styles.buttonText}>ดำเนินการต่อ</Text>
         </TouchableOpacity>

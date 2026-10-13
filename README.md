@@ -19,8 +19,9 @@
 Ginder/
 ├── backend/          # FastAPI backend
 ├── frontend/         # React Native app
+├── ops/              # Backup and restore scripts
 ├── docker-compose.yml
-├── requirement.md
+├── DEPLOYMENT.md
 └── README.md
 ```
 
@@ -29,7 +30,7 @@ Ginder/
 ### Prerequisites
 
 - Python 3.11+
-- Node.js 18+
+- Node.js 22.13+
 - PostgreSQL 15+
 - Redis 7+
 - Android Studio (for React Native)

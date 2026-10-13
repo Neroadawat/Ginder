@@ -41,7 +41,7 @@ export const useAppBootstrap = () => {
       // Restore persisted state first so the navigator picks the right branch
       // on the very first render.
       useConsentStore.getState().hydrate();
-      useAuthStore.getState().hydrate();
+      await useAuthStore.getState().hydrate();
       useSessionStore.getState().hydrate();
 
       // Only a silent check here. If permission survives from a previous run

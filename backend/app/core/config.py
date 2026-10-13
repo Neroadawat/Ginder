@@ -1,6 +1,7 @@
 """Application configuration using pydantic-settings."""
 
 from typing import Literal
+from urllib.parse import urlsplit
 
 from pydantic import model_validator
 from pydantic_settings import BaseSettings
@@ -26,6 +27,8 @@ class Settings(BaseSettings):
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
+    JWT_ISSUER: str = "ginder-api"
+    JWT_AUDIENCE: str = "ginder-app"
 
     # ─── Email (Password Reset) ───
     SMTP_HOST: str = "smtp.gmail.com"
@@ -37,9 +40,13 @@ class Settings(BaseSettings):
     SMTP_TIMEOUT_SECONDS: float = 10.0
     PUBLIC_BASE_URL: str = "http://localhost:8000"
     SUPPORT_EMAIL: str = ""
+    PASSWORD_RESET_EMAIL_LIMIT: int = 3
+    PASSWORD_RESET_IP_LIMIT: int = 10
+    PASSWORD_RESET_WINDOW_SECONDS: int = 900
 
     # ─── Firebase Cloud Messaging ───
     FCM_CREDENTIALS_PATH: str = "./firebase-credentials.json"
+    FCM_ENABLED: bool = False
 
     # ─── Restaurant Data API ───
     RESTAURANT_API_PROVIDER: str = "dummy"
@@ -131,6 +138,17 @@ class Settings(BaseSettings):
             or "CHANGE_ME" in self.GOOGLE_PLACES_API_KEY
         ):
             errors.append("GOOGLE_PLACES_API_KEY is required when Google Places is enabled")
+        public_url = urlsplit(self.PUBLIC_BASE_URL)
+        if public_url.scheme != "https" or not public_url.hostname:
+            errors.append("PUBLIC_BASE_URL must be an absolute HTTPS URL")
+        if not self.SUPPORT_EMAIL or "@" not in self.SUPPORT_EMAIL:
+            errors.append("SUPPORT_EMAIL must be a monitored email address")
+        if not self.SMTP_HOST or not self.SMTP_USER or not self.SMTP_PASSWORD:
+            errors.append("SMTP_HOST, SMTP_USER and SMTP_PASSWORD are required")
+        if "@" not in self.EMAIL_FROM:
+            errors.append("EMAIL_FROM must be a valid sender address")
+        if self.PASSWORD_RESET_WINDOW_SECONDS < 60:
+            errors.append("PASSWORD_RESET_WINDOW_SECONDS must be at least 60")
 
         if errors:
             raise ValueError("Unsafe production configuration: " + "; ".join(errors))

@@ -28,6 +28,11 @@ def _ensure_initialized() -> bool:
     if _initialized:
         return _available
 
+    if not settings.FCM_ENABLED:
+        _initialized = True
+        _available = False
+        return False
+
     with _lock:
         if _initialized:
             return _available

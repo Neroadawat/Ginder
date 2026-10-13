@@ -47,7 +47,7 @@ const LobbyPlayerItem = ({
           onPress={onKick}
           accessibilityRole="button"
           accessibilityLabel={`Kick ${participant.display_name}`}>
-          <Text style={styles.kickText}>Kick</Text>
+          <Text style={styles.kickText}>นำออก</Text>
         </TouchableOpacity>
       )}
     </View>

@@ -11,7 +11,8 @@ from fastapi.staticfiles import StaticFiles
 from sqlalchemy import text
 
 from app.api.router import api_router
-from app.api.routes.public import PAGE_DIR, router as public_router
+from app.api.routes.public import PAGE_DIR
+from app.api.routes.public import router as public_router
 from app.core.config import settings
 from app.core.database import async_session_factory, engine
 from app.core.redis import redis_client

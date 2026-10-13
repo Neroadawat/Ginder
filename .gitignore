@@ -18,6 +18,9 @@ env/
 .pytest_cache/
 .ruff_cache/
 .mypy_cache/
+backend/celerybeat-schedule*
+/tmp/
+/backups/
 
 # ==========================
 # Node / Frontend
@@ -68,8 +71,6 @@ docker-compose.override.yml
 .env.production
 backend/.env
 frontend/.env
-
-requirement.md
 
 # Local documentation
 /docs/*

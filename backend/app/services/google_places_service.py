@@ -200,9 +200,9 @@ class GooglePlacesService:
         photo = photos[0] if photos and isinstance(photos[0], dict) else {}
         attributions = photo.get("authorAttributions") or []
         author_names = [
-            item.get("displayName")
+            str(item["displayName"])
             for item in attributions
-            if isinstance(item, dict) and item.get("displayName")
+            if isinstance(item, dict) and isinstance(item.get("displayName"), str)
         ]
         author_uri = next(
             (

@@ -13,6 +13,7 @@ and Redis with managed services while keeping the same application settings.
 - Google Cloud Budget Alerts and Quota Alerts.
 - A private Android upload key and a safe backup of that key.
 - Rights and attribution records for every non-placeholder production photo.
+- A tested off-server destination for encrypted PostgreSQL backups.
 
 ## 2. Production secrets
 
@@ -117,8 +118,10 @@ key securely; losing it can prevent future app updates.
 
 - Monitor `/health/live` for process health and `/health/ready` for PostgreSQL
   and Redis readiness.
-- Back up PostgreSQL daily, encrypt backups, keep at least one off-host copy,
-  define a retention period, and test restoration before the demonstration.
+- Run `ops/backup-postgres.sh` daily from cron/systemd. It defaults to 14 local
+  days; set `BACKUP_RETENTION_DAYS` to the policy-approved value. Encrypt and
+  copy every successful backup off-host. Test `ops/restore-postgres.sh` on a
+  disposable server before launch; it requires an explicit confirmation value.
 - Monitor disk usage for PostgreSQL, Redis append-only data, and Caddy data.
 - Review Google usage in Ginder Settings and in Google Cloud billing/quota pages.
 - Rotate JWT, database, Redis, SMTP, Firebase, and Google secrets after exposure.

@@ -14,6 +14,7 @@ logger = logging.getLogger(__name__)
 
 def _send(message: EmailMessage) -> None:
     context = ssl.create_default_context()
+    client: smtplib.SMTP
     if settings.SMTP_SECURITY == "ssl":
         client = smtplib.SMTP_SSL(
             settings.SMTP_HOST,

@@ -3,10 +3,10 @@
  */
 
 import {create} from 'zustand';
-import {createMMKV} from 'react-native-mmkv';
+import * as Keychain from 'react-native-keychain';
 import {useSessionStore} from './sessionStore';
 
-const storage = createMMKV();
+const TOKEN_SERVICE = 'com.neroadawat.ginder.auth';
 
 interface AuthState {
   isAuthenticated: boolean;
@@ -18,9 +18,9 @@ interface AuthState {
     accessToken: string,
     refreshToken: string,
     userId: string,
-  ) => void;
-  logout: () => void;
-  hydrate: () => void;
+  ) => Promise<void>;
+  logout: () => Promise<void>;
+  hydrate: () => Promise<void>;
 }
 
 export const useAuthStore = create<AuthState>(set => ({
@@ -29,17 +29,19 @@ export const useAuthStore = create<AuthState>(set => ({
   refreshToken: null,
   userId: null,
 
-  setTokens: (accessToken, refreshToken, userId) => {
-    storage.set('access_token', accessToken);
-    storage.set('refresh_token', refreshToken);
-    storage.set('user_id', userId);
+  setTokens: async (accessToken, refreshToken, userId) => {
+    await Keychain.setGenericPassword(
+      userId,
+      JSON.stringify({accessToken, refreshToken}),
+      {
+        service: TOKEN_SERVICE,
+        accessible: Keychain.ACCESSIBLE.WHEN_UNLOCKED_THIS_DEVICE_ONLY,
+      },
+    );
     set({isAuthenticated: true, accessToken, refreshToken, userId});
   },
 
-  logout: () => {
-    storage.remove('access_token');
-    storage.remove('refresh_token');
-    storage.remove('user_id');
+  logout: async () => {
     useSessionStore.getState().clearSession();
     set({
       isAuthenticated: false,
@@ -47,14 +49,29 @@ export const useAuthStore = create<AuthState>(set => ({
       refreshToken: null,
       userId: null,
     });
+    await Keychain.resetGenericPassword({service: TOKEN_SERVICE});
   },
 
-  hydrate: () => {
-    const accessToken = storage.getString('access_token') || null;
-    const refreshToken = storage.getString('refresh_token') || null;
-    const userId = storage.getString('user_id') || null;
-    if (accessToken && refreshToken) {
-      set({isAuthenticated: true, accessToken, refreshToken, userId});
+  hydrate: async () => {
+    try {
+      const credentials = await Keychain.getGenericPassword({service: TOKEN_SERVICE});
+      if (!credentials) {
+        return;
+      }
+      const {accessToken, refreshToken} = JSON.parse(credentials.password) as {
+        accessToken?: string;
+        refreshToken?: string;
+      };
+      if (accessToken && refreshToken) {
+        set({
+          isAuthenticated: true,
+          accessToken,
+          refreshToken,
+          userId: credentials.username,
+        });
+      }
+    } catch {
+      await Keychain.resetGenericPassword({service: TOKEN_SERVICE});
     }
   },
 }));

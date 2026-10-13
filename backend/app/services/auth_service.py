@@ -1,8 +1,10 @@
 """Auth business logic — signup, login, refresh, password reset."""
 
 import logging
+from datetime import UTC, datetime
+from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import ConflictException, GinderException, UnauthorizedException
@@ -39,35 +41,42 @@ class AuthService:
             raise GinderException("You must accept the Terms of Service to sign up")
 
         # Check duplicate email
-        result = await self.db.execute(select(User).where(User.email == body.email))
+        email = str(body.email).strip().lower()
+        result = await self.db.execute(select(User).where(func.lower(User.email) == email))
         if result.scalar_one_or_none():
             raise ConflictException("Email already registered")
 
         user = User(
-            email=body.email,
-            display_name=body.display_name,
+            email=email,
+            display_name=body.display_name.strip(),
             hashed_password=hash_password(body.password),
             accepted_terms=True,
+            accepted_terms_at=datetime.now(UTC),
         )
         self.db.add(user)
         await self.db.flush()
 
         return TokenResponse(
-            access_token=create_access_token(str(user.id)),
-            refresh_token=create_refresh_token(str(user.id)),
+            access_token=create_access_token(str(user.id), user.token_version),
+            refresh_token=create_refresh_token(str(user.id), user.token_version),
         )
 
     async def login(self, body: LoginRequest) -> TokenResponse:
         """Authenticate user with email/password and return tokens."""
-        result = await self.db.execute(select(User).where(User.email == body.email))
+        email = str(body.email).strip().lower()
+        result = await self.db.execute(select(User).where(func.lower(User.email) == email))
         user = result.scalar_one_or_none()
 
-        if not user or not verify_password(body.password, user.hashed_password):
+        if (
+            not user
+            or not user.is_active
+            or not verify_password(body.password, user.hashed_password)
+        ):
             raise UnauthorizedException("Invalid email or password")
 
         return TokenResponse(
-            access_token=create_access_token(str(user.id)),
-            refresh_token=create_refresh_token(str(user.id)),
+            access_token=create_access_token(str(user.id), user.token_version),
+            refresh_token=create_refresh_token(str(user.id), user.token_version),
         )
 
     async def refresh(self, body: RefreshTokenRequest) -> TokenResponse:
@@ -76,10 +85,19 @@ class AuthService:
         if not payload or payload.get("type") != "refresh":
             raise UnauthorizedException("Invalid refresh token")
 
-        user_id = payload.get("sub")
+        try:
+            user_id = UUID(payload["sub"])
+        except (KeyError, TypeError, ValueError):
+            raise UnauthorizedException("Invalid refresh token") from None
+
+        result = await self.db.execute(select(User).where(User.id == user_id))
+        user = result.scalar_one_or_none()
+        if not user or not user.is_active or payload.get("ver") != user.token_version:
+            raise UnauthorizedException("Invalid refresh token")
+
         return TokenResponse(
-            access_token=create_access_token(user_id),
-            refresh_token=create_refresh_token(user_id),
+            access_token=create_access_token(str(user.id), user.token_version),
+            refresh_token=create_refresh_token(str(user.id), user.token_version),
         )
 
     async def forgot_password(self, body: ForgotPasswordRequest) -> MessageResponse:
@@ -88,11 +106,14 @@ class AuthService:
         Always reports success, whether or not the address exists, so the
         endpoint cannot be used to discover which emails are registered.
         """
-        result = await self.db.execute(select(User).where(User.email == body.email))
+        email = str(body.email).strip().lower()
+        result = await self.db.execute(select(User).where(func.lower(User.email) == email))
         user = result.scalar_one_or_none()
 
         if user:
-            token = create_password_reset_token(str(user.id), user.hashed_password)
+            token = create_password_reset_token(
+                str(user.id), user.hashed_password, user.token_version
+            )
             await self._deliver_reset_token(user.email, token)
 
         return MessageResponse(message="If the email exists, a reset link has been sent")
@@ -118,6 +139,9 @@ class AuthService:
 
         if payload.get("password_version") != password_reset_fingerprint(user.hashed_password):
             raise GinderException("Invalid or expired reset token")
+        if payload.get("ver") != user.token_version:
+            raise GinderException("Invalid or expired reset token")
 
         user.hashed_password = hash_password(body.new_password)
+        user.token_version += 1
         return MessageResponse(message="Password has been reset successfully")

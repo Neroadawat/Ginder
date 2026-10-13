@@ -17,6 +17,7 @@ import {useAuthStore} from '@/stores/authStore';
 import {useDeleteAccount} from '@/hooks/useUser';
 import {useGoogleUsage} from '@/hooks/useUsage';
 import {PRIVACY_POLICY_URL, TERMS_OF_SERVICE_URL} from '@/services/config';
+import {clearFCMRegistration} from '@/services/fcm';
 
 const SettingsScreen = () => {
   const navigation = useNavigation();
@@ -27,7 +28,17 @@ const SettingsScreen = () => {
   const handleLogout = () => {
     Alert.alert('ออกจากระบบ', 'ต้องการออกจากระบบหรือไม่?', [
       {text: 'ยกเลิก', style: 'cancel'},
-      {text: 'ออกจากระบบ', style: 'destructive', onPress: () => logout()},
+      {
+        text: 'ออกจากระบบ',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await clearFCMRegistration();
+          } finally {
+            await logout();
+          }
+        },
+      },
     ]);
   };
 
@@ -42,7 +53,7 @@ const SettingsScreen = () => {
           style: 'destructive',
           onPress: () => {
             deleteMutation.mutate(undefined, {
-              onSuccess: () => logout(),
+              onSuccess: async () => logout(),
             });
           },
         },
@@ -67,17 +78,17 @@ const SettingsScreen = () => {
             Google Places · {googleUsage.period}
           </Text>
           <Text style={styles.usageText}>
-            Nearby Search: {googleUsage.nearby_search.count} /{' '}
+            การค้นหาร้านใกล้เคียง: {googleUsage.nearby_search.count} /{' '}
             {googleUsage.nearby_search.hard_limit}
           </Text>
           <Text style={styles.usageText}>
-            Place Photos: {googleUsage.place_photo.count} /{' '}
+            การโหลดรูปภาพ: {googleUsage.place_photo.count} /{' '}
             {googleUsage.place_photo.hard_limit}
           </Text>
           <Text style={styles.usageStatus}>
             {googleUsage.enabled
-              ? 'Live fallback enabled'
-              : 'Live fallback disabled'}
+              ? 'เปิดการค้นหาจาก Google Places'
+              : 'ปิดการค้นหาจาก Google Places'}
           </Text>
         </View>
       )}
@@ -119,9 +130,9 @@ const SettingsScreen = () => {
           Linking.openURL('https://www.openstreetmap.org/copyright')
         }
         accessibilityRole="link"
-        accessibilityLabel="Open OpenStreetMap copyright and licence information">
+        accessibilityLabel="เปิดข้อมูลลิขสิทธิ์และสัญญาอนุญาต OpenStreetMap">
         <Text style={styles.attributionText}>
-          Restaurant data © OpenStreetMap contributors
+          ข้อมูลร้านอาหาร © ผู้ร่วมสร้าง OpenStreetMap
         </Text>
       </TouchableOpacity>
     </View>

@@ -5,10 +5,11 @@
  */
 
 import {LinkingOptions} from '@react-navigation/native';
+import {DEEP_LINK_PREFIX} from '@/services/config';
 import {RootStackParamList} from './types';
 
 export const linking: LinkingOptions<RootStackParamList> = {
-  prefixes: ['ginder://', 'https://ginder.app'],
+  prefixes: [DEEP_LINK_PREFIX],
   config: {
     screens: {
       Session: {

@@ -214,12 +214,12 @@ const SwipeCard = ({restaurants, onSwipe, onDeckEmpty}: SwipeCardProps) => {
           style={[styles.actionButton, styles.skipButton]}
           onPress={() => activeCardRef.current?.swipe(false)}
           disabled={isSubmitting}
-          accessibilityLabel="Skip restaurant">
+          accessibilityLabel="ข้ามร้านนี้">
           <AppIcon name="close" size={34} />
         </TouchableOpacity>
         <View style={styles.counterPill}>
           <Text style={styles.counter}>
-            {currentIndex + 1} of {restaurants.length}
+            {currentIndex + 1} / {restaurants.length}
           </Text>
         </View>
         <TouchableOpacity
@@ -235,8 +235,8 @@ const SwipeCard = ({restaurants, onSwipe, onDeckEmpty}: SwipeCardProps) => {
           }
           accessibilityLabel={
             restaurants[currentIndex]?.can_like === false
-              ? 'Like unavailable for live Google place'
-              : 'Like restaurant'
+              ? 'ยังบันทึกร้านจาก Google แบบสดไม่ได้'
+              : 'บันทึกร้านนี้'
           }>
           <AppIcon name="heart" size={28} color="#FFF" filled />
         </TouchableOpacity>

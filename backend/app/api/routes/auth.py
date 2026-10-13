@@ -1,9 +1,11 @@
 """Auth routes — signup, login, refresh, password reset."""
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
+from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.dependencies import get_db
+from app.core.redis import get_redis
 from app.schemas.auth import (
     ForgotPasswordRequest,
     LoginRequest,
@@ -14,6 +16,7 @@ from app.schemas.auth import (
     TokenResponse,
 )
 from app.services.auth_service import AuthService
+from app.services.rate_limit_service import allow_password_reset
 
 router = APIRouter()
 
@@ -40,8 +43,16 @@ async def refresh_token(body: RefreshTokenRequest, db: AsyncSession = Depends(ge
 
 
 @router.post("/forgot-password", response_model=MessageResponse)
-async def forgot_password(body: ForgotPasswordRequest, db: AsyncSession = Depends(get_db)):
+async def forgot_password(
+    body: ForgotPasswordRequest,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    redis: Redis = Depends(get_redis),
+):
     """Send a password reset email."""
+    client_ip = request.client.host if request.client else "unknown"
+    if not await allow_password_reset(redis, str(body.email), client_ip):
+        return MessageResponse(message="If the email exists, a reset link has been sent")
     service = AuthService(db)
     return await service.forgot_password(body)
 

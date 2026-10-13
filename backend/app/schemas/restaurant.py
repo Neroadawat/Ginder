@@ -7,6 +7,20 @@ from pydantic import BaseModel, Field, model_serializer
 
 from app.core.config import settings
 
+DataSource = Literal[
+    "local", "osm_cache", "mixed", "google_live", "mixed_live", "none"
+]
+CoverageStatus = Literal["full", "partial", "unsupported"]
+ExternalStatus = Literal[
+    "not_needed",
+    "available",
+    "disabled",
+    "filters_unsupported",
+    "rate_limited",
+    "quota_exhausted",
+    "failed",
+]
+
 
 class RestaurantCardResponse(BaseModel):
     """Restaurant data rendered on a swipe card (requirement 8.5)."""
@@ -77,20 +91,10 @@ class DeckResponse(BaseModel):
     session_id: uuid.UUID | None = None  # None in solo mode
     restaurants: list[RestaurantCardResponse]
     total: int
-    data_source: Literal[
-        "local", "osm_cache", "mixed", "google_live", "mixed_live", "none"
-    ] = "none"
-    coverage_status: Literal["full", "partial", "unsupported"] = "unsupported"
+    data_source: DataSource = "none"
+    coverage_status: CoverageStatus = "unsupported"
     suggested_radius_km: float | None = None
-    external_status: Literal[
-        "not_needed",
-        "available",
-        "disabled",
-        "filters_unsupported",
-        "rate_limited",
-        "quota_exhausted",
-        "failed",
-    ] = "not_needed"
+    external_status: ExternalStatus = "not_needed"
     quota_warning: bool = False
 
 

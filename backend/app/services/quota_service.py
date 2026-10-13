@@ -2,9 +2,10 @@
 
 import hashlib
 import logging
+from collections.abc import Awaitable
 from dataclasses import dataclass
 from datetime import UTC, datetime
-from typing import Literal
+from typing import Any, Literal, cast
 
 from redis.asyncio import Redis
 from sqlalchemy import select
@@ -96,12 +97,15 @@ class GoogleQuotaService:
                 )
 
             count = int(
-                await self.redis.eval(
-                    _RESERVE_SCRIPT,
-                    1,
-                    counter_key,
-                    hard_limit,
-                    _COUNTER_TTL_SECONDS,
+                await cast(
+                    Awaitable[Any],
+                    self.redis.eval(
+                        _RESERVE_SCRIPT,
+                        1,
+                        counter_key,
+                        str(hard_limit),
+                        str(_COUNTER_TTL_SECONDS),
+                    ),
                 )
             )
             if count < 0:
@@ -112,10 +116,14 @@ class GoogleQuotaService:
         except Exception:
             logger.warning("Redis quota counter unavailable; using PostgreSQL", exc_info=True)
 
-        count = await self._increment_backup(operation, hard_limit, enforce_limit=True)
-        if count is None:
+        fallback_count = await self._increment_backup(
+            operation, hard_limit, enforce_limit=True
+        )
+        if fallback_count is None:
             return QuotaDecision(False, hard_limit, True, "hard_limit")
-        return QuotaDecision(True, count, count >= soft_limit, "allowed")
+        return QuotaDecision(
+            True, fallback_count, fallback_count >= soft_limit, "allowed"
+        )
 
     async def get_google_usage(self) -> GoogleUsageResponse:
         period = self._period()
@@ -159,22 +167,26 @@ class GoogleQuotaService:
         self, operation: QuotaOperation, hard_limit: int, *, enforce_limit: bool
     ) -> int | None:
         now = datetime.now(UTC)
-        statement = insert(ExternalApiUsage).values(
-            period=self._period(),
-            provider="google",
-            operation=operation,
-            count=1,
-            updated_at=now,
-        )
         update = {
             "count": ExternalApiUsage.count + 1,
             "updated_at": now,
         }
-        statement = statement.on_conflict_do_update(
-            constraint="uq_external_api_usage_period_operation",
-            set_=update,
-            where=(ExternalApiUsage.count < hard_limit) if enforce_limit else None,
-        ).returning(ExternalApiUsage.count)
+        statement = (
+            insert(ExternalApiUsage)
+            .values(
+                period=self._period(),
+                provider="google",
+                operation=operation,
+                count=1,
+                updated_at=now,
+            )
+            .on_conflict_do_update(
+                constraint="uq_external_api_usage_period_operation",
+                set_=update,
+                where=(ExternalApiUsage.count < hard_limit) if enforce_limit else None,
+            )
+            .returning(ExternalApiUsage.count)
+        )
 
         try:
             async with self.db_factory() as db:

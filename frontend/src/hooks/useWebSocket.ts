@@ -21,8 +21,10 @@ export const useSessionWebSocket = (sessionId: string) => {
   const connect = useCallback(() => {
     if (!accessToken || !sessionId) return;
 
-    const url = `${WS_BASE_URL}/session/${sessionId}?token=${accessToken}`;
-    const ws = new WebSocket(url);
+    const url = `${WS_BASE_URL}/session/${sessionId}`;
+    const ws = new WebSocket(url, null, {
+      headers: {Authorization: `Bearer ${accessToken}`},
+    });
 
     ws.onopen = () => {
       setIsConnected(true);

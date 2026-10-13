@@ -23,7 +23,7 @@ export const userApi = {
     return response.data;
   },
 
-  updateFCMToken: async (fcmToken: string): Promise<MessageResponse> => {
+  updateFCMToken: async (fcmToken: string | null): Promise<MessageResponse> => {
     const response = await apiClient.put('/users/me/fcm-token', {
       fcm_token: fcmToken,
     });

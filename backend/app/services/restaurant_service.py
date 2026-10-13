@@ -16,7 +16,14 @@ from app.models.session import Session
 from app.models.session_deck import SessionDeck
 from app.models.user import User
 from app.models.vote import Vote
-from app.schemas.restaurant import DeckResponse, RestaurantCardResponse, SoloFilterRequest
+from app.schemas.restaurant import (
+    CoverageStatus,
+    DataSource,
+    DeckResponse,
+    ExternalStatus,
+    RestaurantCardResponse,
+    SoloFilterRequest,
+)
 from app.services.google_places_service import GooglePlacesService
 from app.services.osm_fallback_service import OsmFallbackService
 from app.utils.geo import bounding_box, calculate_distance_km
@@ -69,7 +76,7 @@ class RestaurantService:
         random.shuffle(available)
         deck = available[: settings.MAX_DECK_SIZE]
 
-        external_status = "not_needed"
+        external_status: ExternalStatus = "not_needed"
         quota_warning = False
         google_cards: list[RestaurantCardResponse] = []
         if self._should_request_google(len(restaurants), filters.radius_km):
@@ -98,6 +105,7 @@ class RestaurantService:
         google_cards = google_cards[: settings.MAX_DECK_SIZE - len(deck)]
         cards = [self.to_card(r, filters.latitude, filters.longitude) for r in deck]
         cards.extend(google_cards)
+        data_source: DataSource
         if google_cards and deck:
             data_source = "mixed_live"
         elif google_cards:
@@ -373,7 +381,7 @@ class RestaurantService:
         )
 
     @staticmethod
-    def _coverage_status(count: int) -> str:
+    def _coverage_status(count: int) -> CoverageStatus:
         """Describe whether this request has enough local choices."""
         if count >= settings.MIN_LOCAL_RESTAURANTS:
             return "full"
@@ -424,7 +432,7 @@ class RestaurantService:
         return unique
 
     @staticmethod
-    def _data_source(restaurants: list[Restaurant]) -> str:
+    def _data_source(restaurants: list[Restaurant]) -> DataSource:
         """Summarise whether cards came from durable local data or OSM TTL cache."""
         if not restaurants:
             return "none"

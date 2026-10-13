@@ -1,5 +1,11 @@
 name: ginder-production
 
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "5"
+
 x-app: &app
   build:
     context: ./backend
@@ -15,6 +21,13 @@ x-app: &app
     DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
     REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379/0
   read_only: true
+  security_opt:
+    - no-new-privileges:true
+  cap_drop:
+    - ALL
+  pids_limit: 256
+  mem_limit: ${APP_MEMORY_LIMIT:-768m}
+  logging: *default-logging
   tmpfs:
     - /tmp
   networks:
@@ -22,8 +35,11 @@ x-app: &app
 
 services:
   db:
-    image: postgres:15-alpine
+    image: postgres:15-alpine@sha256:fe0737ba566a2c5b2a28f34433c0a423261900ec17b9bf7ad115e1aae7e57f1b
     restart: unless-stopped
+    mem_limit: ${POSTGRES_MEMORY_LIMIT:-1g}
+    pids_limit: 256
+    logging: *default-logging
     environment:
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_USER: ${POSTGRES_USER}
@@ -39,8 +55,11 @@ services:
       - private
 
   redis:
-    image: redis:7-alpine
+    image: redis:7-alpine@sha256:ff02b58f971e7d7d156a1267e283fcbbeee91773b6aa36c49dac28ecfe28eadf
     restart: unless-stopped
+    mem_limit: ${REDIS_MEMORY_LIMIT:-256m}
+    pids_limit: 128
+    logging: *default-logging
     command: ["redis-server", "--appendonly", "yes", "--requirepass", "${REDIS_PASSWORD}"]
     environment:
       REDIS_PASSWORD: ${REDIS_PASSWORD}
@@ -99,7 +118,16 @@ services:
 
   celery-worker:
     <<: *app
-    command: ["celery", "-A", "app.tasks.celery_app", "worker", "--loglevel=info"]
+    hostname: celery-worker
+    command:
+      ["celery", "-A", "app.tasks.celery_app", "worker", "--loglevel=info", "--hostname=worker@%h"]
+    healthcheck:
+      test:
+        ["CMD", "celery", "-A", "app.tasks.celery_app", "inspect", "ping", "--destination=worker@celery-worker", "--timeout=5"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
     depends_on:
       migrate:
         condition: service_completed_successfully
@@ -117,6 +145,12 @@ services:
       - beat
       - --loglevel=info
       - --schedule=/tmp/celerybeat-schedule
+    healthcheck:
+      test: ["CMD-SHELL", "test -f /tmp/celerybeat-schedule"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
     depends_on:
       migrate:
         condition: service_completed_successfully
@@ -126,8 +160,11 @@ services:
         condition: service_healthy
 
   caddy:
-    image: caddy:2-alpine
+    image: caddy:2-alpine@sha256:d8542f48d34a9cf4e4c11a478865229840e87e4c96ea3f439101f31a5d35f75f
     restart: unless-stopped
+    mem_limit: ${CADDY_MEMORY_LIMIT:-256m}
+    pids_limit: 128
+    logging: *default-logging
     environment:
       DOMAIN: ${DOMAIN}
     ports:
@@ -141,6 +178,12 @@ services:
     depends_on:
       backend:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://backend:8000/health/live"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
     networks:
       - private
 

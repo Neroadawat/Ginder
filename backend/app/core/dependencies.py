@@ -1,5 +1,8 @@
 """FastAPI dependency injection — DB session, current user, Redis."""
 
+from collections.abc import AsyncGenerator
+from uuid import UUID
+
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy import select
@@ -12,7 +15,7 @@ from app.models.user import User
 security_scheme = HTTPBearer()
 
 
-async def get_db() -> AsyncSession:
+async def get_db() -> AsyncGenerator[AsyncSession, None]:
     """Yield an async database session."""
     async with async_session_factory() as session:
         try:
@@ -35,20 +38,25 @@ async def get_current_user(
             detail="Invalid or expired token",
         )
 
-    user_id = payload.get("sub")
-    if user_id is None:
+    try:
+        user_id = UUID(payload["sub"])
+    except (KeyError, TypeError, ValueError):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid token payload",
-        )
+        ) from None
 
     result = await db.execute(select(User).where(User.id == user_id))
     user = result.scalar_one_or_none()
 
-    if user is None:
+    if (
+        user is None
+        or not user.is_active
+        or payload.get("ver") != user.token_version
+    ):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="User not found",
+            detail="User not found or token revoked",
         )
 
     return user

@@ -4,6 +4,7 @@
 
 import {
   AuthorizationStatus,
+  deleteToken,
   getMessaging,
   getToken,
   onMessage,
@@ -63,6 +64,19 @@ export async function setupFCM(userId: string): Promise<() => void> {
     }
   }
   return () => {};
+}
+
+/** Stop this installation from receiving notifications for the signed-out account. */
+export async function clearFCMRegistration(): Promise<void> {
+  if (!isFCMAvailable()) {
+    return;
+  }
+  const messaging = getMessaging();
+  try {
+    await userApi.updateFCMToken(null);
+  } finally {
+    await deleteToken(messaging);
+  }
 }
 
 /**

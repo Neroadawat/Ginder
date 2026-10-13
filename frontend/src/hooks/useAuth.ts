@@ -30,9 +30,9 @@ export const useLogin = () => {
 
   return useMutation({
     mutationFn: (data: LoginRequest) => authApi.login(data),
-    onSuccess: response => {
+    onSuccess: async response => {
       const userId = decodeUserId(response.access_token);
-      setTokens(response.access_token, response.refresh_token, userId);
+      await setTokens(response.access_token, response.refresh_token, userId);
     },
   });
 };
@@ -42,9 +42,9 @@ export const useSignUp = () => {
 
   return useMutation({
     mutationFn: (data: SignUpRequest) => authApi.signUp(data),
-    onSuccess: response => {
+    onSuccess: async response => {
       const userId = decodeUserId(response.access_token);
-      setTokens(response.access_token, response.refresh_token, userId);
+      await setTokens(response.access_token, response.refresh_token, userId);
     },
   });
 };

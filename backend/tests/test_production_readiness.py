@@ -21,6 +21,12 @@ def production_settings(**overrides) -> Settings:
         "RESTAURANT_DATA_MODE": "production",
         "CORS_ORIGINS": ["https://ginder.example.com"],
         "ALLOWED_HOSTS": ["api.ginder.example.com"],
+        "PUBLIC_BASE_URL": "https://api.ginder.example.com",
+        "SUPPORT_EMAIL": "support@ginder.example.com",
+        "SMTP_HOST": "smtp.ginder.example.com",
+        "SMTP_USER": "mailer@ginder.example.com",
+        "SMTP_PASSWORD": "test-smtp-password",
+        "EMAIL_FROM": "mailer@ginder.example.com",
     }
     values.update(overrides)
     return Settings(_env_file=None, **values)
@@ -43,6 +49,10 @@ def test_safe_production_settings_are_accepted() -> None:
         ("ALLOWED_HOSTS", ["*"]),
         ("DATABASE_URL", "postgresql+asyncpg://ginder:secret@localhost/ginder"),
         ("REDIS_URL", "redis://localhost:6379/0"),
+        ("PUBLIC_BASE_URL", "http://api.ginder.example.com"),
+        ("SUPPORT_EMAIL", ""),
+        ("SMTP_PASSWORD", ""),
+        ("EMAIL_FROM", "invalid"),
     ],
 )
 def test_unsafe_production_setting_is_rejected(field, value) -> None:
