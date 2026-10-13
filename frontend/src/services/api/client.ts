@@ -16,28 +16,18 @@ type ApiErrorBody = {
   detail?: string | Array<{loc?: Array<string | number>; msg?: string}>;
 };
 
-const ERROR_TRANSLATIONS: Record<string, string> = {
-  'Invalid email or password': 'อีเมลหรือรหัสผ่านไม่ถูกต้อง',
-  'Email already registered': 'อีเมลนี้ถูกใช้งานแล้ว',
-  'Invalid or expired token': 'ลิงก์ไม่ถูกต้องหรือหมดอายุแล้ว',
-  'Invalid refresh token': 'เซสชันหมดอายุ กรุณาเข้าสู่ระบบใหม่',
-  'User not found or token revoked': 'เซสชันหมดอายุ กรุณาเข้าสู่ระบบใหม่',
-  'Session not found': 'ไม่พบห้องนี้',
-  'Notification not found': 'ไม่พบการแจ้งเตือนนี้',
-};
-
 const formatApiError = (error: AxiosError): string => {
   if (error.code === 'ECONNABORTED') {
-    return 'เซิร์ฟเวอร์ตอบสนองช้าเกินไป กรุณาลองอีกครั้ง';
+    return 'The server took too long to respond. Please try again.';
   }
 
   if (!error.response) {
-    return 'เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ กรุณาตรวจสอบอินเทอร์เน็ตแล้วลองใหม่';
+    return 'Cannot connect to the server. Check that the backend is running.';
   }
 
   const detail = (error.response.data as ApiErrorBody | undefined)?.detail;
   if (typeof detail === 'string') {
-    return ERROR_TRANSLATIONS[detail] ?? detail;
+    return detail;
   }
 
   if (Array.isArray(detail)) {
@@ -46,12 +36,12 @@ const formatApiError = (error: AxiosError): string => {
         const field = item.loc?.[item.loc.length - 1];
         const label =
           typeof field === 'string' ? field.replaceAll('_', ' ') : 'Input';
-        return `${label}: ${item.msg ?? 'ข้อมูลไม่ถูกต้อง'}`;
+        return `${label}: ${item.msg ?? 'Invalid value'}`;
       })
       .join('\n');
   }
 
-  return `ดำเนินการไม่สำเร็จ (${error.response.status}) กรุณาลองอีกครั้ง`;
+  return `Request failed (${error.response.status}). Please try again.`;
 };
 
 const apiClient = axios.create({

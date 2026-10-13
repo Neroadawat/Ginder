@@ -52,7 +52,7 @@ const JoinSessionScreen = () => {
       <TouchableOpacity
         style={styles.back}
         onPress={() => navigation.goBack()}
-        accessibilityLabel="ย้อนกลับ">
+        accessibilityLabel="Go back">
         <Text style={styles.backText}>‹</Text>
       </TouchableOpacity>
       <View style={styles.content}>
@@ -77,7 +77,7 @@ const JoinSessionScreen = () => {
           autoCorrect={false}
           returnKeyType="go"
           onSubmitEditing={submit}
-          accessibilityLabel="รหัสเชิญเข้าห้อง"
+          accessibilityLabel="Session invite code"
         />
         {join.isError && <Text style={styles.error}>{join.error.message}</Text>}
         <TouchableOpacity

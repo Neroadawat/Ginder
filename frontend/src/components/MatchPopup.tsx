@@ -51,7 +51,7 @@ const MatchPopup = ({restaurant, onDismiss}: Props) => {
             style={styles.button}
             onPress={onDismiss}
             accessibilityRole="button"
-            accessibilityLabel="ไปดูผลลัพธ์">
+            accessibilityLabel="Continue to results">
             <Text style={styles.buttonText}>ดูผลและตำแหน่งร้าน</Text>
           </TouchableOpacity>
         </View>

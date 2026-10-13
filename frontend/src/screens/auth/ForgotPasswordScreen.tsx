@@ -31,7 +31,7 @@ const ForgotPasswordScreen = () => {
         onPress={() => navigation.goBack()}
         style={styles.backButton}
         accessibilityRole="button"
-        accessibilityLabel="ย้อนกลับ">
+        accessibilityLabel="Go back">
         <Text style={styles.backText}>← กลับ</Text>
       </TouchableOpacity>
 
@@ -48,7 +48,7 @@ const ForgotPasswordScreen = () => {
         onChangeText={setEmail}
         keyboardType="email-address"
         autoCapitalize="none"
-        accessibilityLabel="ช่องกรอกอีเมล"
+        accessibilityLabel="Email input"
       />
 
       {forgotMutation.isSuccess && (

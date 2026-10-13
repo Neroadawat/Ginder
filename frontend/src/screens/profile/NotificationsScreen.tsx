@@ -55,7 +55,7 @@ const NotificationsScreen = () => {
       <View style={styles.header}>
         <TouchableOpacity
           onPress={() => navigation.goBack()}
-          accessibilityLabel="ย้อนกลับ">
+          accessibilityLabel="Go back">
           <Text style={styles.back}>‹ กลับ</Text>
         </TouchableOpacity>
         <Text style={styles.title}>คำเชิญ</Text>
@@ -86,14 +86,14 @@ const NotificationsScreen = () => {
                   <TouchableOpacity
                     style={styles.rejectAction}
                     onPress={() => dismiss(item.id)}
-                    accessibilityLabel="ปฏิเสธคำเชิญ">
+                    accessibilityLabel="Dismiss invitation">
                     <Text style={styles.rejectText}>ปฏิเสธ</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={styles.acceptAction}
                     disabled={joinSession.isPending}
                     onPress={() => accept(item)}
-                    accessibilityLabel="ตอบรับคำเชิญ">
+                    accessibilityLabel="Accept invitation">
                     <Text style={styles.acceptText}>
                       {joinSession.isPending ? 'กำลังเข้าห้อง…' : 'ตอบรับ'}
                     </Text>

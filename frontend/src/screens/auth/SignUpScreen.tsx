@@ -92,7 +92,7 @@ const SignUpScreen = () => {
             placeholderTextColor="#999"
             value={displayName}
             onChangeText={setDisplayName}
-            accessibilityLabel="ช่องกรอกชื่อที่แสดง"
+            accessibilityLabel="Display name input"
           />
           <TextInput
             style={styles.input}
@@ -103,7 +103,7 @@ const SignUpScreen = () => {
             keyboardType="email-address"
             autoCapitalize="none"
             autoCorrect={false}
-            accessibilityLabel="ช่องกรอกอีเมล"
+            accessibilityLabel="Email input"
           />
           <TextInput
             style={styles.input}
@@ -112,7 +112,7 @@ const SignUpScreen = () => {
             value={password}
             onChangeText={setPassword}
             secureTextEntry
-            accessibilityLabel="ช่องกรอกรหัสผ่าน"
+            accessibilityLabel="Password input"
           />
 
           <View style={styles.requirements}>
@@ -140,7 +140,7 @@ const SignUpScreen = () => {
             onPress={handleSignUp}
             disabled={signUpMutation.isPending}
             accessibilityRole="button"
-            accessibilityLabel="สมัครสมาชิก">
+            accessibilityLabel="Register">
             {signUpMutation.isPending ? (
               <ActivityIndicator color="#FFF" />
             ) : (

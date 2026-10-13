@@ -78,17 +78,17 @@ const SettingsScreen = () => {
             Google Places · {googleUsage.period}
           </Text>
           <Text style={styles.usageText}>
-            การค้นหาร้านใกล้เคียง: {googleUsage.nearby_search.count} /{' '}
+            Nearby Search: {googleUsage.nearby_search.count} /{' '}
             {googleUsage.nearby_search.hard_limit}
           </Text>
           <Text style={styles.usageText}>
-            การโหลดรูปภาพ: {googleUsage.place_photo.count} /{' '}
+            Place Photos: {googleUsage.place_photo.count} /{' '}
             {googleUsage.place_photo.hard_limit}
           </Text>
           <Text style={styles.usageStatus}>
             {googleUsage.enabled
-              ? 'เปิดการค้นหาจาก Google Places'
-              : 'ปิดการค้นหาจาก Google Places'}
+              ? 'Live fallback enabled'
+              : 'Live fallback disabled'}
           </Text>
         </View>
       )}
@@ -130,9 +130,9 @@ const SettingsScreen = () => {
           Linking.openURL('https://www.openstreetmap.org/copyright')
         }
         accessibilityRole="link"
-        accessibilityLabel="เปิดข้อมูลลิขสิทธิ์และสัญญาอนุญาต OpenStreetMap">
+        accessibilityLabel="Open OpenStreetMap copyright and licence information">
         <Text style={styles.attributionText}>
-          ข้อมูลร้านอาหาร © ผู้ร่วมสร้าง OpenStreetMap
+          Restaurant data © OpenStreetMap contributors
         </Text>
       </TouchableOpacity>
     </View>

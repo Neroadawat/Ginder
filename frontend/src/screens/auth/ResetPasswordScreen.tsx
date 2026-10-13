@@ -55,7 +55,7 @@ const ResetPasswordScreen = () => {
         value={newPassword}
         onChangeText={setNewPassword}
         secureTextEntry
-        accessibilityLabel="ช่องกรอกรหัสผ่านใหม่"
+        accessibilityLabel="New password input"
       />
       <TextInput
         style={styles.input}
@@ -64,7 +64,7 @@ const ResetPasswordScreen = () => {
         value={confirmPassword}
         onChangeText={setConfirmPassword}
         secureTextEntry
-        accessibilityLabel="ช่องยืนยันรหัสผ่านใหม่"
+        accessibilityLabel="Confirm password input"
       />
 
       {resetMutation.isSuccess && (
