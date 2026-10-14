@@ -97,9 +97,9 @@ android {
     buildToolsVersion = rootProject.ext.buildToolsVersion
     compileSdk = rootProject.ext.compileSdkVersion
 
-    namespace = "com.neroadawat.ginder"
+    namespace = "com.tamsoot.ginder"
     defaultConfig {
-        applicationId = "com.neroadawat.ginder"
+        applicationId = "com.tamsoot.ginder"
         minSdk = rootProject.ext.minSdkVersion
         targetSdk = rootProject.ext.targetSdkVersion
         versionCode = 10000

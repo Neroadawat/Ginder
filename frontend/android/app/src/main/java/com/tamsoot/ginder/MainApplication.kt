@@ -1,4 +1,4 @@
-package com.neroadawat.ginder
+package com.tamsoot.ginder
 
 import android.app.Application
 import com.facebook.react.PackageList

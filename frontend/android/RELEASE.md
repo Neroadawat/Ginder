@@ -2,7 +2,7 @@
 
 ## Current release identity
 
-- Package ID: `com.neroadawat.ginder`
+- Package ID: `com.tamsoot.ginder`
 - Version name: `1.0.0`
 - Version code: `10000`
 - Compile/target SDK: Android API 36
@@ -29,7 +29,7 @@ key reset. Never commit these files.
 
 Before publishing, replace the example values in `.env.production` with the real
 HTTPS API and WebSocket URLs. If Firebase Cloud Messaging is enabled, download a
-new `google-services.json` for `com.neroadawat.ginder` and complete the Firebase
+new `google-services.json` for `com.tamsoot.ginder` and complete the Firebase
 Android setup for this package.
 
 ## Build on Windows
@@ -62,7 +62,7 @@ prompt, then run:
 ```powershell
 adb devices -l
 adb install -r android/app/build/outputs/apk/release/app-release.apk
-adb shell am start -n com.neroadawat.ginder/.MainActivity
+adb shell am start -n com.tamsoot.ginder/.MainActivity
 ```
 
 Test location permission, nearby restaurants, photos, authentication, session

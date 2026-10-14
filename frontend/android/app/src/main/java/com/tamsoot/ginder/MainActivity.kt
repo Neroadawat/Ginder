@@ -1,4 +1,4 @@
-package com.neroadawat.ginder
+package com.tamsoot.ginder
 
 import com.facebook.react.ReactActivity
 import com.facebook.react.ReactActivityDelegate

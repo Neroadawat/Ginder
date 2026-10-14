@@ -30,8 +30,8 @@ if (env.FCM_ENABLED === 'true') {
   const firebase = path.join(root, 'android/app/google-services.json');
   try {
     const data = JSON.parse(fs.readFileSync(firebase, 'utf8'));
-    if (!data.client?.some(client => client.client_info?.android_client_info?.package_name === 'com.neroadawat.ginder')) {
-      errors.push('Firebase config must contain package com.neroadawat.ginder');
+    if (!data.client?.some(client => client.client_info?.android_client_info?.package_name === 'com.tamsoot.ginder')) {
+      errors.push('Firebase config must contain package com.tamsoot.ginder');
     }
   } catch {errors.push('FCM_ENABLED requires valid android/app/google-services.json');}
 }

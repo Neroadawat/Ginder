@@ -29,7 +29,7 @@
 
 ## 4. Firebase Push Notification
 
-- [ ] สร้าง Firebase project และเพิ่ม Android app ด้วย package `com.neroadawat.ginder`
+- [ ] สร้าง Firebase project และเพิ่ม Android app ด้วย package `com.tamsoot.ginder`
 - [ ] วาง `google-services.json` ที่ `frontend/android/app/google-services.json` (ห้าม commit)
 - [ ] สร้าง service-account credential และวางที่ `secrets/firebase-credentials.json` บน server (ห้าม commit)
 - [ ] เปิด production ด้วย `docker-compose.firebase.yml` และทดสอบ foreground/background/แอปปิดบนเครื่องจริง

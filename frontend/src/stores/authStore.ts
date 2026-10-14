@@ -6,7 +6,7 @@ import {create} from 'zustand';
 import * as Keychain from 'react-native-keychain';
 import {useSessionStore} from './sessionStore';
 
-const TOKEN_SERVICE = 'com.neroadawat.ginder.auth';
+const TOKEN_SERVICE = 'com.tamsoot.ginder.auth';
 
 interface AuthState {
   isAuthenticated: boolean;
