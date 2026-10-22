@@ -2,6 +2,12 @@
 
 แอปหาร้านอาหารใกล้ตัวด้วย UI แบบ Swipe — หาที่กินกับเพื่อนแบบ Real-time
 
+The app starts in English and supports Thai. Change the language on the login,
+profile or settings screen; the selection is saved on each device.
+
+See the [documentation index](docs/README.md) for development, release and
+security guides.
+
 ## Tech Stack
 
 | Layer | Technology |
@@ -19,6 +25,7 @@
 Ginder/
 ├── backend/          # FastAPI backend
 ├── frontend/         # React Native app
+├── docs/             # Mobile guides, security reviews and documentation index
 ├── ops/              # Backup and restore scripts
 ├── docker-compose.yml
 ├── DEPLOYMENT.md
