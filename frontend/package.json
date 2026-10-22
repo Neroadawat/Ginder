@@ -7,8 +7,9 @@
   },
   "scripts": {
     "android": "react-native run-android",
-    "start": "react-native start",
-    "start:reset": "react-native start --reset-cache",
+    "android:appetize": "node scripts/build-appetize.cjs",
+    "start": "react-native start --host 127.0.0.1",
+    "start:reset": "react-native start --host 127.0.0.1 --reset-cache",
     "test": "jest --config jest.config.js",
     "lint": "eslint . --ext .ts,.tsx",
     "format": "prettier --write \"**/*.{js,ts,tsx,json}\"",

@@ -40,10 +40,13 @@ frontend/android/build/
 frontend/android/.gradle/
 frontend/android/.kotlin/
 frontend/android/local.properties
+# Android Studio's local daemon choice must not override the documented/CI JDK.
+frontend/android/gradle/gradle-daemon-jvm.properties
 *.apk
 *.aab
 *.keystore
 *.jks
+*.pem
 !debug.keystore
 frontend/android/keystore.properties
 
@@ -69,12 +72,16 @@ docker-compose.override.yml
 .env
 .env.local
 .env.production
+.env.appetize
 backend/.env
 frontend/.env
 
 # Local documentation
 /docs/*
 !/docs/PLAY_STORE.md
+!/docs/README.md
+!/docs/mobile/
+!/docs/security/
 # Firebase service-account secrets are never source-controlled.
 /secrets/
 **/firebase-credentials.json

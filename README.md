@@ -86,6 +86,14 @@ cd frontend\android
 docker compose up -d
 ```
 
+### Browser preview with Appetize.io
+
+The Android project includes a separate `appetize` build that bundles its
+JavaScript and assets into a signed preview APK. It does not change the normal
+Android Studio/Metro debug workflow. Follow the [development preview guide](docs/mobile/appetize.md) to
+expose the local API through HTTPS, configure `.env.appetize`, build the APK,
+upload it, and simulate the launch-area location.
+
 ## Test a party session locally
 
 1. Start two Android emulators and register a different account on each.
