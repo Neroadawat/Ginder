@@ -1,7 +1,9 @@
 """WebSocket connection manager for real-time session events."""
 
+import asyncio
 import json
 import logging
+from collections.abc import Awaitable, Callable
 from uuid import UUID
 
 from fastapi import WebSocket
@@ -31,16 +33,37 @@ class ConnectionManager:
     def __init__(self):
         # session_id -> {user_id -> WebSocket}
         self.active_connections: dict[UUID, dict[UUID, WebSocket]] = {}
+        self.authorizers: dict[WebSocket, Callable[[], Awaitable[bool]]] = {}
 
-    async def connect(self, websocket: WebSocket, session_id: UUID, user_id: UUID):
+    async def connect(
+        self,
+        websocket: WebSocket,
+        session_id: UUID,
+        user_id: UUID,
+        authorize: Callable[[], Awaitable[bool]] | None = None,
+    ):
         """Accept a WebSocket connection and register it for a session."""
         await websocket.accept()
+        previous = self.active_connections.get(session_id, {}).get(user_id)
         self.active_connections.setdefault(session_id, {})[user_id] = websocket
+        if authorize is not None:
+            self.authorizers[websocket] = authorize
+        if previous is not None and previous is not websocket:
+            self.authorizers.pop(previous, None)
+            try:
+                await asyncio.wait_for(previous.close(code=4000), timeout=5)
+            except Exception:
+                pass
 
-    def disconnect(self, session_id: UUID, user_id: UUID):
+    def disconnect(self, session_id: UUID, user_id: UUID, websocket: WebSocket | None = None):
         """Remove a WebSocket connection."""
         if session_id in self.active_connections:
+            current = self.active_connections[session_id].get(user_id)
+            if websocket is not None and current is not websocket:
+                return
             self.active_connections[session_id].pop(user_id, None)
+            if current is not None:
+                self.authorizers.pop(current, None)
             if not self.active_connections[session_id]:
                 del self.active_connections[session_id]
 
@@ -71,14 +94,11 @@ class ConnectionManager:
         if not connections:
             return
 
-        disconnected = []
-        for user_id, ws in connections.items():
+        for user_id, ws in list(connections.items()):
             try:
-                await ws.send_text(message)
+                await self._send_authorized(ws, message)
             except Exception:
-                disconnected.append(user_id)
-        for uid in disconnected:
-            self.disconnect(session_id, uid)
+                self.disconnect(session_id, user_id, ws)
 
     async def send_to_user(self, session_id: UUID, user_id: UUID, event: str, data: dict):
         """Send a message to a specific user in a session (local delivery only).
@@ -90,9 +110,21 @@ class ConnectionManager:
         ws = self.active_connections.get(session_id, {}).get(user_id)
         if ws:
             try:
-                await ws.send_text(message)
+                await self._send_authorized(ws, message)
             except Exception:
-                self.disconnect(session_id, user_id)
+                self.disconnect(session_id, user_id, ws)
+
+    async def _send_authorized(self, ws: WebSocket, message: str) -> None:
+        async def send():
+            authorize = self.authorizers.get(ws)
+            if authorize is None or not await authorize():
+                await ws.close(code=4003, reason="Session access denied")
+                raise PermissionError("WebSocket authorization revoked")
+            await ws.send_text(message)
+
+        # Neither a slow client nor a stalled authorization query can block
+        # the shared event subscriber indefinitely.
+        await asyncio.wait_for(send(), timeout=5)
 
     def get_connected_users(self, session_id: UUID) -> list[UUID]:
         """Get list of connected user IDs for a session, on this instance."""

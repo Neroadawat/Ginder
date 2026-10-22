@@ -16,9 +16,9 @@ from app.schemas.auth import (
     TokenResponse,
 )
 from app.services.auth_service import AuthService
-from app.services.rate_limit_service import allow_password_reset
+from app.services.rate_limit_service import allow_password_reset, limit_auth_requests
 
-router = APIRouter()
+router = APIRouter(dependencies=[Depends(limit_auth_requests)])
 
 
 @router.post("/signup", response_model=TokenResponse, status_code=201)

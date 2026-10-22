@@ -81,6 +81,12 @@ class FakeRedis:
     async def expire(self, _key: str, _seconds: int) -> bool:
         return True
 
+    async def eval(self, _script, _numkeys, key, seconds):
+        count = await self.incr(key)
+        if count == 1:
+            await self.expire(key, seconds)
+        return count
+
 
 @pytest.mark.asyncio
 async def test_password_reset_limit_does_not_store_raw_identifiers(monkeypatch) -> None:

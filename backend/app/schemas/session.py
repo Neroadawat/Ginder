@@ -18,9 +18,9 @@ class CreateSessionRequest(BaseModel):
         le=settings.MAX_RADIUS_KM,
         description="Search radius in km, capped for the launch area (requirement 6).",
     )
-    duration_seconds: int = Field(gt=0, description="Countdown length for the session.")
+    duration_seconds: int = Field(gt=0, le=3600, description="Countdown length, at most one hour.")
 
-    category_filter: str | None = None
+    category_filter: str | None = Field(default=None, max_length=100)
     # Display tier 1-3 (฿ / ฿฿ / ฿฿฿), expanded server-side to Google's 0-4.
     price_filter: int | None = Field(default=None, ge=1, le=3)
     rating_filter: float | None = Field(default=None, ge=0, le=5)

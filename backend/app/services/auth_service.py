@@ -6,6 +6,7 @@ from uuid import UUID
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from starlette.concurrency import run_in_threadpool
 
 from app.core.exceptions import ConflictException, GinderException, UnauthorizedException
 from app.core.security import (
@@ -49,7 +50,7 @@ class AuthService:
         user = User(
             email=email,
             display_name=body.display_name.strip(),
-            hashed_password=hash_password(body.password),
+            hashed_password=await run_in_threadpool(hash_password, body.password),
             accepted_terms=True,
             accepted_terms_at=datetime.now(UTC),
         )
@@ -70,7 +71,7 @@ class AuthService:
         if (
             not user
             or not user.is_active
-            or not verify_password(body.password, user.hashed_password)
+            or not await run_in_threadpool(verify_password, body.password, user.hashed_password)
         ):
             raise UnauthorizedException("Invalid email or password")
 
@@ -128,7 +129,10 @@ class AuthService:
         if not payload or payload.get("type") != "password_reset":
             raise GinderException("Invalid or expired reset token")
 
-        user_id = payload.get("sub")
+        try:
+            user_id = UUID(payload["sub"])
+        except (KeyError, TypeError, ValueError):
+            raise GinderException("Invalid or expired reset token") from None
         result = await self.db.execute(select(User).where(User.id == user_id).with_for_update())
         user = result.scalar_one_or_none()
 
@@ -142,6 +146,6 @@ class AuthService:
         if payload.get("ver") != user.token_version:
             raise GinderException("Invalid or expired reset token")
 
-        user.hashed_password = hash_password(body.new_password)
+        user.hashed_password = await run_in_threadpool(hash_password, body.new_password)
         user.token_version += 1
         return MessageResponse(message="Password has been reset successfully")

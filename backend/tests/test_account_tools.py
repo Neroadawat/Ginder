@@ -1,6 +1,7 @@
 """Account recovery delivery, token replay prevention and public browser routes."""
 
 import smtplib
+import uuid
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock
 
@@ -47,11 +48,11 @@ async def test_email_failure_does_not_log_sensitive_values(monkeypatch, caplog):
 @pytest.mark.asyncio
 async def test_reset_link_is_invalid_after_password_change():
     user = SimpleNamespace(
-        id="123",
+        id=uuid.uuid4(),
         hashed_password=hash_password("original-password"),
         token_version=0,
     )
-    token = create_password_reset_token("123", user.hashed_password, user.token_version)
+    token = create_password_reset_token(str(user.id), user.hashed_password, user.token_version)
     result = MagicMock()
     result.scalar_one_or_none.return_value = user
     db = SimpleNamespace(execute=AsyncMock(return_value=result))

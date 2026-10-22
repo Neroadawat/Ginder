@@ -45,6 +45,7 @@ class SessionService:
 
     async def create_session(self, host: User, body: CreateSessionRequest) -> SessionResponse:
         """Create a lobby with the host as its first participant."""
+        await self._lock_membership(host.id)
         await self._ensure_no_active_session(host.id)
 
         # Eight characters are short enough to type from another phone while
@@ -84,10 +85,13 @@ class SessionService:
         (requirement 7.8/7.9). Joining also makes the two users friends
         (requirement 4.1).
         """
+        await self._lock_membership(user.id)
         result = await self.db.execute(
             select(Session)
             .options(selectinload(Session.participants).selectinload(SessionParticipant.user))
             .where(Session.invite_code == body.invite_code.strip())
+            .with_for_update()
+            .execution_options(populate_existing=True)
         )
         session = result.scalar_one_or_none()
 
@@ -164,7 +168,7 @@ class SessionService:
         Shuffles the deck once and persists it, starts the server-side timer,
         and invalidates the invite code by leaving LOBBY.
         """
-        session = await self._get_session_with_participants(session_id)
+        session = await self._get_session_with_participants(session_id, lock=True)
 
         if session.host_id != host.id:
             raise ForbiddenException("Only the host can start the session")
@@ -217,7 +221,7 @@ class SessionService:
         self, session_id: UUID, user_id: UUID, host: User
     ) -> MessageResponse:
         """Remove a participant. Host only, and only before Start."""
-        session = await self._get_session_with_participants(session_id)
+        session = await self._get_session_with_participants(session_id, lock=True)
 
         if session.host_id != host.id:
             raise ForbiddenException("Only the host can kick participants")
@@ -235,15 +239,13 @@ class SessionService:
         await self.db.delete(participant)
         await self.db.flush()
 
-        await manager.broadcast_to_session(
-            session.id, EVENT_USER_LEFT, {"user_id": str(user_id)}
-        )
+        await manager.broadcast_to_session(session.id, EVENT_USER_LEFT, {"user_id": str(user_id)})
 
         return MessageResponse(message="Participant removed from session")
 
     async def leave_session(self, session_id: UUID, user: User) -> MessageResponse:
         """Leave a lobby; leaving as host cancels it for everybody."""
-        session = await self._get_session_with_participants(session_id)
+        session = await self._get_session_with_participants(session_id, lock=True)
         self._ensure_participant(session, user)
 
         if session.status != SessionStatus.LOBBY:
@@ -270,14 +272,10 @@ class SessionService:
         participant = next(item for item in session.participants if item.user_id == user.id)
         await self.db.delete(participant)
         await self.db.flush()
-        await manager.broadcast_to_session(
-            session.id, EVENT_USER_LEFT, {"user_id": str(user.id)}
-        )
+        await manager.broadcast_to_session(session.id, EVENT_USER_LEFT, {"user_id": str(user.id)})
         return MessageResponse(message="You left the session")
 
-    async def invite_friend(
-        self, session_id: UUID, friend_id: UUID, host: User
-    ) -> MessageResponse:
+    async def invite_friend(self, session_id: UUID, friend_id: UUID, host: User) -> MessageResponse:
         """Push a session invite to a friend."""
         session = await self._get_session_with_participants(session_id)
         self._ensure_participant(session, host)
@@ -305,9 +303,7 @@ class SessionService:
 
     # ─── Deck progress and resolution ───
 
-    async def mark_participant_finished(
-        self, session_id: UUID, user: User
-    ) -> Resolution | None:
+    async def mark_participant_finished(self, session_id: UUID, user: User) -> Resolution | None:
         """Record that a participant has swiped their whole deck.
 
         Sets them to WAITING (requirement 12.1) and resolves the session if
@@ -444,19 +440,32 @@ class SessionService:
         if result.first():
             raise UserAlreadyInSessionException()
 
+    async def _lock_membership(self, user_id: UUID) -> None:
+        # Serialize create/join for this account. Otherwise two parallel
+        # requests can both pass the one-open-session check before committing.
+        await self.db.scalar(
+            select(User.id).where(User.id == user_id).with_for_update(key_share=True)
+        )
+
     @staticmethod
     def _ensure_participant(session: Session, user: User) -> None:
         """Raise unless the user belongs to this session (requirement 7.12)."""
         if not any(p.user_id == user.id for p in session.participants):
             raise ForbiddenException("You are not a participant in this session")
 
-    async def _get_session_with_participants(self, session_id: UUID) -> Session:
+    async def _get_session_with_participants(
+        self, session_id: UUID, *, lock: bool = False
+    ) -> Session:
         """Load a session with its participants and their users."""
-        result = await self.db.execute(
+        statement = (
             select(Session)
             .options(selectinload(Session.participants).selectinload(SessionParticipant.user))
             .where(Session.id == session_id)
         )
+        if lock:
+            # Joins, kicks and starts must agree on one participant roster.
+            statement = statement.with_for_update().execution_options(populate_existing=True)
+        result = await self.db.execute(statement)
         session = result.scalar_one_or_none()
         if not session:
             raise NotFoundException("Session not found")

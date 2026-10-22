@@ -20,6 +20,7 @@ from app.schemas.session import (
     StartSessionResponse,
 )
 from app.services.match_service import Resolution
+from app.services.rate_limit_service import limit_join_requests
 from app.services.session_service import SessionService
 
 router = APIRouter()
@@ -51,7 +52,7 @@ async def create_session(
     return await service.create_session(current_user, body)
 
 
-@router.post("/join", response_model=LobbyResponse)
+@router.post("/join", response_model=LobbyResponse, dependencies=[Depends(limit_join_requests)])
 async def join_session(
     body: JoinSessionRequest,
     current_user: User = Depends(get_current_user),
