@@ -334,7 +334,7 @@ class SessionService:
         match_service = MatchService(self.db)
         resolution = await match_service.resolve_session(session)
         await self.db.flush()
-
+        await self.db.commit()
         event, payload = resolution.to_ws_broadcast()
         await manager.broadcast_to_session(session.id, event, payload)
         return resolution
@@ -343,6 +343,14 @@ class SessionService:
         """Read back a finished session's result. Participants only."""
         session = await self._get_session_with_participants(session_id)
         self._ensure_participant(session, user)
+
+        # A client reaching zero can settle the room immediately, without Beat.
+        if (
+            session.status == SessionStatus.ACTIVE
+            and session.ends_at is not None
+            and session.ends_at <= datetime.now(UTC)
+        ):
+            await self.resolve(session)
 
         result = await self.db.execute(
             select(MatchResult)
@@ -354,6 +362,7 @@ class SessionService:
         if match_result is None:
             raise NotFoundException("This session has not been resolved yet")
 
+        resolution = await MatchService(self.db).get_resolution(session)
         return ResolutionResponse(
             session_id=session_id,
             restaurant_id=match_result.restaurant_id,
@@ -362,8 +371,7 @@ class SessionService:
             google_maps_url=(
                 match_result.restaurant.google_maps_url if match_result.restaurant else None
             ),
-            # The wheel candidates only matter live, while the animation runs.
-            wheel_candidate_ids=[],
+            wheel_candidate_ids=resolution.wheel_candidates,
         )
 
     async def _all_participants_finished(self, session: Session) -> bool:

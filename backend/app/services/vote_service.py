@@ -1,5 +1,6 @@
 """Vote business logic — swipes, unanimous match detection, the Likes tab."""
 
+from datetime import UTC, datetime
 from uuid import UUID
 
 from sqlalchemy import func, select
@@ -33,9 +34,7 @@ class VoteService:
     def __init__(self, db: AsyncSession):
         self.db = db
 
-    async def record_swipe(
-        self, session_id: UUID, user: User, body: SwipeRequest
-    ) -> SwipeResponse:
+    async def record_swipe(self, session_id: UUID, user: User, body: SwipeRequest) -> SwipeResponse:
         """Record a swipe and report whether it completed a unanimous match."""
         # Raises unless the session is running and the caller belongs to it.
         await self._ensure_active_session(session_id)
@@ -83,6 +82,7 @@ class VoteService:
         match_service = MatchService(self.db)
         resolution = await match_service.resolve_unanimous(session, body.restaurant_id)
         await self.db.flush()
+        await self.db.commit()
 
         await manager.broadcast_to_session(
             session_id,
@@ -232,7 +232,12 @@ class VoteService:
     # ─── Private helpers ───
 
     async def _get_session(self, session_id: UUID) -> Session:
-        result = await self.db.execute(select(Session).where(Session.id == session_id))
+        result = await self.db.execute(
+            select(Session)
+            .where(Session.id == session_id)
+            .with_for_update()
+            .execution_options(populate_existing=True)
+        )
         session = result.scalar_one_or_none()
         if not session:
             raise NotFoundException("Session not found")
@@ -243,6 +248,8 @@ class VoteService:
         session = await self._get_session(session_id)
         if session.status != SessionStatus.ACTIVE:
             raise ForbiddenException("This session is not accepting swipes")
+        if session.ends_at is not None and session.ends_at <= datetime.now(UTC):
+            raise ForbiddenException("The session timer has expired")
 
     async def _ensure_participant(self, session_id: UUID, user_id: UUID) -> None:
         """Raise unless the user belongs to the session (requirement 7.12)."""

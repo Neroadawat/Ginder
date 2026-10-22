@@ -48,9 +48,7 @@ class Resolution:
         event = EVENT_SPIN_WHEEL if self.wheel_candidates else EVENT_RESULT
         payload = {
             "session_id": str(self.result.session_id),
-            "restaurant_id": str(self.result.restaurant_id)
-            if self.result.restaurant_id
-            else None,
+            "restaurant_id": str(self.result.restaurant_id) if self.result.restaurant_id else None,
             "restaurant_name": self.result.restaurant_name,
             "resolution_type": self.result.resolution_type.value,
             "wheel_candidate_ids": [str(rid) for rid in self.wheel_candidates],
@@ -71,13 +69,16 @@ class MatchService:
         2. a tie is broken by a wheel containing only the tied restaurants
         3. no likes at all sends the whole deck to the wheel
         """
+        await self._lock_session(session)
+        if session.status == SessionStatus.FINISHED:
+            return await self.get_resolution(session)
         vote_counts = await self._like_counts(session.id)
 
         if not vote_counts:
             return await self._resolve_without_likes(session)
 
         highest = max(vote_counts.values())
-        leaders = [rid for rid, count in vote_counts.items() if count == highest]
+        leaders = sorted((rid for rid, count in vote_counts.items() if count == highest), key=str)
 
         if len(leaders) == 1:
             result = await self._persist(session, leaders[0], ResolutionType.MAJORITY)
@@ -106,6 +107,9 @@ class MatchService:
         completed the match) must survive even if this particular persist
         loses the race.
         """
+        await self._lock_session(session)
+        if session.status == SessionStatus.FINISHED:
+            return await self.get_resolution(session)
         try:
             async with self.db.begin_nested():
                 result = await self._persist(session, restaurant_id, ResolutionType.UNANIMOUS)
@@ -114,6 +118,36 @@ class MatchService:
         return Resolution(result=result, wheel_candidates=[])
 
     # ─── Private helpers ───
+
+    async def _lock_session(self, session: Session) -> None:
+        # Votes, API requests and the worker must choose one shared winner.
+        result = await self.db.execute(
+            select(Session)
+            .where(Session.id == session.id)
+            .with_for_update()
+            .execution_options(populate_existing=True)
+        )
+        result.scalar_one()
+
+    async def get_resolution(self, session: Session) -> Resolution:
+        """Recover the same wheel after a lost event or concurrent resolution."""
+        result = await self._get_existing_result(session.id)
+        candidates: list[UUID] = []
+        if result.resolution_type == ResolutionType.SPIN_WHEEL_NO_MATCH:
+            rows = await self.db.execute(
+                select(SessionDeck.restaurant_id)
+                .where(SessionDeck.session_id == session.id)
+                .order_by(SessionDeck.position)
+            )
+            candidates = list(rows.scalars().all())
+        elif result.resolution_type == ResolutionType.SPIN_WHEEL_TIE:
+            counts = await self._like_counts(session.id)
+            if counts:
+                highest = max(counts.values())
+                candidates = sorted(
+                    (rid for rid, count in counts.items() if count == highest), key=str
+                )
+        return Resolution(result=result, wheel_candidates=candidates)
 
     async def _resolve_without_likes(self, session: Session) -> Resolution:
         """Nobody liked anything, so the whole deck goes on the wheel.
@@ -144,9 +178,7 @@ class MatchService:
             return Resolution(result=match_result, wheel_candidates=[])
 
         winner_id = random.choice(deck_ids)
-        match_result = await self._persist(
-            session, winner_id, ResolutionType.SPIN_WHEEL_NO_MATCH
-        )
+        match_result = await self._persist(session, winner_id, ResolutionType.SPIN_WHEEL_NO_MATCH)
         return Resolution(result=match_result, wheel_candidates=deck_ids)
 
     async def _like_counts(self, session_id: UUID) -> dict[UUID, int]:
@@ -175,9 +207,7 @@ class MatchService:
         self, session: Session, restaurant_id: UUID, resolution_type: ResolutionType
     ) -> MatchResult:
         """Save the result and mark the session finished."""
-        result = await self.db.execute(
-            select(Restaurant).where(Restaurant.id == restaurant_id)
-        )
+        result = await self.db.execute(select(Restaurant).where(Restaurant.id == restaurant_id))
         restaurant = result.scalar_one_or_none()
 
         match_result = MatchResult(

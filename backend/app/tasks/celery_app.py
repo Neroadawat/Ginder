@@ -32,6 +32,6 @@ celery_app.conf.beat_schedule = {
     # must still resolve when every client has dropped off.
     "resolve-expired-sessions": {
         "task": "app.tasks.cleanup.resolve_expired_sessions",
-        "schedule": crontab(minute="*"),
+        "schedule": 5.0,
     },
 }
