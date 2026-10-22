@@ -2,36 +2,43 @@
  * SessionTimer — Countdown timer displayed during active session swiping.
  */
 
-import React, {useEffect, useState} from 'react';
+import React, {useEffect, useRef, useState} from 'react';
 import {View, Text, StyleSheet} from 'react-native';
 
 import {useSession} from '@/hooks/useSessions';
+import {sessionSecondsRemaining} from '@/utils/sessionClock';
 
 interface Props {
   sessionId: string;
   initialEndsAt?: string;
+  onExpire?: () => void;
 }
 
-const secondsUntil = (value?: string | null) =>
-  value
-    ? Math.max(0, Math.ceil((new Date(value).getTime() - Date.now()) / 1000))
-    : null;
-
-const SessionTimer = ({sessionId, initialEndsAt}: Props) => {
+const SessionTimer = ({sessionId, initialEndsAt, onExpire}: Props) => {
+  const expireCallback = useRef(onExpire);
+  expireCallback.current = onExpire;
+  const expiredSession = useRef<string | null>(null);
   const {data: lobby} = useSession(sessionId);
   const endsAt = initialEndsAt ?? lobby?.session.ends_at;
+  const duration = lobby?.session.duration_seconds;
   const [remaining, setRemaining] = useState<number | null>(() =>
-    secondsUntil(initialEndsAt),
+    endsAt && duration !== undefined
+      ? sessionSecondsRemaining(endsAt, duration)
+      : null,
   );
 
   useEffect(() => {
-    if (!endsAt) {
+    if (!endsAt || duration === undefined) {
       return;
     }
 
     const update = () => {
-      const next = secondsUntil(endsAt) ?? 0;
+      const next = sessionSecondsRemaining(endsAt, duration);
       setRemaining(next);
+      if (next === 0 && expiredSession.current !== sessionId) {
+        expiredSession.current = sessionId;
+        expireCallback.current?.();
+      }
       return next;
     };
 
@@ -44,12 +51,12 @@ const SessionTimer = ({sessionId, initialEndsAt}: Props) => {
     }, 250);
 
     return () => clearInterval(interval);
-  }, [endsAt]);
+  }, [endsAt, duration, sessionId]);
 
   if (remaining === null) {
     return (
       <View style={styles.container}>
-        <Text style={styles.timer}>⏱️ --:--</Text>
+        <Text style={styles.timer}>--:--</Text>
       </View>
     );
   }
@@ -61,7 +68,7 @@ const SessionTimer = ({sessionId, initialEndsAt}: Props) => {
   return (
     <View style={styles.container}>
       <Text style={[styles.timer, isLow && styles.timerLow]}>
-        ⏱️ {minutes}:{seconds.toString().padStart(2, '0')}
+        {minutes}:{seconds.toString().padStart(2, '0')}
       </Text>
     </View>
   );

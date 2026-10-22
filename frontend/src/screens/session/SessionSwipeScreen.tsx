@@ -27,9 +27,14 @@ import MatchPopup from '@/components/MatchPopup';
 import SessionTimer from '@/components/SessionTimer';
 import SwipeCard from '@/components/SwipeCard';
 import {useSessionDeck} from '@/hooks/useRestaurants';
-import {useReportDeckFinished} from '@/hooks/useSessions';
+import {
+  useLiveSessionResult,
+  useReportDeckFinished,
+  useSession,
+} from '@/hooks/useSessions';
 import {useSwipe, useVoteProgress} from '@/hooks/useVotes';
 import {useSessionWebSocket} from '@/hooks/useWebSocket';
+
 import {SessionStackParamList} from '@/navigation/types';
 import {ResolutionResponse} from '@/types/api';
 import {RestaurantCard} from '@/types/restaurant';
@@ -55,6 +60,10 @@ const SessionSwipeScreen = () => {
 
   const [matched, setMatched] = useState<RestaurantCard | null>(null);
   const [isWaiting, setIsWaiting] = useState(false);
+  const [hasExpired, setHasExpired] = useState(false);
+  const {data: lobby} = useSession(sessionId);
+  const isResolving = hasExpired || lobby?.session.status === 'finished';
+  const resultQuery = useLiveSessionResult(sessionId, isResolving && !matched);
   const hasReportedEmpty = useRef(false);
 
   // Guards against double-navigating when a websocket event and a REST reply
@@ -92,6 +101,16 @@ const SessionSwipeScreen = () => {
     navigation.replace('SessionResult', {sessionId});
   }, [navigation, sessionId]);
 
+  useEffect(() => {
+    if (resultQuery.data && !matched) {
+      goToResolution(resultQuery.data);
+    }
+  }, [resultQuery.data, matched, goToResolution]);
+
+  const handleTimerExpired = useCallback(() => {
+    setHasExpired(true);
+  }, []);
+
   // Server-driven session events.
   useEffect(() => {
     if (!lastEvent) {
@@ -122,6 +141,9 @@ const SessionSwipeScreen = () => {
 
   const handleSwipe = useCallback(
     (restaurant: RestaurantCard, liked: boolean) => {
+      if (isResolving) {
+        return Promise.resolve(false);
+      }
       return new Promise<boolean>(resolve => {
         swipeMutation.mutate(
           {restaurant_id: restaurant.id, liked},
@@ -140,7 +162,7 @@ const SessionSwipeScreen = () => {
         );
       });
     },
-    [swipeMutation],
+    [swipeMutation, isResolving],
   );
 
   // Deck exhausted: report it and wait for the others (requirement 12.1).
@@ -187,7 +209,7 @@ const SessionSwipeScreen = () => {
     return (
       <View style={styles.centered}>
         <ActivityIndicator size="large" color="#FF6B6B" />
-        <Text style={styles.loadingText}>กำลังโหลดร้าน...</Text>
+        <Text style={styles.loadingText}>{'กำลังโหลดร้าน...'}</Text>
       </View>
     );
   }
@@ -196,10 +218,32 @@ const SessionSwipeScreen = () => {
 
   return (
     <View style={styles.container}>
-      <SessionTimer sessionId={sessionId} initialEndsAt={route.params.endsAt} />
+      <SessionTimer
+        sessionId={sessionId}
+        initialEndsAt={route.params.endsAt}
+        onExpire={handleTimerExpired}
+      />
 
       <View style={styles.cardContainer}>
-        {hasCards && !isWaiting ? (
+        {isResolving ? (
+          <View style={styles.waiting}>
+            <ActivityIndicator size="large" color={COLORS.accent} />
+            <Text style={styles.waitingTitle}>{'กำลังสรุปผล'}</Text>
+            <Text style={styles.waitingText}>
+              {resultQuery.isError
+                ? 'ยังรับผลไม่ได้ กำลังเชื่อมต่ออีกครั้ง...'
+                : 'หมดเวลาแล้ว กำลังรับผลจากห้อง'}
+            </Text>
+            {resultQuery.isError && (
+              <TouchableOpacity
+                style={styles.retryButton}
+                onPress={() => resultQuery.refetch()}
+              >
+                <Text style={styles.retryText}>{'ลองอีกครั้ง'}</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        ) : hasCards && !isWaiting ? (
           <SwipeCard
             restaurants={remainingRestaurants}
             onSwipe={handleSwipe}
@@ -207,7 +251,6 @@ const SessionSwipeScreen = () => {
           />
         ) : (
           <View style={styles.waiting}>
-            <Text style={styles.waitingEmoji}>⏳</Text>
             <Text style={styles.waitingTitle}>
               {hasCards ? 'ดูครบแล้ว!' : 'ไม่พบร้านอาหาร'}
             </Text>
@@ -217,8 +260,9 @@ const SessionSwipeScreen = () => {
             {reportFinished.isError && (
               <TouchableOpacity
                 style={styles.retryButton}
-                onPress={retryFinish}>
-                <Text style={styles.retryText}>เชื่อมต่ออีกครั้ง</Text>
+                onPress={retryFinish}
+              >
+                <Text style={styles.retryText}>{'เชื่อมต่ออีกครั้ง'}</Text>
               </TouchableOpacity>
             )}
           </View>
@@ -256,10 +300,6 @@ const styles = StyleSheet.create({
   waiting: {
     alignItems: 'center',
     padding: 32,
-  },
-  waitingEmoji: {
-    fontSize: 64,
-    marginBottom: 16,
   },
   waitingTitle: {
     fontSize: 20,

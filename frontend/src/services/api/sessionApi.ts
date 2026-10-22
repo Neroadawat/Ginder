@@ -3,6 +3,7 @@
  */
 
 import apiClient, {DISCOVERY_TIMEOUT_MS} from './client';
+import {syncSessionClock} from '@/utils/sessionClock';
 import {
   CreateSessionRequest,
   DeckFinishedResponse,
@@ -34,6 +35,7 @@ export const sessionApi = {
 
   getSession: async (sessionId: string): Promise<LobbyResponse> => {
     const response = await apiClient.get(`/sessions/${sessionId}`);
+    syncSessionClock(response.headers.date);
     return response.data;
   },
 
@@ -43,6 +45,7 @@ export const sessionApi = {
       undefined,
       {timeout: DISCOVERY_TIMEOUT_MS},
     );
+    syncSessionClock(response.headers.date);
     return response.data;
   },
 

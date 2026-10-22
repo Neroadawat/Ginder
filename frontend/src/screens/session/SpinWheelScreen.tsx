@@ -11,7 +11,7 @@ import {StyleSheet, Text, View} from 'react-native';
 import {RouteProp, useNavigation, useRoute} from '@react-navigation/native';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 
-import SpinWheel from '@/components/SpinWheel';
+import SpinWheel, {SPIN_DURATION_MS} from '@/components/SpinWheel';
 import {useSessionDeck} from '@/hooks/useRestaurants';
 import {SessionStackParamList} from '@/navigation/types';
 import {COLORS} from '@/constants/theme';
@@ -23,7 +23,7 @@ type NavigationProp = NativeStackNavigationProp<
 >;
 
 /** Time the result stays on screen before moving to the summary. */
-const RESULT_LINGER_MS = 3500;
+const RESULT_LINGER_MS = SPIN_DURATION_MS + 1500;
 
 const SpinWheelScreen = () => {
   const route = useRoute<RouteProps>();

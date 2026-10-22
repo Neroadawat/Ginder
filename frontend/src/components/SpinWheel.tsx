@@ -12,6 +12,7 @@
 
 import React, {useEffect, useMemo, useRef} from 'react';
 import {Animated, Easing, StyleSheet, Text, View} from 'react-native';
+import Svg, {Circle, Path, Text as SvgText} from 'react-native-svg';
 
 const SLICE_COLORS = [
   '#FF6B6B',
@@ -25,7 +26,7 @@ const SLICE_COLORS = [
 ];
 
 const FULL_SPINS = 4;
-const SPIN_DURATION_MS = 4000;
+export const SPIN_DURATION_MS = 4000;
 
 interface Props {
   /** Names of the restaurants on the wheel, in a stable order. */
@@ -71,10 +72,58 @@ const SpinWheel = ({candidateNames, winnerIndex}: Props) => {
     <View style={styles.container}>
       <Animated.View
         style={[styles.wheel, {transform: [{rotate: spin}]}]}
-        accessibilityLabel={`Wheel with ${candidateNames.length} restaurants`}>
-        <View style={styles.wheelInner}>
-          <Text style={styles.wheelEmoji}>🎡</Text>
-        </View>
+        accessibilityLabel={`Wheel with ${candidateNames.length} restaurants`}
+      >
+        <Svg width={220} height={220} viewBox="0 0 220 220">
+          {candidateNames.map((name, index) => {
+            const angle = (2 * Math.PI) / candidateNames.length;
+            const start = index * angle - Math.PI / 2;
+            const end = start + angle;
+            const middle = start + angle / 2;
+            const x = (a: number, radius: number) => 110 + radius * Math.cos(a);
+            const y = (a: number, radius: number) => 110 + radius * Math.sin(a);
+            return (
+              <React.Fragment key={`${name}-${index}`}>
+                {candidateNames.length === 1 ? (
+                  <Circle cx={110} cy={110} r={104} fill={SLICE_COLORS[0]} />
+                ) : (
+                  <Path
+                    d={`M110 110 L${x(start, 104)} ${y(
+                      start,
+                      104,
+                    )} A104 104 0 ${angle > Math.PI ? 1 : 0} 1 ${x(
+                      end,
+                      104,
+                    )} ${y(end, 104)} Z`}
+                    fill={SLICE_COLORS[index % SLICE_COLORS.length]}
+                    stroke="#FFF"
+                    strokeWidth={1}
+                  />
+                )}
+                <SvgText
+                  x={x(middle, 78)}
+                  y={y(middle, 78) + 4}
+                  textAnchor="middle"
+                  fontSize={13}
+                  fontWeight="700"
+                  fill="#171717"
+                >
+                  {index + 1}
+                </SvgText>
+              </React.Fragment>
+            );
+          })}
+          <Circle cx={110} cy={110} r={38} fill="#FFF" />
+          <SvgText
+            x={110}
+            y={115}
+            textAnchor="middle"
+            fontSize={16}
+            fill="#171717"
+          >
+            {'สุ่มร้าน'}
+          </SvgText>
+        </Svg>
       </Animated.View>
 
       <View style={styles.pointer}>
@@ -90,12 +139,16 @@ const SpinWheel = ({candidateNames, winnerIndex}: Props) => {
               style={[styles.swatch, {backgroundColor: SLICE_COLORS[index]}]}
             />
             <Text style={styles.legendText} numberOfLines={1}>
-              {name}
+              {index + 1}. {name}
             </Text>
           </View>
         ))}
         {hiddenCount > 0 && (
-          <Text style={styles.legendMore}>and {hiddenCount} more</Text>
+          <Text style={styles.legendMore}>
+            {'and '}
+            {hiddenCount}
+            {' more'}
+          </Text>
         )}
       </View>
     </View>
@@ -116,13 +169,6 @@ const styles = StyleSheet.create({
     borderColor: '#F2F2F2',
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  wheelInner: {
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  wheelEmoji: {
-    fontSize: 72,
   },
   pointer: {
     position: 'absolute',

@@ -127,3 +127,14 @@ export const useSessionResult = (sessionId: string, enabled = true) => {
     retry: 1,
   });
 };
+
+/** Recover a final outcome even if its WebSocket notification was missed. */
+export const useLiveSessionResult = (sessionId: string, enabled: boolean) =>
+  useQuery({
+    queryKey: ['session', sessionId, 'result'],
+    queryFn: () => sessionApi.getResult(sessionId),
+    enabled: enabled && !!sessionId,
+    refetchInterval: query => (query.state.data ? false : 2000),
+    staleTime: 0,
+    retry: false,
+  });
