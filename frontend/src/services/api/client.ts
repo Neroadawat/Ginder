@@ -6,7 +6,7 @@ import axios, {AxiosError, InternalAxiosRequestConfig} from 'axios';
 import {jwtDecode} from 'jwt-decode';
 
 import {API_BASE_URL} from '@/services/config';
-import {useAuthStore} from '@/stores/authStore';
+import {getAuthRevision, useAuthStore} from '@/stores/authStore';
 
 // A first search in a new area may query a public OSM mirror. Later searches
 // use the server's seven-day cache and stay within the normal 15-second limit.
@@ -52,9 +52,24 @@ const apiClient = axios.create({
   },
 });
 
+type AuthRequestConfig = InternalAxiosRequestConfig & {
+  _retry?: boolean;
+  _authRevision?: number;
+};
+const authenticationChanged = () =>
+  new Error('Authentication changed. Please try again.');
+
 // ─── Request interceptor: attach Bearer token ───
 apiClient.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
+    const request = config as AuthRequestConfig;
+    if (
+      request._authRevision !== undefined &&
+      request._authRevision !== getAuthRevision()
+    ) {
+      return Promise.reject(authenticationChanged());
+    }
+    request._authRevision = getAuthRevision();
     const token = useAuthStore.getState().accessToken;
     if (token && config.headers) {
       config.headers.Authorization = `Bearer ${token}`;
@@ -66,38 +81,86 @@ apiClient.interceptors.request.use(
 
 // ─── Response interceptor: handle 401 with token refresh ───
 apiClient.interceptors.response.use(
-  response => response,
+  response => {
+    if (
+      (response.config as AuthRequestConfig)._authRevision !== getAuthRevision()
+    ) {
+      return Promise.reject(authenticationChanged());
+    }
+    return response;
+  },
   async (error: AxiosError) => {
-    const originalRequest = error.config as InternalAxiosRequestConfig & {
-      _retry?: boolean;
-    };
+    const originalRequest = error.config as AuthRequestConfig | undefined;
+    // Never retry an old account's operation (especially DELETE) using the
+    // next account's refresh token or deliver its private data to new screens.
+    if (
+      originalRequest &&
+      originalRequest._authRevision !== getAuthRevision()
+    ) {
+      return Promise.reject(authenticationChanged());
+    }
 
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    const authRequest = originalRequest?.url?.startsWith('/auth/');
+    if (
+      error.response?.status === 401 &&
+      originalRequest &&
+      !originalRequest._retry &&
+      !authRequest
+    ) {
       originalRequest._retry = true;
 
       const refreshToken = useAuthStore.getState().refreshToken;
+      const userId = useAuthStore.getState().userId;
       if (!refreshToken) {
-        useAuthStore.getState().logout();
+        await useAuthStore.getState().logout();
         return Promise.reject(error);
       }
 
       try {
-        const response = await axios.post(`${API_BASE_URL}/auth/refresh`, {
-          refresh_token: refreshToken,
-        });
+        const response = await axios.post(
+          `${API_BASE_URL}/auth/refresh`,
+          {
+            refresh_token: refreshToken,
+          },
+          {timeout: 15000},
+        );
+
+        // A slow refresh must never restore a logged-out or different account.
+        if (
+          useAuthStore.getState().refreshToken !== refreshToken ||
+          useAuthStore.getState().userId !== userId
+        ) {
+          return Promise.reject(
+            new Error('Authentication changed. Please try again.'),
+          );
+        }
 
         const {access_token, refresh_token} = response.data;
         const payload = jwtDecode<{sub: string}>(access_token);
         await useAuthStore
           .getState()
-          .setTokens(access_token, refresh_token, payload.sub);
+          .setTokens(access_token, refresh_token, payload.sub, refreshToken);
+
+        if (
+          useAuthStore.getState().userId !== userId ||
+          useAuthStore.getState().accessToken !== access_token
+        ) {
+          return Promise.reject(
+            new Error('Authentication changed. Please try again.'),
+          );
+        }
 
         if (originalRequest.headers) {
           originalRequest.headers.Authorization = `Bearer ${access_token}`;
         }
         return apiClient(originalRequest);
       } catch {
-        useAuthStore.getState().logout();
+        if (
+          useAuthStore.getState().refreshToken === refreshToken &&
+          useAuthStore.getState().userId === userId
+        ) {
+          await useAuthStore.getState().logout();
+        }
         return Promise.reject(error);
       }
     }

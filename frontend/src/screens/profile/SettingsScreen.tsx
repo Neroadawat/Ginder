@@ -17,7 +17,6 @@ import {useAuthStore} from '@/stores/authStore';
 import {useDeleteAccount} from '@/hooks/useUser';
 import {useGoogleUsage} from '@/hooks/useUsage';
 import {PRIVACY_POLICY_URL, TERMS_OF_SERVICE_URL} from '@/services/config';
-import {clearFCMRegistration} from '@/services/fcm';
 
 const SettingsScreen = () => {
   const navigation = useNavigation();
@@ -31,13 +30,7 @@ const SettingsScreen = () => {
       {
         text: 'ออกจากระบบ',
         style: 'destructive',
-        onPress: async () => {
-          try {
-            await clearFCMRegistration();
-          } finally {
-            await logout();
-          }
-        },
+        onPress: logout,
       },
     ]);
   };

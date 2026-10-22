@@ -1,5 +1,5 @@
 import React from 'react';
-import {QueryClient, QueryClientProvider} from '@tanstack/react-query';
+import {QueryClientProvider} from '@tanstack/react-query';
 import {DarkTheme, NavigationContainer} from '@react-navigation/native';
 import {SafeAreaProvider} from 'react-native-safe-area-context';
 import {GestureHandlerRootView} from 'react-native-gesture-handler';
@@ -10,15 +10,7 @@ import {linking} from '@/navigation/linking';
 import SplashScreen from '@/screens/SplashScreen';
 import {useAppBootstrap} from '@/hooks/useAppBootstrap';
 import {COLORS} from '@/constants/theme';
-
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      retry: 2,
-      staleTime: 1000 * 60 * 5, // 5 minutes
-    },
-  },
-});
+import {queryClient} from '@/services/queryClient';
 
 const navigationTheme = {
   ...DarkTheme,
