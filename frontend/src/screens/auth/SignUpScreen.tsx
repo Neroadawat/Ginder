@@ -1,3 +1,4 @@
+import {t, useTranslation} from '@/i18n';
 /**
  * Sign Up Screen — Register with email, password, display name + terms consent.
  */
@@ -24,6 +25,7 @@ import {AuthStackParamList} from '@/navigation/types';
 type NavigationProp = NativeStackNavigationProp<AuthStackParamList, 'SignUp'>;
 
 const SignUpScreen = () => {
+  useTranslation();
   const navigation = useNavigation<NavigationProp>();
   const signUpMutation = useSignUp();
 
@@ -42,24 +44,24 @@ const SignUpScreen = () => {
     const normalizedName = displayName.trim();
 
     if (!normalizedName) {
-      setValidationError('กรุณากรอกชื่อที่แสดง');
+      setValidationError(t('กรุณากรอกชื่อที่แสดง'));
       return;
     }
     if (!normalizedEmail || !/^\S+@\S+\.\S+$/.test(normalizedEmail)) {
-      setValidationError('กรุณากรอกอีเมลให้ถูกต้อง');
+      setValidationError(t('กรุณากรอกอีเมลให้ถูกต้อง'));
       return;
     }
     if (password.length < 8) {
-      setValidationError('รหัสผ่านต้องมีอย่างน้อย 8 ตัวอักษร');
+      setValidationError(t('รหัสผ่านต้องมีอย่างน้อย 8 ตัวอักษร'));
       return;
     }
     if (password.length > 128) {
-      setValidationError('รหัสผ่านต้องไม่เกิน 128 ตัวอักษร');
+      setValidationError(t('รหัสผ่านต้องไม่เกิน 128 ตัวอักษร'));
       return;
     }
     if (!hasConsented) {
       setValidationError(
-        'กรุณายอมรับข้อกำหนดการใช้งานและนโยบายความเป็นส่วนตัว',
+        t('กรุณายอมรับข้อกำหนดการใช้งานและนโยบายความเป็นส่วนตัว'),
       );
       return;
     }
@@ -81,57 +83,65 @@ const SignUpScreen = () => {
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled">
         <View style={styles.header}>
-          <Text style={styles.title}>สมัครสมาชิก</Text>
-          <Text style={styles.subtitle}>เริ่มหาร้านที่อยากกินกับ Ginder</Text>
+          <Text style={styles.title}>{t('สมัครสมาชิก')}</Text>
+          <Text style={styles.subtitle}>
+            {t('เริ่มหาร้านที่อยากกินกับ Ginder')}
+          </Text>
         </View>
 
         <View style={styles.form}>
           <TextInput
             style={styles.input}
-            placeholder="ชื่อที่แสดง"
+            placeholder={t('ชื่อที่แสดง')}
             placeholderTextColor="#999"
             value={displayName}
             onChangeText={setDisplayName}
-            accessibilityLabel="Display name input"
+            accessibilityLabel={t('Display name input')}
           />
           <TextInput
             style={styles.input}
-            placeholder="อีเมล"
+            placeholder={t('อีเมล')}
             placeholderTextColor="#999"
             value={email}
             onChangeText={setEmail}
             keyboardType="email-address"
             autoCapitalize="none"
             autoCorrect={false}
-            accessibilityLabel="Email input"
+            accessibilityLabel={t('Email input')}
           />
           <TextInput
             style={styles.input}
-            placeholder="รหัสผ่าน"
+            placeholder={t('รหัสผ่าน')}
             placeholderTextColor="#999"
             value={password}
             onChangeText={setPassword}
             secureTextEntry
-            accessibilityLabel="Password input"
+            accessibilityLabel={t('Password input')}
           />
 
           <View style={styles.requirements}>
             <Text style={styles.requirementsTitle}>
-              ข้อมูลสำหรับสมัครสมาชิก
+              {t('ข้อมูลสำหรับสมัครสมาชิก')}
             </Text>
-            <Text style={styles.requirement}>• กรอกชื่อที่แสดง</Text>
-            <Text style={styles.requirement}>• ใช้อีเมลที่รับจดหมายได้</Text>
-            <Text style={styles.requirement}>• รหัสผ่าน 8–128 ตัวอักษร</Text>
+            <Text style={styles.requirement}>{t('• กรอกชื่อที่แสดง')}</Text>
             <Text style={styles.requirement}>
-              • ยอมรับข้อกำหนดและนโยบายความเป็นส่วนตัว
+              {t('• ใช้อีเมลที่รับจดหมายได้')}
+            </Text>
+            <Text style={styles.requirement}>
+              {t('• รหัสผ่าน 8–128 ตัวอักษร')}
+            </Text>
+            <Text style={styles.requirement}>
+              {t('• ยอมรับข้อกำหนดและนโยบายความเป็นส่วนตัว')}
             </Text>
           </View>
 
           {(validationError || signUpMutation.isError) && (
             <Text style={styles.errorText}>
-              {validationError ||
-                signUpMutation.error?.message ||
-                'สมัครสมาชิกไม่สำเร็จ'}
+              {t(
+                validationError ||
+                  signUpMutation.error?.message ||
+                  'สมัครสมาชิกไม่สำเร็จ',
+              )}
             </Text>
           )}
 
@@ -140,21 +150,21 @@ const SignUpScreen = () => {
             onPress={handleSignUp}
             disabled={signUpMutation.isPending}
             accessibilityRole="button"
-            accessibilityLabel="Register">
+            accessibilityLabel={t('Register')}>
             {signUpMutation.isPending ? (
               <ActivityIndicator color="#FFF" />
             ) : (
-              <Text style={styles.buttonText}>สมัครสมาชิก</Text>
+              <Text style={styles.buttonText}>{t('สมัครสมาชิก')}</Text>
             )}
           </TouchableOpacity>
         </View>
 
         <View style={styles.footer}>
-          <Text style={styles.footerText}>มีบัญชีแล้ว? </Text>
+          <Text style={styles.footerText}>{t('มีบัญชีแล้ว? ')}</Text>
           <TouchableOpacity
             onPress={() => navigation.navigate('Login')}
             accessibilityRole="button">
-            <Text style={styles.footerLink}>เข้าสู่ระบบ</Text>
+            <Text style={styles.footerLink}>{t('เข้าสู่ระบบ')}</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>

@@ -1,3 +1,4 @@
+import {t, useTranslation} from '@/i18n';
 /**
  * Explore Categories Screen — Browse restaurant categories.
  */
@@ -15,7 +16,6 @@ import {useNavigation} from '@react-navigation/native';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 
 import {useCategories} from '@/hooks/useRestaurants';
-import {getCategoryEmoji} from '@/constants/placeholders';
 import {ExploreStackParamList} from '@/navigation/types';
 import {COLORS} from '@/constants/theme';
 import {categoryLabel} from '@/utils/category';
@@ -26,6 +26,7 @@ type NavigationProp = NativeStackNavigationProp<
 >;
 
 const ExploreCategoriesScreen = () => {
+  useTranslation();
   const navigation = useNavigation<NavigationProp>();
   const {data: categories, isLoading} = useCategories();
 
@@ -34,8 +35,9 @@ const ExploreCategoriesScreen = () => {
       style={styles.categoryCard}
       onPress={() => navigation.navigate('CategoryResults', {category: item})}
       accessibilityRole="button"
-      accessibilityLabel={`Browse ${item} restaurants`}>
-      <Text style={styles.categoryEmoji}>{getCategoryEmoji(item)}</Text>
+      accessibilityLabel={t('Browse {category} restaurants', {
+        category: categoryLabel(item),
+      })}>
       <Text style={styles.categoryName}>{categoryLabel(item)}</Text>
     </TouchableOpacity>
   );
@@ -51,8 +53,10 @@ const ExploreCategoriesScreen = () => {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>หมวดหมู่อาหาร</Text>
-        <Text style={styles.subtitle}>ค้นหาร้านตามประเภทอาหารที่อยากกิน</Text>
+        <Text style={styles.title}>{t('หมวดหมู่อาหาร')}</Text>
+        <Text style={styles.subtitle}>
+          {t('ค้นหาร้านตามประเภทอาหารที่อยากกิน')}
+        </Text>
       </View>
 
       <FlatList
@@ -96,17 +100,12 @@ const styles = StyleSheet.create({
   },
   categoryCard: {
     flex: 1,
-    height: 226,
+    minHeight: 112,
     backgroundColor: COLORS.surfaceElevated,
     borderRadius: 17,
     padding: 14,
     margin: 5,
-    justifyContent: 'space-between',
-  },
-  categoryEmoji: {
-    fontSize: 78,
-    textAlign: 'center',
-    marginTop: 54,
+    justifyContent: 'center',
   },
   categoryName: {
     fontSize: 16,

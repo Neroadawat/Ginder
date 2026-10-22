@@ -1,3 +1,4 @@
+import {t, useTranslation} from '@/i18n';
 /**
  * Login Screen — Email & Password authentication.
  */
@@ -18,11 +19,13 @@ import {useNavigation} from '@react-navigation/native';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 
 import {useLogin} from '@/hooks/useAuth';
+import LanguageSwitcher from '@/components/LanguageSwitcher';
 import {AuthStackParamList} from '@/navigation/types';
 
 type NavigationProp = NativeStackNavigationProp<AuthStackParamList, 'Login'>;
 
 const LoginScreen = () => {
+  useTranslation();
   const navigation = useNavigation<NavigationProp>();
   const loginMutation = useLogin();
 
@@ -33,15 +36,15 @@ const LoginScreen = () => {
   const handleLogin = () => {
     const normalizedEmail = email.trim().toLowerCase();
     if (!normalizedEmail) {
-      setValidationError('กรุณากรอกอีเมล');
+      setValidationError(t('กรุณากรอกอีเมล'));
       return;
     }
     if (!/^\S+@\S+\.\S+$/.test(normalizedEmail)) {
-      setValidationError('กรุณากรอกอีเมลให้ถูกต้อง');
+      setValidationError(t('กรุณากรอกอีเมลให้ถูกต้อง'));
       return;
     }
     if (!password) {
-      setValidationError('กรุณากรอกรหัสผ่าน');
+      setValidationError(t('กรุณากรอกรหัสผ่าน'));
       return;
     }
 
@@ -57,37 +60,40 @@ const LoginScreen = () => {
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled">
         <View style={styles.header}>
-          <Text style={styles.logo}>🍽️ Ginder</Text>
-          <Text style={styles.subtitle}>หาร้านมื้อต่อไปด้วยกัน</Text>
+          <Text style={styles.logo}>Ginder</Text>
+          <Text style={styles.subtitle}>{t('หาร้านมื้อต่อไปด้วยกัน')}</Text>
         </View>
 
+        <LanguageSwitcher />
         <View style={styles.form}>
           <TextInput
             style={styles.input}
-            placeholder="อีเมล"
+            placeholder={t('อีเมล')}
             placeholderTextColor="#999"
             value={email}
             onChangeText={setEmail}
             keyboardType="email-address"
             autoCapitalize="none"
             autoCorrect={false}
-            accessibilityLabel="Email input"
+            accessibilityLabel={t('Email input')}
           />
           <TextInput
             style={styles.input}
-            placeholder="รหัสผ่าน"
+            placeholder={t('รหัสผ่าน')}
             placeholderTextColor="#999"
             value={password}
             onChangeText={setPassword}
             secureTextEntry
-            accessibilityLabel="Password input"
+            accessibilityLabel={t('Password input')}
           />
 
           {(validationError || loginMutation.isError) && (
             <Text style={styles.errorText}>
-              {validationError ||
-                loginMutation.error?.message ||
-                'เข้าสู่ระบบไม่สำเร็จ'}
+              {t(
+                validationError ||
+                  loginMutation.error?.message ||
+                  'เข้าสู่ระบบไม่สำเร็จ',
+              )}
             </Text>
           )}
 
@@ -96,27 +102,27 @@ const LoginScreen = () => {
             onPress={handleLogin}
             disabled={loginMutation.isPending}
             accessibilityRole="button"
-            accessibilityLabel="Login">
+            accessibilityLabel={t('Login')}>
             {loginMutation.isPending ? (
               <ActivityIndicator color="#FFF" />
             ) : (
-              <Text style={styles.buttonText}>เข้าสู่ระบบ</Text>
+              <Text style={styles.buttonText}>{t('เข้าสู่ระบบ')}</Text>
             )}
           </TouchableOpacity>
 
           <TouchableOpacity
             onPress={() => navigation.navigate('ForgotPassword')}
             accessibilityRole="button">
-            <Text style={styles.linkText}>ลืมรหัสผ่าน?</Text>
+            <Text style={styles.linkText}>{t('ลืมรหัสผ่าน?')}</Text>
           </TouchableOpacity>
         </View>
 
         <View style={styles.footer}>
-          <Text style={styles.footerText}>ยังไม่มีบัญชี? </Text>
+          <Text style={styles.footerText}>{t('ยังไม่มีบัญชี? ')}</Text>
           <TouchableOpacity
             onPress={() => navigation.navigate('SignUp')}
             accessibilityRole="button">
-            <Text style={styles.footerLink}>สมัครสมาชิก</Text>
+            <Text style={styles.footerLink}>{t('สมัครสมาชิก')}</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>

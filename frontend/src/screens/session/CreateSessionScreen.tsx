@@ -1,3 +1,4 @@
+import {t, useTranslation} from '@/i18n';
 /**
  * Create Session Screen — Host creates a party session with radius and timer settings.
  */
@@ -39,6 +40,7 @@ type NavigationProp = NativeStackNavigationProp<
 const ALL_LABEL = 'ทั้งหมด';
 
 const CreateSessionScreen = () => {
+  useTranslation();
   const navigation = useNavigation<NavigationProp>();
   const isLocating = useLocationStore(state => state.isLocating);
   const locationError = useLocationStore(state => state.error);
@@ -85,15 +87,17 @@ const CreateSessionScreen = () => {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <Text style={styles.title}>🎉 สร้างห้องกับเพื่อน</Text>
-      <Text style={styles.subtitle}>ตั้งค่าการค้นหาร้านและเวลาโหวต</Text>
+      <Text style={styles.title}>{t('สร้างห้องกับเพื่อน')}</Text>
+      <Text style={styles.subtitle}>{t('ตั้งค่าการค้นหาร้านและเวลาโหวต')}</Text>
 
       {currentSession && (
         <View style={styles.resumeCard}>
           <View style={styles.resumeCopy}>
-            <Text style={styles.resumeTitle}>คุณมีห้องที่ยังไม่จบอยู่</Text>
+            <Text style={styles.resumeTitle}>
+              {t('คุณมีห้องที่ยังไม่จบอยู่')}
+            </Text>
             <Text style={styles.resumeHint}>
-              กลับเข้าห้องเดิมก่อนสร้างห้องใหม่
+              {t('กลับเข้าห้องเดิมก่อนสร้างห้องใหม่')}
             </Text>
           </View>
           <TouchableOpacity
@@ -109,13 +113,13 @@ const CreateSessionScreen = () => {
                 });
               }
             }}>
-            <Text style={styles.resumeText}>กลับเข้าห้อง</Text>
+            <Text style={styles.resumeText}>{t('กลับเข้าห้อง')}</Text>
           </TouchableOpacity>
         </View>
       )}
 
       {/* Radius */}
-      <Text style={styles.sectionTitle}>รัศมีค้นหา</Text>
+      <Text style={styles.sectionTitle}>{t('รัศมีค้นหา')}</Text>
       <View style={styles.chipRow}>
         {RADIUS_OPTIONS_KM.map(r => (
           <TouchableOpacity
@@ -136,7 +140,7 @@ const CreateSessionScreen = () => {
       </View>
 
       {/* Category */}
-      <Text style={styles.sectionTitle}>ประเภทอาหาร</Text>
+      <Text style={styles.sectionTitle}>{t('ประเภทอาหาร')}</Text>
       <View style={styles.chipRow}>
         {categoryOptions.map(option => {
           const selected =
@@ -158,7 +162,7 @@ const CreateSessionScreen = () => {
       </View>
 
       {/* Price */}
-      <Text style={styles.sectionTitle}>ช่วงราคา</Text>
+      <Text style={styles.sectionTitle}>{t('ช่วงราคา')}</Text>
       <View style={styles.chipRow}>
         {PRICE_LEVELS.map(option => {
           const selected = priceLevel === option.value;
@@ -171,7 +175,7 @@ const CreateSessionScreen = () => {
               accessibilityState={{selected}}>
               <Text
                 style={[styles.chipText, selected && styles.chipTextActive]}>
-                {option.label}
+                {t(option.label)}
               </Text>
             </TouchableOpacity>
           );
@@ -179,7 +183,7 @@ const CreateSessionScreen = () => {
       </View>
 
       {/* Rating */}
-      <Text style={styles.sectionTitle}>คะแนนขั้นต่ำ</Text>
+      <Text style={styles.sectionTitle}>{t('คะแนนขั้นต่ำ')}</Text>
       <View style={styles.chipRow}>
         {RATING_OPTIONS.map(option => {
           const selected = minRating === option.value;
@@ -192,7 +196,7 @@ const CreateSessionScreen = () => {
               accessibilityState={{selected}}>
               <Text
                 style={[styles.chipText, selected && styles.chipTextActive]}>
-                {option.label}
+                {t(option.label)}
               </Text>
             </TouchableOpacity>
           );
@@ -202,9 +206,9 @@ const CreateSessionScreen = () => {
       {/* Open now */}
       <View style={styles.switchRow}>
         <View style={styles.switchLabel}>
-          <Text style={styles.sectionTitle}>เปิดอยู่ตอนนี้</Text>
+          <Text style={styles.sectionTitle}>{t('เปิดอยู่ตอนนี้')}</Text>
           <Text style={styles.sectionHint}>
-            เฉพาะร้านที่มีข้อมูลเวลาเปิดและกำลังเปิดอยู่
+            {t('เฉพาะร้านที่มีข้อมูลเวลาเปิดและกำลังเปิดอยู่')}
           </Text>
         </View>
         <Switch
@@ -212,29 +216,29 @@ const CreateSessionScreen = () => {
           onValueChange={setOpenNow}
           trackColor={{false: '#403B3B', true: COLORS.accent}}
           thumbColor="#FFF"
-          accessibilityLabel="Only show places open now"
+          accessibilityLabel={t('Only show places open now')}
         />
       </View>
 
       {/* Timer */}
-      <Text style={styles.sectionTitle}>เวลาโหวต</Text>
+      <Text style={styles.sectionTitle}>{t('เวลาโหวต')}</Text>
       <View style={styles.chipRow}>
-        {SESSION_DURATION_OPTIONS.map(t => (
+        {SESSION_DURATION_OPTIONS.map(option => (
           <TouchableOpacity
-            key={t.value}
+            key={option.value}
             style={[
               styles.chip,
-              durationSeconds === t.value && styles.chipActive,
+              durationSeconds === option.value && styles.chipActive,
             ]}
-            onPress={() => setDurationSeconds(t.value)}
+            onPress={() => setDurationSeconds(option.value)}
             accessibilityRole="button"
-            accessibilityState={{selected: durationSeconds === t.value}}>
+            accessibilityState={{selected: durationSeconds === option.value}}>
             <Text
               style={[
                 styles.chipText,
-                durationSeconds === t.value && styles.chipTextActive,
+                durationSeconds === option.value && styles.chipTextActive,
               ]}>
-              {t.label}
+              {t(option.label)}
             </Text>
           </TouchableOpacity>
         ))}
@@ -251,17 +255,17 @@ const CreateSessionScreen = () => {
           Boolean(currentSession)
         }
         accessibilityRole="button"
-        accessibilityLabel="Create session">
+        accessibilityLabel={t('Create session')}>
         {createMutation.isPending || isCheckingSession || isLocating ? (
           <ActivityIndicator color="#FFF" />
         ) : (
-          <Text style={styles.createText}>สร้างห้อง</Text>
+          <Text style={styles.createText}>{t('สร้างห้อง')}</Text>
         )}
       </TouchableOpacity>
       {createMutation.isError && (
-        <Text style={styles.error}>{createMutation.error.message}</Text>
+        <Text style={styles.error}>{t(createMutation.error.message)}</Text>
       )}
-      {locationError && <Text style={styles.error}>{locationError}</Text>}
+      {locationError && <Text style={styles.error}>{t(locationError)}</Text>}
     </ScrollView>
   );
 };

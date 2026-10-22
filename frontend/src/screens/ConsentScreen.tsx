@@ -1,3 +1,4 @@
+import {t, useTranslation} from '@/i18n';
 /**
  * Consent Screen — Terms of Service and Privacy Policy.
  *
@@ -20,61 +21,61 @@ import {
 } from 'react-native';
 
 import {useConsentStore} from '@/stores/consentStore';
+import LanguageSwitcher from '@/components/LanguageSwitcher';
 import {PRIVACY_POLICY_URL, TERMS_OF_SERVICE_URL} from '@/services/config';
 
 const DATA_POINTS = [
   {
-    icon: '📍',
     title: 'ตำแหน่งของคุณ',
     body: 'ใช้ค้นหาร้านใกล้คุณและเป็นจุดอ้างอิงของห้อง ไม่ติดตามตำแหน่งในเบื้องหลัง',
   },
   {
-    icon: '📧',
     title: 'อีเมลและชื่อที่แสดง',
     body: 'ใช้เข้าสู่ระบบ รับอีเมลตั้งรหัสผ่าน และแสดงชื่อให้เพื่อนในห้อง',
   },
   {
-    icon: '❤️',
     title: 'การปัดและประวัติร้านที่เลือก',
     body: 'เก็บเพื่อให้กลับมาดูร้านที่ถูกใจและผลห้องที่ผ่านมาได้',
   },
 ];
 
 const ConsentScreen = () => {
+  useTranslation();
   const accept = useConsentStore(state => state.accept);
   const [agreed, setAgreed] = useState(false);
 
   return (
     <View style={styles.container}>
       <ScrollView contentContainerStyle={styles.content}>
-        <Text style={styles.logo}>🍽️ Ginder</Text>
-        <Text style={styles.title}>ก่อนเริ่มใช้งาน</Text>
+        <Text style={styles.logo}>Ginder</Text>
+        <LanguageSwitcher />
+        <Text style={styles.title}>{t('ก่อนเริ่มใช้งาน')}</Text>
         <Text style={styles.intro}>
-          Ginder ใช้ข้อมูลต่อไปนี้เพื่อให้บริการ คุณลบบัญชีและ
-          ข้อมูลส่วนบุคคลได้จากการตั้งค่า
+          {t(
+            'Ginder ใช้ข้อมูลต่อไปนี้เพื่อให้บริการ คุณลบบัญชีและ ข้อมูลส่วนบุคคลได้จากการตั้งค่า',
+          )}
         </Text>
 
         {DATA_POINTS.map(point => (
           <View key={point.title} style={styles.point}>
-            <Text style={styles.pointIcon}>{point.icon}</Text>
             <View style={styles.pointText}>
-              <Text style={styles.pointTitle}>{point.title}</Text>
-              <Text style={styles.pointBody}>{point.body}</Text>
+              <Text style={styles.pointTitle}>{t(point.title)}</Text>
+              <Text style={styles.pointBody}>{t(point.body)}</Text>
             </View>
           </View>
         ))}
 
-        <Text style={styles.legal}>อ่านรายละเอียดก่อนดำเนินการต่อ:</Text>
+        <Text style={styles.legal}>{t('อ่านรายละเอียดก่อนดำเนินการต่อ:')}</Text>
         <View style={styles.legalLinks}>
           <TouchableOpacity
             onPress={() => Linking.openURL(TERMS_OF_SERVICE_URL)}
             accessibilityRole="link">
-            <Text style={styles.legalLink}>ข้อกำหนดการใช้งาน</Text>
+            <Text style={styles.legalLink}>{t('ข้อกำหนดการใช้งาน')}</Text>
           </TouchableOpacity>
           <TouchableOpacity
             onPress={() => Linking.openURL(PRIVACY_POLICY_URL)}
             accessibilityRole="link">
-            <Text style={styles.legalLink}>ความเป็นส่วนตัว</Text>
+            <Text style={styles.legalLink}>{t('ความเป็นส่วนตัว')}</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -86,10 +87,12 @@ const ConsentScreen = () => {
             onValueChange={setAgreed}
             trackColor={{false: '#DDD', true: '#FF6B6B'}}
             thumbColor="#FFF"
-            accessibilityLabel="Agree to the Terms of Service and Privacy Policy"
+            accessibilityLabel={t(
+              'Agree to the Terms of Service and Privacy Policy',
+            )}
           />
           <Text style={styles.agreeText}>
-            ฉันยอมรับข้อกำหนดและนโยบายความเป็นส่วนตัว
+            {t('ฉันยอมรับข้อกำหนดและนโยบายความเป็นส่วนตัว')}
           </Text>
         </View>
 
@@ -98,9 +101,9 @@ const ConsentScreen = () => {
           onPress={accept}
           disabled={!agreed}
           accessibilityRole="button"
-          accessibilityLabel="Continue"
+          accessibilityLabel={t('Continue')}
           accessibilityState={{disabled: !agreed}}>
-          <Text style={styles.buttonText}>ดำเนินการต่อ</Text>
+          <Text style={styles.buttonText}>{t('ดำเนินการต่อ')}</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -138,10 +141,6 @@ const styles = StyleSheet.create({
   point: {
     flexDirection: 'row',
     marginBottom: 20,
-  },
-  pointIcon: {
-    fontSize: 24,
-    marginRight: 12,
   },
   pointText: {
     flex: 1,

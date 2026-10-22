@@ -1,3 +1,4 @@
+import {t, useTranslation} from '@/i18n';
 /** Restaurant cards keep their own image view and animation while in the stack. */
 import React, {
   forwardRef,
@@ -139,11 +140,11 @@ const CardLayer = forwardRef<CardHandle, CardLayerProps>(
           style={[styles.card, styles.nextCard, animatedStyle]}>
           <Animated.View
             style={[styles.overlay, styles.likeOverlay, likeOpacity]}>
-            <Text style={styles.overlayText}>ถูกใจ ❤️</Text>
+            <Text style={styles.overlayText}>{t('ถูกใจ')}</Text>
           </Animated.View>
           <Animated.View
             style={[styles.overlay, styles.skipOverlay, skipOpacity]}>
-            <Text style={styles.overlayText}>ข้าม ✕</Text>
+            <Text style={styles.overlayText}>{t('ข้าม')}</Text>
           </Animated.View>
           <RestaurantCardContent restaurant={restaurant} />
         </Animated.View>
@@ -153,6 +154,7 @@ const CardLayer = forwardRef<CardHandle, CardLayerProps>(
 );
 
 const SwipeCard = ({restaurants, onSwipe, onDeckEmpty}: SwipeCardProps) => {
+  useTranslation();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const submittingRef = useRef(false);
@@ -214,12 +216,14 @@ const SwipeCard = ({restaurants, onSwipe, onDeckEmpty}: SwipeCardProps) => {
           style={[styles.actionButton, styles.skipButton]}
           onPress={() => activeCardRef.current?.swipe(false)}
           disabled={isSubmitting}
-          accessibilityLabel="Skip restaurant">
+          accessibilityLabel={t('Skip restaurant')}>
           <AppIcon name="close" size={34} />
         </TouchableOpacity>
         <View style={styles.counterPill}>
           <Text style={styles.counter}>
-            {currentIndex + 1} of {restaurants.length}
+            {currentIndex + 1}
+            {t(' of ')}
+            {restaurants.length}
           </Text>
         </View>
         <TouchableOpacity
@@ -235,8 +239,8 @@ const SwipeCard = ({restaurants, onSwipe, onDeckEmpty}: SwipeCardProps) => {
           }
           accessibilityLabel={
             restaurants[currentIndex]?.can_like === false
-              ? 'Like unavailable for live Google place'
-              : 'Like restaurant'
+              ? t('Like unavailable for live Google place')
+              : t('Like restaurant')
           }>
           <AppIcon name="heart" size={28} color="#FFF" filled />
         </TouchableOpacity>

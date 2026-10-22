@@ -1,3 +1,4 @@
+import {t, useTranslation} from '@/i18n';
 import React from 'react';
 import {
   Alert,
@@ -12,6 +13,7 @@ import {useNavigation} from '@react-navigation/native';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 
 import AppIcon from '@/components/AppIcon';
+import LanguageSwitcher from '@/components/LanguageSwitcher';
 import {COLORS} from '@/constants/theme';
 import {useProfile, useDeleteAccount} from '@/hooks/useUser';
 import {useNotifications} from '@/hooks/useNotifications';
@@ -26,6 +28,7 @@ type ProfileNav = NativeStackNavigationProp<
 >;
 
 const ProfileHomeScreen = () => {
+  useTranslation();
   const navigation = useNavigation<ProfileNav>();
   const rootNav =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
@@ -36,18 +39,18 @@ const ProfileHomeScreen = () => {
   const {data: currentSession} = useCurrentSession();
 
   const confirmLogout = () =>
-    Alert.alert('ออกจากระบบ', 'ต้องการออกจากระบบหรือไม่?', [
-      {text: 'ยกเลิก'},
-      {text: 'ออกจากระบบ', style: 'destructive', onPress: logout},
+    Alert.alert(t('ออกจากระบบ'), t('ต้องการออกจากระบบหรือไม่?'), [
+      {text: t('ยกเลิก')},
+      {text: t('ออกจากระบบ'), style: 'destructive', onPress: logout},
     ]);
   const confirmDelete = () =>
     Alert.alert(
-      'ลบบัญชี',
-      'บัญชีและข้อมูลส่วนบุคคลจะถูกลบถาวรและกู้คืนไม่ได้',
+      t('ลบบัญชี'),
+      t('บัญชีและข้อมูลส่วนบุคคลจะถูกลบถาวรและกู้คืนไม่ได้'),
       [
-        {text: 'ยกเลิก'},
+        {text: t('ยกเลิก')},
         {
-          text: 'ลบบัญชี',
+          text: t('ลบบัญชี'),
           style: 'destructive',
           onPress: () => deleteAccount.mutate(undefined, {onSuccess: logout}),
         },
@@ -56,8 +59,8 @@ const ProfileHomeScreen = () => {
   const legal = (url: string) =>
     Linking.openURL(url).catch(() =>
       Alert.alert(
-        'เปิดหน้าเว็บไม่สำเร็จ',
-        'กรุณาตรวจการเชื่อมต่อแล้วลองอีกครั้ง',
+        t('เปิดหน้าเว็บไม่สำเร็จ'),
+        t('กรุณาตรวจการเชื่อมต่อแล้วลองอีกครั้ง'),
       ),
     );
 
@@ -77,17 +80,18 @@ const ProfileHomeScreen = () => {
           <TouchableOpacity
             style={styles.editButton}
             onPress={() => navigation.navigate('Settings')}>
-            <Text style={styles.editText}>ตั้งค่า</Text>
+            <Text style={styles.editText}>{t('ตั้งค่า')}</Text>
           </TouchableOpacity>
         </View>
       </View>
-      <Section title="บัญชี">
+      <LanguageSwitcher />
+      <Section title={t('บัญชี')}>
         {currentSession && (
           <Row
             label={
               currentSession.session.status === 'lobby'
-                ? 'กลับเข้าห้องรอ'
-                : 'กลับเข้าห้องที่กำลังเล่น'
+                ? t('กลับเข้าห้องรอ')
+                : t('กลับเข้าห้องที่กำลังเล่น')
             }
             onPress={() => {
               if (currentSession.session.status === 'lobby') {
@@ -105,44 +109,52 @@ const ProfileHomeScreen = () => {
           />
         )}
         <Row
-          label="สร้างห้องกับเพื่อน"
+          label={t('สร้างห้องกับเพื่อน')}
           onPress={() => rootNav.navigate('Session', {screen: 'CreateSession'})}
         />
         <Row
-          label="เข้าห้องด้วยรหัส"
+          label={t('เข้าห้องด้วยรหัส')}
           onPress={() =>
             rootNav.navigate('Session', {screen: 'JoinSession', params: {}})
           }
         />
         <Row
-          label={`คำเชิญ${
-            notifications?.unread_count
+          label={t('คำเชิญ{p0}', {
+            p0: notifications?.unread_count
               ? ` (${notifications.unread_count})`
-              : ''
-          }`}
+              : '',
+          })}
           onPress={() => navigation.navigate('Notifications')}
         />
-        <Row label="เพื่อน" onPress={() => navigation.navigate('FriendList')} />
         <Row
-          label="ประวัติร้านที่เลือก"
+          label={t('เพื่อน')}
+          onPress={() => navigation.navigate('FriendList')}
+        />
+        <Row
+          label={t('ประวัติร้านที่เลือก')}
           onPress={() => navigation.navigate('History')}
         />
       </Section>
-      <Section title="เกี่ยวกับแอป">
+      <Section title={t('เกี่ยวกับแอป')}>
         <Row
-          label="ความเป็นส่วนตัว"
+          label={t('ความเป็นส่วนตัว')}
           onPress={() => legal(PRIVACY_POLICY_URL)}
         />
         <Row
-          label="ข้อกำหนดการใช้งาน"
+          label={t('ข้อกำหนดการใช้งาน')}
           onPress={() => legal(TERMS_OF_SERVICE_URL)}
         />
       </Section>
-      <Section title="จัดการบัญชี">
-        <Row label="ออกจากระบบ" onPress={confirmLogout} arrow={false} />
-        <Row label="ลบบัญชี" onPress={confirmDelete} arrow={false} danger />
+      <Section title={t('จัดการบัญชี')}>
+        <Row label={t('ออกจากระบบ')} onPress={confirmLogout} arrow={false} />
+        <Row
+          label={t('ลบบัญชี')}
+          onPress={confirmDelete}
+          arrow={false}
+          danger
+        />
       </Section>
-      <Text style={styles.version}>เวอร์ชัน 1.0.0</Text>
+      <Text style={styles.version}>{t('เวอร์ชัน 1.0.0')}</Text>
     </ScrollView>
   );
 };

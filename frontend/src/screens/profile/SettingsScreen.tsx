@@ -1,3 +1,4 @@
+import {t, useTranslation} from '@/i18n';
 /**
  * Settings Screen — Logout, delete account.
  */
@@ -10,25 +11,28 @@ import {
   StyleSheet,
   Alert,
   Linking,
+  ScrollView,
 } from 'react-native';
 import {useNavigation} from '@react-navigation/native';
 
 import {useAuthStore} from '@/stores/authStore';
+import LanguageSwitcher from '@/components/LanguageSwitcher';
 import {useDeleteAccount} from '@/hooks/useUser';
 import {useGoogleUsage} from '@/hooks/useUsage';
 import {PRIVACY_POLICY_URL, TERMS_OF_SERVICE_URL} from '@/services/config';
 
 const SettingsScreen = () => {
+  useTranslation();
   const navigation = useNavigation();
   const logout = useAuthStore(state => state.logout);
   const deleteMutation = useDeleteAccount();
   const {data: googleUsage} = useGoogleUsage();
 
   const handleLogout = () => {
-    Alert.alert('ออกจากระบบ', 'ต้องการออกจากระบบหรือไม่?', [
-      {text: 'ยกเลิก', style: 'cancel'},
+    Alert.alert(t('ออกจากระบบ'), t('ต้องการออกจากระบบหรือไม่?'), [
+      {text: t('ยกเลิก'), style: 'cancel'},
       {
-        text: 'ออกจากระบบ',
+        text: t('ออกจากระบบ'),
         style: 'destructive',
         onPress: logout,
       },
@@ -37,12 +41,12 @@ const SettingsScreen = () => {
 
   const handleDeleteAccount = () => {
     Alert.alert(
-      'ลบบัญชี',
-      'บัญชีและข้อมูลส่วนบุคคลจะถูกลบถาวรและกู้คืนไม่ได้',
+      t('ลบบัญชี'),
+      t('บัญชีและข้อมูลส่วนบุคคลจะถูกลบถาวรและกู้คืนไม่ได้'),
       [
-        {text: 'ยกเลิก', style: 'cancel'},
+        {text: t('ยกเลิก'), style: 'cancel'},
         {
-          text: 'ลบบัญชี',
+          text: t('ลบบัญชี'),
           style: 'destructive',
           onPress: () => {
             deleteMutation.mutate(undefined, {
@@ -55,50 +59,57 @@ const SettingsScreen = () => {
   };
 
   return (
-    <View style={styles.container}>
+    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <View style={styles.header}>
         <TouchableOpacity
           onPress={() => navigation.goBack()}
           accessibilityRole="button">
-          <Text style={styles.backText}>← กลับ</Text>
+          <Text style={styles.backText}>{t('← กลับ')}</Text>
         </TouchableOpacity>
-        <Text style={styles.title}>ตั้งค่า</Text>
+        <Text style={styles.title}>{t('ตั้งค่า')}</Text>
       </View>
 
       {googleUsage && (
         <View style={styles.usageCard}>
           <Text style={styles.usageTitle}>
-            Google Places · {googleUsage.period}
+            {t('Google Places · ')}
+            {googleUsage.period}
           </Text>
           <Text style={styles.usageText}>
-            Nearby Search: {googleUsage.nearby_search.count} /{' '}
+            {t('Nearby Search: ')}
+            {googleUsage.nearby_search.count} /{' '}
             {googleUsage.nearby_search.hard_limit}
           </Text>
           <Text style={styles.usageText}>
-            Place Photos: {googleUsage.place_photo.count} /{' '}
+            {t('Place Photos: ')}
+            {googleUsage.place_photo.count} /{' '}
             {googleUsage.place_photo.hard_limit}
           </Text>
           <Text style={styles.usageStatus}>
             {googleUsage.enabled
-              ? 'Live fallback enabled'
-              : 'Live fallback disabled'}
+              ? t('Live fallback enabled')
+              : t('Live fallback disabled')}
           </Text>
         </View>
       )}
 
+      <View style={[styles.section, styles.languageSection]}>
+        <Text style={styles.menuText}>{t('Language')}</Text>
+        <LanguageSwitcher />
+      </View>
       <View style={styles.section}>
         <TouchableOpacity
           style={styles.menuItem}
           onPress={handleLogout}
           accessibilityRole="button">
-          <Text style={styles.menuText}>ออกจากระบบ</Text>
+          <Text style={styles.menuText}>{t('ออกจากระบบ')}</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
           style={styles.menuItemDanger}
           onPress={handleDeleteAccount}
           accessibilityRole="button">
-          <Text style={styles.menuTextDanger}>ลบบัญชี</Text>
+          <Text style={styles.menuTextDanger}>{t('ลบบัญชี')}</Text>
         </TouchableOpacity>
       </View>
 
@@ -107,13 +118,13 @@ const SettingsScreen = () => {
           style={styles.menuItem}
           onPress={() => Linking.openURL(PRIVACY_POLICY_URL)}
           accessibilityRole="link">
-          <Text style={styles.menuText}>ความเป็นส่วนตัว</Text>
+          <Text style={styles.menuText}>{t('ความเป็นส่วนตัว')}</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.menuItemDanger}
           onPress={() => Linking.openURL(TERMS_OF_SERVICE_URL)}
           accessibilityRole="link">
-          <Text style={styles.menuText}>ข้อกำหนดการใช้งาน</Text>
+          <Text style={styles.menuText}>{t('ข้อกำหนดการใช้งาน')}</Text>
         </TouchableOpacity>
       </View>
 
@@ -123,16 +134,19 @@ const SettingsScreen = () => {
           Linking.openURL('https://www.openstreetmap.org/copyright')
         }
         accessibilityRole="link"
-        accessibilityLabel="Open OpenStreetMap copyright and licence information">
+        accessibilityLabel={t(
+          'Open OpenStreetMap copyright and licence information',
+        )}>
         <Text style={styles.attributionText}>
-          Restaurant data © OpenStreetMap contributors
+          {t('Restaurant data © OpenStreetMap contributors')}
         </Text>
       </TouchableOpacity>
-    </View>
+    </ScrollView>
   );
 };
 
 const styles = StyleSheet.create({
+  content: {paddingBottom: 32},
   container: {
     flex: 1,
     backgroundColor: '#F5F5F5',
@@ -159,6 +173,7 @@ const styles = StyleSheet.create({
     margin: 16,
     overflow: 'hidden',
   },
+  languageSection: {padding: 16},
   menuItem: {
     padding: 16,
     borderBottomWidth: 1,

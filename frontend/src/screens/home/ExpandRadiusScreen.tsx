@@ -1,3 +1,4 @@
+import {t, useTranslation} from '@/i18n';
 /**
  * Expand Radius Screen — shown when the deck runs out.
  *
@@ -17,6 +18,7 @@ import {
 } from '@/constants/filters';
 
 const ExpandRadiusScreen = () => {
+  useTranslation();
   const navigation = useNavigation();
   const radiusKm = useFilterStore(state => state.radiusKm);
   const setRadiusKm = useFilterStore(state => state.setRadiusKm);
@@ -31,17 +33,19 @@ const ExpandRadiusScreen = () => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.emoji}>🍽️</Text>
-      <Text style={styles.title}>ดูร้านในสำรับครบแล้ว</Text>
+      <Text style={styles.title}>{t('ดูร้านในสำรับครบแล้ว')}</Text>
 
       {atMaxRadius ? (
         <Text style={styles.subtitle}>
-          ค้นหาถึงระยะสูงสุด {formatRadius(MAX_RADIUS_KM)} แล้ว
-          ลองปรับตัวกรองเพื่อดูร้านเพิ่มเติม
+          {t('ค้นหาถึงระยะสูงสุด ')}
+          {formatRadius(MAX_RADIUS_KM)}
+          {t(' แล้ว ลองปรับตัวกรองเพื่อดูร้านเพิ่มเติม')}
         </Text>
       ) : (
         <Text style={styles.subtitle}>
-          กำลังค้นหาภายใน {formatRadius(radiusKm)} ขยายรัศมี เพื่อค้นหาร้านเพิ่ม
+          {t('กำลังค้นหาภายใน ')}
+          {formatRadius(radiusKm)}
+          {t(' ขยายรัศมี เพื่อค้นหาร้านเพิ่ม')}
         </Text>
       )}
 
@@ -52,8 +56,13 @@ const ExpandRadiusScreen = () => {
             style={styles.optionButton}
             onPress={() => handleExpand(r)}
             accessibilityRole="button"
-            accessibilityLabel={`Search within ${formatRadius(r)}`}>
-            <Text style={styles.optionText}>ค้นหาภายใน {formatRadius(r)}</Text>
+            accessibilityLabel={t('Search within {radius}', {
+              radius: formatRadius(r),
+            })}>
+            <Text style={styles.optionText}>
+              {t('ค้นหาภายใน ')}
+              {formatRadius(r)}
+            </Text>
           </TouchableOpacity>
         ))}
       </View>
@@ -62,7 +71,7 @@ const ExpandRadiusScreen = () => {
         style={styles.cancelButton}
         onPress={() => navigation.goBack()}
         accessibilityRole="button">
-        <Text style={styles.cancelText}>กลับ</Text>
+        <Text style={styles.cancelText}>{t('กลับ')}</Text>
       </TouchableOpacity>
     </View>
   );
@@ -75,10 +84,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: 32,
-  },
-  emoji: {
-    fontSize: 64,
-    marginBottom: 20,
   },
   title: {
     fontSize: 22,

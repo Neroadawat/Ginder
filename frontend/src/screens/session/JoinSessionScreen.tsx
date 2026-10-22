@@ -1,3 +1,4 @@
+import {t, useTranslation} from '@/i18n';
 import React, {useEffect, useState} from 'react';
 import {
   ActivityIndicator,
@@ -23,6 +24,7 @@ type Navigation = NativeStackNavigationProp<
 >;
 
 const JoinSessionScreen = () => {
+  useTranslation();
   const {params} = useRoute<Route>();
   const navigation = useNavigation<Navigation>();
   const join = useJoinSession();
@@ -52,15 +54,16 @@ const JoinSessionScreen = () => {
       <TouchableOpacity
         style={styles.back}
         onPress={() => navigation.goBack()}
-        accessibilityLabel="Go back">
+        accessibilityLabel={t('Go back')}>
         <Text style={styles.backText}>‹</Text>
       </TouchableOpacity>
       <View style={styles.content}>
-        <Text style={styles.eyebrow}>เลือกร้านกับเพื่อน</Text>
-        <Text style={styles.title}>เข้าห้องเพื่อน</Text>
+        <Text style={styles.eyebrow}>{t('เลือกร้านกับเพื่อน')}</Text>
+        <Text style={styles.title}>{t('เข้าห้องเพื่อน')}</Text>
         <Text style={styles.message}>
-          กรอกรหัสคำเชิญจากเพื่อน เมื่อเปิดลิงก์คำเชิญของ Ginder
-          รหัสจะถูกกรอกให้อัตโนมัติ
+          {t(
+            'กรอกรหัสคำเชิญจากเพื่อน เมื่อเปิดลิงก์คำเชิญของ Ginder รหัสจะถูกกรอกให้อัตโนมัติ',
+          )}
         </Text>
         <TextInput
           value={code}
@@ -71,15 +74,17 @@ const JoinSessionScreen = () => {
             }
           }}
           style={styles.input}
-          placeholder="รหัสคำเชิญ"
+          placeholder={t('รหัสคำเชิญ')}
           placeholderTextColor="#6F6969"
           autoCapitalize="characters"
           autoCorrect={false}
           returnKeyType="go"
           onSubmitEditing={submit}
-          accessibilityLabel="Session invite code"
+          accessibilityLabel={t('Session invite code')}
         />
-        {join.isError && <Text style={styles.error}>{join.error.message}</Text>}
+        {join.isError && (
+          <Text style={styles.error}>{t(join.error.message)}</Text>
+        )}
         <TouchableOpacity
           style={[
             styles.button,
@@ -90,11 +95,11 @@ const JoinSessionScreen = () => {
           {join.isPending ? (
             <ActivityIndicator color="#FFF" />
           ) : (
-            <Text style={styles.buttonText}>เข้าห้อง</Text>
+            <Text style={styles.buttonText}>{t('เข้าห้อง')}</Text>
           )}
         </TouchableOpacity>
         <Text style={styles.hint}>
-          เมื่อเข้าห้อง เจ้าของห้องจะถูกเพิ่มเป็นเพื่อนของคุณ
+          {t('เมื่อเข้าห้อง เจ้าของห้องจะถูกเพิ่มเป็นเพื่อนของคุณ')}
         </Text>
       </View>
     </KeyboardAvoidingView>

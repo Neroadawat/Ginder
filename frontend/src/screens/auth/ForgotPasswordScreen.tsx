@@ -1,3 +1,4 @@
+import {t, useTranslation} from '@/i18n';
 /**
  * Forgot Password Screen — Enter email to receive reset link.
  */
@@ -16,6 +17,7 @@ import {useNavigation} from '@react-navigation/native';
 import {useForgotPassword} from '@/hooks/useAuth';
 
 const ForgotPasswordScreen = () => {
+  useTranslation();
   const navigation = useNavigation();
   const forgotMutation = useForgotPassword();
 
@@ -31,35 +33,36 @@ const ForgotPasswordScreen = () => {
         onPress={() => navigation.goBack()}
         style={styles.backButton}
         accessibilityRole="button"
-        accessibilityLabel="Go back">
-        <Text style={styles.backText}>← กลับ</Text>
+        accessibilityLabel={t('Go back')}>
+        <Text style={styles.backText}>{t('← กลับ')}</Text>
       </TouchableOpacity>
 
-      <Text style={styles.title}>ลืมรหัสผ่าน</Text>
+      <Text style={styles.title}>{t('ลืมรหัสผ่าน')}</Text>
       <Text style={styles.subtitle}>
-        กรอกอีเมลของบัญชีเพื่อรับลิงก์ตั้งรหัสผ่านใหม่
+        {t('กรอกอีเมลของบัญชีเพื่อรับลิงก์ตั้งรหัสผ่านใหม่')}
       </Text>
 
       <TextInput
         style={styles.input}
-        placeholder="อีเมล"
+        placeholder={t('อีเมล')}
         placeholderTextColor="#999"
         value={email}
         onChangeText={setEmail}
         keyboardType="email-address"
         autoCapitalize="none"
-        accessibilityLabel="Email input"
+        accessibilityLabel={t('Email input')}
       />
 
       {forgotMutation.isSuccess && (
         <Text style={styles.successText}>
-          หากมีบัญชีนี้ เราจะส่งลิงก์ให้ทางอีเมล
-          กรุณาตรวจกล่องจดหมายและจดหมายขยะ
+          {t(
+            'หากมีบัญชีนี้ เราจะส่งลิงก์ให้ทางอีเมล กรุณาตรวจกล่องจดหมายและจดหมายขยะ',
+          )}
         </Text>
       )}
       {forgotMutation.isError && (
         <Text style={styles.errorText} accessibilityRole="alert">
-          ส่งคำขอไม่สำเร็จ กรุณาตรวจอีเมลและการเชื่อมต่อแล้วลองอีกครั้ง
+          {t('ส่งคำขอไม่สำเร็จ กรุณาตรวจอีเมลและการเชื่อมต่อแล้วลองอีกครั้ง')}
         </Text>
       )}
 
@@ -71,7 +74,7 @@ const ForgotPasswordScreen = () => {
         {forgotMutation.isPending ? (
           <ActivityIndicator color="#FFF" />
         ) : (
-          <Text style={styles.buttonText}>ส่งลิงก์ตั้งรหัสผ่าน</Text>
+          <Text style={styles.buttonText}>{t('ส่งลิงก์ตั้งรหัสผ่าน')}</Text>
         )}
       </TouchableOpacity>
     </View>

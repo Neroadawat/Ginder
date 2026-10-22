@@ -1,9 +1,10 @@
-/** Format a straight-line distance for the Thai restaurant UI. */
-export const formatDistanceTh = (distanceKm: number): string => {
+import {t} from '@/i18n';
+/** Format a straight-line distance in the selected UI language. */
+export const formatDistance = (distanceKm: number): string => {
   if (distanceKm < 1) {
-    return `${Math.round(distanceKm * 1000)} ม.`;
+    return t('{p0} ม.', {p0: Math.round(distanceKm * 1000)});
   }
 
   const kilometres = distanceKm.toFixed(1).replace(/\.0$/, '');
-  return `${kilometres} กม.`;
+  return t('{p0} กม.', {p0: kilometres});
 };

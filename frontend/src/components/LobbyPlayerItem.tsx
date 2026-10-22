@@ -1,3 +1,4 @@
+import {t, useTranslation} from '@/i18n';
 /**
  * LobbyPlayerItem — Shows a participant in the session lobby.
  * Host can kick players before session starts.
@@ -21,6 +22,7 @@ const LobbyPlayerItem = ({
   isCurrentUser,
   onKick,
 }: Props) => {
+  useTranslation();
   return (
     <View style={styles.container}>
       <View style={styles.avatar}>
@@ -32,11 +34,20 @@ const LobbyPlayerItem = ({
       <View style={styles.info}>
         <Text style={styles.name}>
           {participant.display_name}
-          {isCurrentUser && <Text style={styles.youTag}> (You)</Text>}
+          {isCurrentUser && <Text style={styles.youTag}>{t(' (You)')}</Text>}
         </Text>
         {participant.status !== 'in_lobby' && (
           <Text style={styles.status}>
-            {participant.status.replace('_', ' ')}
+            {t(
+              (
+                {
+                  in_lobby: 'In lobby',
+                  swiping: 'Swiping',
+                  waiting: 'Waiting',
+                  disconnected: 'Disconnected',
+                } as Record<string, string>
+              )[participant.status] ?? participant.status,
+            )}
           </Text>
         )}
       </View>
@@ -46,8 +57,10 @@ const LobbyPlayerItem = ({
           style={styles.kickButton}
           onPress={onKick}
           accessibilityRole="button"
-          accessibilityLabel={`Kick ${participant.display_name}`}>
-          <Text style={styles.kickText}>Kick</Text>
+          accessibilityLabel={t('Kick {name}', {
+            name: participant.display_name,
+          })}>
+          <Text style={styles.kickText}>{t('Kick')}</Text>
         </TouchableOpacity>
       )}
     </View>

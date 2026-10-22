@@ -1,3 +1,4 @@
+import {t, useTranslation} from '@/i18n';
 /**
  * RestaurantCardContent — what a swipe card shows.
  *
@@ -10,7 +11,7 @@ import {Image, StyleSheet, Text, View} from 'react-native';
 
 import {RestaurantCard} from '@/types/restaurant';
 import {getRestaurantImageUri} from '@/constants/restaurantImages';
-import {formatDistanceTh} from '@/utils/distance';
+import {formatDistance} from '@/utils/distance';
 import {useGooglePhoto} from '@/hooks/useGooglePhoto';
 import PhotoAttribution from './PhotoAttribution';
 import DataAttribution from './DataAttribution';
@@ -21,6 +22,7 @@ interface Props {
 }
 
 const RestaurantCardContent = ({restaurant}: Props) => {
+  useTranslation();
   const {data: googlePhoto} = useGooglePhoto(restaurant);
   // Requirement 8.7: fall back to a category-specific placeholder.
   const imageUri =
@@ -41,13 +43,13 @@ const RestaurantCardContent = ({restaurant}: Props) => {
         fadeDuration={0}
         style={StyleSheet.absoluteFill}
         resizeMode="cover"
-        accessibilityLabel={`ภาพประกอบร้าน ${restaurant.name}`}
+        accessibilityLabel={t('ภาพประกอบร้าน {p0}', {p0: restaurant.name})}
       />
       <View style={styles.scrim} />
       <View style={styles.info}>
         <View style={styles.openPill}>
           <View style={styles.openDot} />
-          <Text style={styles.openText}>ร้านอาหาร</Text>
+          <Text style={styles.openText}>{t('ร้านอาหาร')}</Text>
         </View>
         <Text style={styles.name} numberOfLines={1}>
           {restaurant.name}
@@ -61,12 +63,16 @@ const RestaurantCardContent = ({restaurant}: Props) => {
             <Text style={styles.price}>{restaurant.price_symbol}</Text>
           )}
           {restaurant.rating != null && (
-            <Text style={styles.rating}>★ {restaurant.rating.toFixed(1)}</Text>
+            <Text style={styles.rating}>
+              {t('คะแนน ')}
+              {restaurant.rating.toFixed(1)}
+            </Text>
           )}
         </View>
         {restaurant.distance_km != null && (
           <Text style={styles.distance}>
-            ⌖ ห่าง {formatDistanceTh(restaurant.distance_km)}
+            {t('ห่าง ')}
+            {formatDistance(restaurant.distance_km)}
           </Text>
         )}
         <PhotoAttribution

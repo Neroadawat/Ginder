@@ -1,3 +1,4 @@
+import {t} from '@/i18n';
 /**
  * Location service — permission handling and GPS fixes.
  *
@@ -66,10 +67,10 @@ export async function requestLocationPermission(): Promise<PermissionStatus> {
   const result = await PermissionsAndroid.request(
     PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
     {
-      title: 'Ginder ต้องใช้ตำแหน่งของคุณ',
-      message: 'ใช้ตำแหน่งเพื่อค้นหาร้านอาหารใกล้คุณ',
-      buttonPositive: 'อนุญาต',
-      buttonNegative: 'ไม่อนุญาต',
+      title: t('Ginder ต้องใช้ตำแหน่งของคุณ'),
+      message: t('ใช้ตำแหน่งเพื่อค้นหาร้านอาหารใกล้คุณ'),
+      buttonPositive: t('อนุญาต'),
+      buttonNegative: t('ไม่อนุญาต'),
     },
   );
 
@@ -152,12 +153,12 @@ function describeLocationError(code: number, fallback: string): string {
   // Codes from react-native-geolocation-service
   switch (code) {
     case 1:
-      return 'ยังไม่ได้รับสิทธิ์ตำแหน่ง';
+      return t('ยังไม่ได้รับสิทธิ์ตำแหน่ง');
     case 2:
-      return 'ยังหาตำแหน่งไม่ได้ กรุณาเปิด GPS แล้วลองอีกครั้ง';
+      return t('ยังหาตำแหน่งไม่ได้ กรุณาเปิด GPS แล้วลองอีกครั้ง');
     case 3:
-      return 'ค้นหาตำแหน่งนานเกินไป กรุณาลองอีกครั้ง';
+      return t('ค้นหาตำแหน่งนานเกินไป กรุณาลองอีกครั้ง');
     default:
-      return fallback || 'ยังหาตำแหน่งไม่ได้';
+      return fallback || t('ยังหาตำแหน่งไม่ได้');
   }
 }

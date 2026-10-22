@@ -1,3 +1,4 @@
+import {dateLocale, t, useTranslation} from '@/i18n';
 import React from 'react';
 import {
   ActivityIndicator,
@@ -16,6 +17,7 @@ import {useJoinSession} from '@/hooks/useSessions';
 import {NotificationItem} from '@/types/api';
 
 const NotificationsScreen = () => {
+  useTranslation();
   const navigation = useNavigation<any>();
   const {data, isLoading} = useNotifications();
   const markRead = useMarkAsRead();
@@ -30,7 +32,10 @@ const NotificationsScreen = () => {
       inviteCode = undefined;
     }
     if (!inviteCode) {
-      Alert.alert('ใช้คำเชิญนี้ไม่ได้', 'คำเชิญนี้ไม่มีรหัสห้องที่ถูกต้อง');
+      Alert.alert(
+        t('ใช้คำเชิญนี้ไม่ได้'),
+        t('คำเชิญนี้ไม่มีรหัสห้องที่ถูกต้อง'),
+      );
       return;
     }
     joinSession.mutate(inviteCode, {
@@ -45,7 +50,7 @@ const NotificationsScreen = () => {
         if (/started|not found|invalid invite/i.test(joinError.message)) {
           markRead.mutate(item.id);
         }
-        Alert.alert('เข้าห้องไม่สำเร็จ', joinError.message);
+        Alert.alert(t('เข้าห้องไม่สำเร็จ'), t(joinError.message));
       },
     });
   };
@@ -55,11 +60,13 @@ const NotificationsScreen = () => {
       <View style={styles.header}>
         <TouchableOpacity
           onPress={() => navigation.goBack()}
-          accessibilityLabel="Go back">
-          <Text style={styles.back}>‹ กลับ</Text>
+          accessibilityLabel={t('Go back')}>
+          <Text style={styles.back}>{t('‹ กลับ')}</Text>
         </TouchableOpacity>
-        <Text style={styles.title}>คำเชิญ</Text>
-        <Text style={styles.subtitle}>ตอบรับคำเชิญเพื่อเข้าห้องกับเพื่อน</Text>
+        <Text style={styles.title}>{t('คำเชิญ')}</Text>
+        <Text style={styles.subtitle}>
+          {t('ตอบรับคำเชิญเพื่อเข้าห้องกับเพื่อน')}
+        </Text>
       </View>
       {isLoading ? (
         <View style={styles.centered}>
@@ -76,7 +83,17 @@ const NotificationsScreen = () => {
                 <Text style={styles.avatarText}>{item.title.slice(0, 1)}</Text>
               </View>
               <View style={styles.copy}>
-                <Text style={styles.itemTitle}>{item.body}</Text>
+                <Text style={styles.itemTitle}>
+                  {item.type === 'session_invite' &&
+                  item.body.endsWith(' invited you to a Ginder session!')
+                    ? t('{name} invited you to a Ginder session!', {
+                        name: item.body.slice(
+                          0,
+                          -' invited you to a Ginder session!'.length,
+                        ),
+                      })
+                    : item.body}
+                </Text>
                 <Text style={styles.date}>
                   {formatRelativeTime(item.created_at)}
                 </Text>
@@ -86,28 +103,32 @@ const NotificationsScreen = () => {
                   <TouchableOpacity
                     style={styles.rejectAction}
                     onPress={() => dismiss(item.id)}
-                    accessibilityLabel="Dismiss invitation">
-                    <Text style={styles.rejectText}>ปฏิเสธ</Text>
+                    accessibilityLabel={t('Dismiss invitation')}>
+                    <Text style={styles.rejectText}>{t('ปฏิเสธ')}</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={styles.acceptAction}
                     disabled={joinSession.isPending}
                     onPress={() => accept(item)}
-                    accessibilityLabel="Accept invitation">
+                    accessibilityLabel={t('Accept invitation')}>
                     <Text style={styles.acceptText}>
-                      {joinSession.isPending ? 'กำลังเข้าห้อง…' : 'ตอบรับ'}
+                      {joinSession.isPending
+                        ? t('กำลังเข้าห้อง…')
+                        : t('ตอบรับ')}
                     </Text>
                   </TouchableOpacity>
                 </View>
               )}
-              {item.is_read && <Text style={styles.closed}>ปิดแล้ว</Text>}
+              {item.is_read && (
+                <Text style={styles.closed}>{t('ปิดแล้ว')}</Text>
+              )}
             </View>
           )}
           ListEmptyComponent={
             <View style={styles.empty}>
-              <Text style={styles.emptyTitle}>ยังไม่มีคำเชิญ</Text>
+              <Text style={styles.emptyTitle}>{t('ยังไม่มีคำเชิญ')}</Text>
               <Text style={styles.emptyText}>
-                คำเชิญเข้าห้องใหม่จะแสดงที่นี่
+                {t('คำเชิญเข้าห้องใหม่จะแสดงที่นี่')}
               </Text>
             </View>
           }
@@ -128,13 +149,13 @@ function formatRelativeTime(value: string): string {
     Math.floor((Date.now() - new Date(value).getTime()) / 60000),
   );
   if (minutes < 60) {
-    return `${minutes} นาทีที่แล้ว`;
+    return t('{p0} นาทีที่แล้ว', {p0: minutes});
   }
   const hours = Math.floor(minutes / 60);
   if (hours < 24) {
-    return `${hours} ชั่วโมงที่แล้ว`;
+    return t('{p0} ชั่วโมงที่แล้ว', {p0: hours});
   }
-  return new Date(value).toLocaleDateString('th-TH');
+  return new Date(value).toLocaleDateString(dateLocale());
 }
 
 const styles = StyleSheet.create({

@@ -1,3 +1,4 @@
+import {t, useTranslation} from '@/i18n';
 /**
  * Permission Gate — blocks the app until location access is granted.
  *
@@ -28,6 +29,7 @@ interface Props {
 }
 
 const PermissionGateScreen = ({onRequestPermission}: Props) => {
+  useTranslation();
   const permissionStatus = useLocationStore(state => state.permissionStatus);
   const error = useLocationStore(state => state.error);
   const isLocating = useLocationStore(state => state.isLocating);
@@ -57,11 +59,10 @@ const PermissionGateScreen = ({onRequestPermission}: Props) => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.emoji}>📍</Text>
       <Text style={styles.title}>{title}</Text>
       <Text style={styles.message}>{message}</Text>
 
-      {error && <Text style={styles.error}>{error}</Text>}
+      {error && <Text style={styles.error}>{t(error)}</Text>}
 
       <TouchableOpacity
         style={[styles.button, busy && styles.buttonDisabled]}
@@ -77,7 +78,9 @@ const PermissionGateScreen = ({onRequestPermission}: Props) => {
       </TouchableOpacity>
 
       {isBlocked && (
-        <Text style={styles.hint}>การตั้งค่า → สิทธิ์ → ตำแหน่ง → อนุญาต</Text>
+        <Text style={styles.hint}>
+          {t('การตั้งค่า → สิทธิ์ → ตำแหน่ง → อนุญาต')}
+        </Text>
       )}
     </View>
   );
@@ -86,27 +89,30 @@ const PermissionGateScreen = ({onRequestPermission}: Props) => {
 function getCopy(isBlocked: boolean, isLocationFailure: boolean) {
   if (isBlocked) {
     return {
-      title: 'ยังไม่ได้อนุญาตให้เข้าถึงตำแหน่ง',
-      message:
+      title: t('ยังไม่ได้อนุญาตให้เข้าถึงตำแหน่ง'),
+      message: t(
         'Ginder ใช้ตำแหน่งเพื่อค้นหาร้านใกล้คุณ กรุณาเปิดสิทธิ์ในการตั้งค่าอุปกรณ์',
-      buttonLabel: 'เปิดการตั้งค่า',
+      ),
+      buttonLabel: t('เปิดการตั้งค่า'),
     };
   }
 
   if (isLocationFailure) {
     return {
-      title: 'ยังค้นหาตำแหน่งไม่ได้',
-      message:
+      title: t('ยังค้นหาตำแหน่งไม่ได้'),
+      message: t(
         'ได้รับสิทธิ์แล้วแต่ยังค้นหาตำแหน่งไม่ได้ กรุณาเปิดบริการตำแหน่งของอุปกรณ์',
-      buttonLabel: 'ลองอีกครั้ง',
+      ),
+      buttonLabel: t('ลองอีกครั้ง'),
     };
   }
 
   return {
-    title: 'ต้องใช้ตำแหน่งเพื่อหาร้าน',
-    message:
+    title: t('ต้องใช้ตำแหน่งเพื่อหาร้าน'),
+    message: t(
       'Ginder ใช้ตำแหน่งเพื่อค้นหาร้านใกล้คุณ กรุณาอนุญาตตำแหน่งขณะใช้แอป',
-    buttonLabel: 'อนุญาตตำแหน่ง',
+    ),
+    buttonLabel: t('อนุญาตตำแหน่ง'),
   };
 }
 
@@ -117,10 +123,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: 32,
-  },
-  emoji: {
-    fontSize: 64,
-    marginBottom: 20,
   },
   title: {
     fontSize: 24,

@@ -1,3 +1,4 @@
+import {t, useTranslation} from '@/i18n';
 /**
  * SpinWheel — the tie-breaker wheel.
  *
@@ -36,6 +37,7 @@ interface Props {
 }
 
 const SpinWheel = ({candidateNames, winnerIndex}: Props) => {
+  useTranslation();
   const rotation = useRef(new Animated.Value(0)).current;
 
   // Where the wheel should come to rest so the winner sits under the pointer.
@@ -72,8 +74,9 @@ const SpinWheel = ({candidateNames, winnerIndex}: Props) => {
     <View style={styles.container}>
       <Animated.View
         style={[styles.wheel, {transform: [{rotate: spin}]}]}
-        accessibilityLabel={`Wheel with ${candidateNames.length} restaurants`}
-      >
+        accessibilityLabel={t('Wheel with {count} restaurants', {
+          count: candidateNames.length,
+        })}>
         <Svg width={220} height={220} viewBox="0 0 220 220">
           {candidateNames.map((name, index) => {
             const angle = (2 * Math.PI) / candidateNames.length;
@@ -106,8 +109,7 @@ const SpinWheel = ({candidateNames, winnerIndex}: Props) => {
                   textAnchor="middle"
                   fontSize={13}
                   fontWeight="700"
-                  fill="#171717"
-                >
+                  fill="#171717">
                   {index + 1}
                 </SvgText>
               </React.Fragment>
@@ -119,9 +121,8 @@ const SpinWheel = ({candidateNames, winnerIndex}: Props) => {
             y={115}
             textAnchor="middle"
             fontSize={16}
-            fill="#171717"
-          >
-            {'สุ่มร้าน'}
+            fill="#171717">
+            {t('สุ่มร้าน')}
           </SvgText>
         </Svg>
       </Animated.View>
@@ -145,9 +146,9 @@ const SpinWheel = ({candidateNames, winnerIndex}: Props) => {
         ))}
         {hiddenCount > 0 && (
           <Text style={styles.legendMore}>
-            {'and '}
+            {t('and ')}
             {hiddenCount}
-            {' more'}
+            {t(' more')}
           </Text>
         )}
       </View>

@@ -1,3 +1,4 @@
+import {dateLocale, t, useTranslation} from '@/i18n';
 /**
  * History Screen — View past match results.
  */
@@ -18,6 +19,7 @@ import {RESOLUTION_LABELS_SHORT} from '@/constants/resolution';
 import {COLORS} from '@/constants/theme';
 
 const HistoryScreen = () => {
+  useTranslation();
   const {data, isLoading} = useHistory();
 
   const openMaps = (url: string | null) => {
@@ -37,8 +39,8 @@ const HistoryScreen = () => {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>ประวัติ</Text>
-        <Text style={styles.subtitle}>ร้านที่เลือกจากห้องที่ผ่านมา</Text>
+        <Text style={styles.title}>{t('ประวัติ')}</Text>
+        <Text style={styles.subtitle}>{t('ร้านที่เลือกจากห้องที่ผ่านมา')}</Text>
       </View>
 
       <FlatList
@@ -50,20 +52,24 @@ const HistoryScreen = () => {
                 {item.restaurant_name}
               </Text>
               <Text style={styles.resolution}>
-                {RESOLUTION_LABELS_SHORT[item.resolution_type] ??
-                  item.resolution_type}
+                {t(
+                  RESOLUTION_LABELS_SHORT[item.resolution_type] ??
+                    item.resolution_type,
+                )}
               </Text>
             </View>
             <Text style={styles.date}>
-              {new Date(item.created_at).toLocaleDateString('th-TH')}
+              {new Date(item.created_at).toLocaleDateString(dateLocale())}
             </Text>
             {item.google_maps_url && (
               <TouchableOpacity
                 style={styles.mapsButton}
                 onPress={() => openMaps(item.google_maps_url)}
                 accessibilityRole="button"
-                accessibilityLabel={`Navigate to ${item.restaurant_name}`}>
-                <Text style={styles.mapsText}>📍 เปิดแผนที่</Text>
+                accessibilityLabel={t('Navigate to {name}', {
+                  name: item.restaurant_name,
+                })}>
+                <Text style={styles.mapsText}>{t('เปิดแผนที่')}</Text>
               </TouchableOpacity>
             )}
           </View>
@@ -72,9 +78,9 @@ const HistoryScreen = () => {
         contentContainerStyle={styles.list}
         ListEmptyComponent={
           <View style={styles.empty}>
-            <Text style={styles.emptyText}>ยังไม่มีประวัติ</Text>
+            <Text style={styles.emptyText}>{t('ยังไม่มีประวัติ')}</Text>
             <Text style={styles.emptyHint}>
-              ร้านที่คุณและเพื่อนเลือกจะแสดงที่นี่
+              {t('ร้านที่คุณและเพื่อนเลือกจะแสดงที่นี่')}
             </Text>
           </View>
         }

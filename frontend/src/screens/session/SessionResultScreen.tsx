@@ -1,3 +1,4 @@
+import {t, useTranslation} from '@/i18n';
 /**
  * Session Result Screen — the winning restaurant.
  *
@@ -24,6 +25,7 @@ import {COLORS} from '@/constants/theme';
 type RouteProps = RouteProp<SessionStackParamList, 'SessionResult'>;
 
 const SessionResultScreen = () => {
+  useTranslation();
   const route = useRoute<RouteProps>();
   const navigation = useNavigation();
   const clearSession = useSessionStore(state => state.clearSession);
@@ -52,7 +54,7 @@ const SessionResultScreen = () => {
         <ActivityIndicator
           size="large"
           color="#FF6B6B"
-          accessibilityLabel="Loading result"
+          accessibilityLabel={t('Loading result')}
         />
       </View>
     );
@@ -61,14 +63,15 @@ const SessionResultScreen = () => {
   if (isError || !result) {
     return (
       <View style={styles.container}>
-        <Text style={styles.emoji}>😕</Text>
-        <Text style={styles.title}>ยังไม่มีผล</Text>
-        <Text style={styles.subtitle}>ห้องยังไม่จบหรือยังโหลดผลไม่ได้</Text>
+        <Text style={styles.title}>{t('ยังไม่มีผล')}</Text>
+        <Text style={styles.subtitle}>
+          {t('ห้องยังไม่จบหรือยังโหลดผลไม่ได้')}
+        </Text>
         <TouchableOpacity
           style={styles.homeButton}
           onPress={handleBackHome}
           accessibilityRole="button">
-          <Text style={styles.homeText}>กลับหน้าหลัก</Text>
+          <Text style={styles.homeText}>{t('กลับหน้าหลัก')}</Text>
         </TouchableOpacity>
       </View>
     );
@@ -78,10 +81,12 @@ const SessionResultScreen = () => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.kicker}>{hasWinner ? 'เลือกร้าน' : 'ห้อง'}</Text>
-      <Text style={styles.title}>{hasWinner ? 'ตรงกัน!' : 'จบแล้ว'}</Text>
+      <Text style={styles.kicker}>
+        {hasWinner ? t('เลือกร้าน') : t('ห้อง')}
+      </Text>
+      <Text style={styles.title}>{hasWinner ? t('ตรงกัน!') : t('จบแล้ว')}</Text>
       <Text style={styles.subtitle}>
-        {RESOLUTION_LABELS[result.resolution_type] ?? result.resolution_type}
+        {t(RESOLUTION_LABELS[result.resolution_type] ?? result.resolution_type)}
       </Text>
 
       <View style={styles.resultCard}>
@@ -93,8 +98,10 @@ const SessionResultScreen = () => {
           style={styles.mapsButton}
           onPress={openMaps}
           accessibilityRole="button"
-          accessibilityLabel={`Navigate to ${result.restaurant_name}`}>
-          <Text style={styles.mapsText}>📍 เปิดใน Google Maps</Text>
+          accessibilityLabel={t('Navigate to {name}', {
+            name: result.restaurant_name,
+          })}>
+          <Text style={styles.mapsText}>{t('เปิดใน Google Maps')}</Text>
         </TouchableOpacity>
       )}
 
@@ -102,7 +109,7 @@ const SessionResultScreen = () => {
         style={styles.homeButton}
         onPress={handleBackHome}
         accessibilityRole="button">
-        <Text style={styles.homeText}>กลับหน้าหลัก</Text>
+        <Text style={styles.homeText}>{t('กลับหน้าหลัก')}</Text>
       </TouchableOpacity>
     </View>
   );
@@ -116,7 +123,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 32,
   },
-  emoji: {fontSize: 64},
   kicker: {
     fontSize: 38,
     color: '#FF1717',

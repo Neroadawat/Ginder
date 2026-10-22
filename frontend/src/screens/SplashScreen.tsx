@@ -1,3 +1,4 @@
+import {t, useTranslation} from '@/i18n';
 /**
  * Splash Screen — shown while the app restores its session and finds location.
  */
@@ -6,15 +7,16 @@ import React from 'react';
 import {ActivityIndicator, StyleSheet, Text, View} from 'react-native';
 
 const SplashScreen = () => {
+  useTranslation();
   return (
     <View style={styles.container}>
-      <Text style={styles.logo}>🍽️ Ginder</Text>
-      <Text style={styles.tagline}>Find your next meal together</Text>
+      <Text style={styles.logo}>Ginder</Text>
+      <Text style={styles.tagline}>{t('Find your next meal together')}</Text>
       <ActivityIndicator
         size="large"
         color="#FF6B6B"
         style={styles.spinner}
-        accessibilityLabel="Loading"
+        accessibilityLabel={t('Loading')}
       />
     </View>
   );

@@ -9,15 +9,15 @@
 import {ResolutionType} from '@/types/api';
 
 export const RESOLUTION_LABELS: Record<ResolutionType, string> = {
-  unanimous: '🎉 ทุกคนเลือกตรงกัน',
-  majority: '🗳️ คะแนนโหวตสูงสุด',
-  spin_wheel_tie: '🎡 สุ่มจากร้านที่คะแนนเท่ากัน',
-  spin_wheel_no_match: '🎡 สุ่มเลือกร้าน',
+  unanimous: 'ทุกคนเลือกตรงกัน',
+  majority: 'คะแนนโหวตสูงสุด',
+  spin_wheel_tie: 'สุ่มจากร้านที่คะแนนเท่ากัน',
+  spin_wheel_no_match: 'สุ่มเลือกร้าน',
 };
 
 export const RESOLUTION_LABELS_SHORT: Record<ResolutionType, string> = {
-  unanimous: '🎉 ทุกคนเห็นตรงกัน',
-  majority: '🗳️ เสียงส่วนใหญ่',
-  spin_wheel_tie: '🎡 สุ่มเมื่อคะแนนเสมอ',
-  spin_wheel_no_match: '🎡 วงล้อ',
+  unanimous: 'ทุกคนเห็นตรงกัน',
+  majority: 'เสียงส่วนใหญ่',
+  spin_wheel_tie: 'สุ่มเมื่อคะแนนเสมอ',
+  spin_wheel_no_match: 'วงล้อ',
 };

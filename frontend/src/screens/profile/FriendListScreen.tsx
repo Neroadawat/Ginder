@@ -1,3 +1,4 @@
+import {t, useTranslation} from '@/i18n';
 /**
  * Friend List Screen — View and search friends, unfriend.
  */
@@ -19,6 +20,7 @@ import {useFriends, useSearchFriends, useUnfriend} from '@/hooks/useFriends';
 import {COLORS} from '@/constants/theme';
 
 const FriendListScreen = () => {
+  useTranslation();
   const navigation = useNavigation();
   const [searchQuery, setSearchQuery] = useState('');
   const {data: friends, isLoading} = useFriends();
@@ -28,17 +30,22 @@ const FriendListScreen = () => {
   const displayList = searchQuery ? searchResults?.friends : friends?.friends;
 
   const handleUnfriend = (friendId: string, name: string) => {
-    Alert.alert('ลบเพื่อน', `ต้องการลบ ${name} จากรายชื่อเพื่อนหรือไม่?`, [
-      {text: 'ยกเลิก', style: 'cancel'},
-      {
-        text: 'ลบเพื่อน',
-        style: 'destructive',
-        onPress: () =>
-          unfriendMutation.mutate(friendId, {
-            onError: error => Alert.alert('ลบเพื่อนไม่สำเร็จ', error.message),
-          }),
-      },
-    ]);
+    Alert.alert(
+      t('ลบเพื่อน'),
+      t('ต้องการลบ {p0} จากรายชื่อเพื่อนหรือไม่?', {p0: name}),
+      [
+        {text: t('ยกเลิก'), style: 'cancel'},
+        {
+          text: t('ลบเพื่อน'),
+          style: 'destructive',
+          onPress: () =>
+            unfriendMutation.mutate(friendId, {
+              onError: error =>
+                Alert.alert(t('ลบเพื่อนไม่สำเร็จ'), t(error.message)),
+            }),
+        },
+      ],
+    );
   };
 
   return (
@@ -47,19 +54,22 @@ const FriendListScreen = () => {
         <TouchableOpacity
           onPress={() => navigation.goBack()}
           accessibilityRole="button">
-          <Text style={styles.backText}>← กลับ</Text>
+          <Text style={styles.backText}>{t('← กลับ')}</Text>
         </TouchableOpacity>
-        <Text style={styles.title}>เพื่อน</Text>
-        <Text style={styles.count}>{friends?.total ?? 0} คน</Text>
+        <Text style={styles.title}>{t('เพื่อน')}</Text>
+        <Text style={styles.count}>
+          {friends?.total ?? 0}
+          {t(' คน')}
+        </Text>
       </View>
 
       <TextInput
         style={styles.searchInput}
-        placeholder="ค้นหาเพื่อน..."
+        placeholder={t('ค้นหาเพื่อน...')}
         placeholderTextColor="#999"
         value={searchQuery}
         onChangeText={setSearchQuery}
-        accessibilityLabel="Search friends"
+        accessibilityLabel={t('Search friends')}
       />
 
       {isLoading ? (
@@ -83,8 +93,10 @@ const FriendListScreen = () => {
               <TouchableOpacity
                 onPress={() => handleUnfriend(item.id, item.display_name)}
                 accessibilityRole="button"
-                accessibilityLabel={`Unfriend ${item.display_name}`}>
-                <Text style={styles.unfriendText}>ลบ</Text>
+                accessibilityLabel={t('Unfriend {name}', {
+                  name: item.display_name,
+                })}>
+                <Text style={styles.unfriendText}>{t('ลบ')}</Text>
               </TouchableOpacity>
             </View>
           )}
@@ -93,7 +105,7 @@ const FriendListScreen = () => {
           ListEmptyComponent={
             <View style={styles.empty}>
               <Text style={styles.emptyText}>
-                {searchQuery ? 'ไม่พบเพื่อนที่ค้นหา' : 'ยังไม่มีเพื่อน'}
+                {searchQuery ? t('ไม่พบเพื่อนที่ค้นหา') : t('ยังไม่มีเพื่อน')}
               </Text>
             </View>
           }

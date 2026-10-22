@@ -1,3 +1,4 @@
+import {t, useTranslation} from '@/i18n';
 /**
  * RestaurantListItem — a restaurant row in Explore results or the Likes tab.
  *
@@ -16,7 +17,7 @@ import {
 
 import {RestaurantCard} from '@/types/restaurant';
 import {getRestaurantImageUri} from '@/constants/restaurantImages';
-import {formatDistanceTh} from '@/utils/distance';
+import {formatDistance} from '@/utils/distance';
 import PhotoAttribution from './PhotoAttribution';
 import DataAttribution from './DataAttribution';
 import {categoryLabel} from '@/utils/category';
@@ -26,6 +27,7 @@ interface Props {
 }
 
 const RestaurantListItem = ({restaurant}: Props) => {
+  useTranslation();
   const canNavigate = Boolean(restaurant.google_maps_url);
 
   const handleNavigate = () => {
@@ -42,8 +44,12 @@ const RestaurantListItem = ({restaurant}: Props) => {
       accessibilityRole="button"
       accessibilityLabel={
         canNavigate
-          ? `Navigate to ${restaurant.name}, ${restaurant.primary_category}`
-          : `${restaurant.name}, ${restaurant.primary_category}`
+          ? t('Navigate to {name}', {
+              name: `${restaurant.name}, ${categoryLabel(
+                restaurant.primary_category,
+              )}`,
+            })
+          : `${restaurant.name}, ${categoryLabel(restaurant.primary_category)}`
       }>
       <Image
         source={{uri: getRestaurantImageUri(restaurant)}}
@@ -64,11 +70,15 @@ const RestaurantListItem = ({restaurant}: Props) => {
             <Text style={styles.meta}>{restaurant.price_symbol}</Text>
           )}
           {restaurant.rating != null && (
-            <Text style={styles.meta}>⭐ {restaurant.rating.toFixed(1)}</Text>
+            <Text style={styles.meta}>
+              {t('คะแนน ')}
+              {restaurant.rating.toFixed(1)}
+            </Text>
           )}
           {restaurant.distance_km != null && (
             <Text style={styles.meta}>
-              ห่าง {formatDistanceTh(restaurant.distance_km)}
+              {t('ห่าง ')}
+              {formatDistance(restaurant.distance_km)}
             </Text>
           )}
         </View>
@@ -76,7 +86,7 @@ const RestaurantListItem = ({restaurant}: Props) => {
         <DataAttribution source={restaurant.source} />
       </View>
 
-      {canNavigate && <Text style={styles.navigateIcon}>📍</Text>}
+      {canNavigate && <Text style={styles.navigateIcon}>{t('แผนที่')}</Text>}
     </TouchableOpacity>
   );
 };
@@ -106,9 +116,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  placeholderEmoji: {
-    fontSize: 32,
-  },
   info: {
     flex: 1,
     padding: 12,
@@ -134,7 +141,7 @@ const styles = StyleSheet.create({
     color: '#666',
   },
   navigateIcon: {
-    fontSize: 18,
+    fontSize: 13,
     paddingHorizontal: 14,
   },
 });

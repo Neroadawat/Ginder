@@ -19,6 +19,7 @@ import {
 import {useAuthStore} from '@/stores/authStore';
 import {useConsentStore} from '@/stores/consentStore';
 import {useSessionStore} from '@/stores/sessionStore';
+import {useLanguageStore} from '@/stores/languageStore';
 
 export const useAppBootstrap = () => {
   const [isReady, setIsReady] = useState(false);
@@ -38,6 +39,7 @@ export const useAppBootstrap = () => {
     let cancelled = false;
 
     const run = async () => {
+      useLanguageStore.getState().hydrate();
       // Restore persisted state first so the navigator picks the right branch
       // on the very first render.
       useConsentStore.getState().hydrate();

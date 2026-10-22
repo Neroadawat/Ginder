@@ -1,3 +1,4 @@
+import {t, useTranslation} from '@/i18n';
 /**
  * Category Results Screen — Shows restaurants filtered by a specific category.
  */
@@ -23,6 +24,7 @@ import {categoryLabel} from '@/utils/category';
 type RouteProps = RouteProp<ExploreStackParamList, 'CategoryResults'>;
 
 const CategoryResultsScreen = () => {
+  useTranslation();
   const route = useRoute<RouteProps>();
   const navigation = useNavigation();
 
@@ -45,10 +47,13 @@ const CategoryResultsScreen = () => {
         <TouchableOpacity
           onPress={() => navigation.goBack()}
           accessibilityRole="button">
-          <Text style={styles.backText}>← กลับ</Text>
+          <Text style={styles.backText}>{t('← กลับ')}</Text>
         </TouchableOpacity>
         <Text style={styles.title}>{categoryLabel(route.params.category)}</Text>
-        <Text style={styles.count}>{deck?.total ?? 0} ร้าน</Text>
+        <Text style={styles.count}>
+          {deck?.total ?? 0}
+          {t(' ร้าน')}
+        </Text>
       </View>
 
       {isLoading ? (
@@ -64,7 +69,7 @@ const CategoryResultsScreen = () => {
           ListEmptyComponent={
             <View style={styles.empty}>
               <Text style={styles.emptyText}>
-                ยังไม่พบร้านในหมวดนี้ ลองขยายรัศมีหรือปรับตัวกรอง
+                {t('ยังไม่พบร้านในหมวดนี้ ลองขยายรัศมีหรือปรับตัวกรอง')}
               </Text>
             </View>
           }

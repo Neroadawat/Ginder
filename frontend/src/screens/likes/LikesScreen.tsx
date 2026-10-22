@@ -1,3 +1,4 @@
+import {t, useTranslation} from '@/i18n';
 import React, {useMemo} from 'react';
 import {
   ActivityIndicator,
@@ -26,6 +27,7 @@ interface GridEntry {
 }
 
 const LikesScreen = () => {
+  useTranslation();
   const activeSessionId = useSessionStore(state => state.activeSessionId);
   return activeSessionId ? (
     <SessionGrid sessionId={activeSessionId} />
@@ -35,6 +37,7 @@ const LikesScreen = () => {
 };
 
 const SoloGrid = () => {
+  useTranslation();
   const {data, isLoading} = useSoloLikes();
   const entries = (data ?? []).map(item => ({
     key: item.id,
@@ -45,6 +48,7 @@ const SoloGrid = () => {
 };
 
 const SessionGrid = ({sessionId}: {sessionId: string}) => {
+  useTranslation();
   const {data, isLoading} = useSessionLikes(sessionId);
   const entries = useMemo(() => {
     const grouped = new Map<string, GridEntry>();
@@ -76,6 +80,7 @@ const LikesGrid = ({
   isLoading: boolean;
   session: boolean;
 }) => {
+  useTranslation();
   if (isLoading) {
     return (
       <View style={styles.centered}>
@@ -86,9 +91,9 @@ const LikesGrid = ({
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>ร้านที่ถูกใจ</Text>
+        <Text style={styles.title}>{t('ร้านที่ถูกใจ')}</Text>
         <Text style={styles.subtitle}>
-          {session ? 'ร้านที่เพื่อนในห้องอยากกิน' : 'ร้านที่คุณบันทึกไว้'}
+          {session ? t('ร้านที่เพื่อนในห้องอยากกิน') : t('ร้านที่คุณบันทึกไว้')}
         </Text>
       </View>
       <FlatList
@@ -100,9 +105,9 @@ const LikesGrid = ({
         renderItem={({item}) => <LikeTile entry={item} />}
         ListEmptyComponent={
           <View style={styles.empty}>
-            <Text style={styles.emptyTitle}>ยังไม่มีร้านที่ถูกใจ</Text>
+            <Text style={styles.emptyTitle}>{t('ยังไม่มีร้านที่ถูกใจ')}</Text>
             <Text style={styles.emptyText}>
-              ปัดขวาเพื่อบันทึกร้านที่อยากลอง
+              {t('ปัดขวาเพื่อบันทึกร้านที่อยากลอง')}
             </Text>
           </View>
         }
@@ -112,6 +117,7 @@ const LikesGrid = ({
 };
 
 const LikeTile = ({entry}: {entry: GridEntry}) => {
+  useTranslation();
   const restaurant = entry.restaurant;
   const image = getRestaurantImageUri(restaurant);
   const open = () =>

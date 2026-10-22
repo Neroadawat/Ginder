@@ -1,3 +1,5 @@
+import {t} from '@/i18n';
+
 const LABELS: Record<string, string> = {
   Thai: 'อาหารไทย',
   Japanese: 'อาหารญี่ปุ่น',
@@ -14,4 +16,4 @@ const LABELS: Record<string, string> = {
   Other: 'อื่น ๆ',
 };
 export const categoryLabel = (category: string): string =>
-  LABELS[category] || category;
+  t(LABELS[category] || category);

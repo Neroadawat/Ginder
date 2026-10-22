@@ -1,3 +1,4 @@
+import {t, useTranslation} from '@/i18n';
 import React from 'react';
 import {Linking, StyleSheet, Text} from 'react-native';
 
@@ -8,6 +9,7 @@ const DataAttribution = ({
   source: string;
   light?: boolean;
 }) => {
+  useTranslation();
   if (source !== 'osm') {
     return null;
   }
@@ -18,7 +20,7 @@ const DataAttribution = ({
       onPress={() =>
         Linking.openURL('https://www.openstreetmap.org/copyright')
       }>
-      © OpenStreetMap contributors
+      {t('© OpenStreetMap contributors')}
     </Text>
   );
 };

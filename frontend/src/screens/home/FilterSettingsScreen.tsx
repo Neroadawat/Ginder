@@ -1,3 +1,4 @@
+import {t, useTranslation} from '@/i18n';
 /**
  * Filter Settings — category, price, rating, opening hours and radius.
  *
@@ -29,6 +30,7 @@ import {
 const ALL_LABEL = 'ทั้งหมด';
 
 const FilterSettingsScreen = () => {
+  useTranslation();
   const navigation = useNavigation();
   const {data: categories} = useCategories();
 
@@ -53,13 +55,13 @@ const FilterSettingsScreen = () => {
     <View style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={reset} accessibilityRole="button">
-          <Text style={styles.resetText}>คืนค่า</Text>
+          <Text style={styles.resetText}>{t('คืนค่า')}</Text>
         </TouchableOpacity>
-        <Text style={styles.title}>ตัวกรอง</Text>
+        <Text style={styles.title}>{t('ตัวกรอง')}</Text>
         <TouchableOpacity
           onPress={() => navigation.goBack()}
           accessibilityRole="button">
-          <Text style={styles.doneText}>เสร็จ</Text>
+          <Text style={styles.doneText}>{t('เสร็จ')}</Text>
         </TouchableOpacity>
       </View>
 
@@ -67,9 +69,9 @@ const FilterSettingsScreen = () => {
         {/* Open now */}
         <View style={styles.switchRow}>
           <View style={styles.switchLabel}>
-            <Text style={styles.sectionTitle}>เปิดอยู่ตอนนี้</Text>
+            <Text style={styles.sectionTitle}>{t('เปิดอยู่ตอนนี้')}</Text>
             <Text style={styles.sectionHint}>
-              แสดงเฉพาะร้านที่มีข้อมูลเวลาเปิดและกำลังเปิดอยู่
+              {t('แสดงเฉพาะร้านที่มีข้อมูลเวลาเปิดและกำลังเปิดอยู่')}
             </Text>
           </View>
           <Switch
@@ -77,12 +79,12 @@ const FilterSettingsScreen = () => {
             onValueChange={setOpenNow}
             trackColor={{false: '#DDD', true: '#FF6B6B'}}
             thumbColor="#FFF"
-            accessibilityLabel="Only show places open now"
+            accessibilityLabel={t('Only show places open now')}
           />
         </View>
 
         {/* Category */}
-        <Text style={styles.sectionTitle}>ประเภทอาหาร</Text>
+        <Text style={styles.sectionTitle}>{t('ประเภทอาหาร')}</Text>
         <View style={styles.chipRow}>
           {categoryOptions.map(option => {
             const selected =
@@ -106,7 +108,7 @@ const FilterSettingsScreen = () => {
         </View>
 
         {/* Price */}
-        <Text style={styles.sectionTitle}>ช่วงราคา</Text>
+        <Text style={styles.sectionTitle}>{t('ช่วงราคา')}</Text>
         <View style={styles.chipRow}>
           {PRICE_LEVELS.map(option => {
             const selected = priceLevel === option.value;
@@ -119,7 +121,7 @@ const FilterSettingsScreen = () => {
                 accessibilityState={{selected}}>
                 <Text
                   style={[styles.chipText, selected && styles.chipTextActive]}>
-                  {option.label}
+                  {t(option.label)}
                 </Text>
               </TouchableOpacity>
             );
@@ -127,7 +129,7 @@ const FilterSettingsScreen = () => {
         </View>
 
         {/* Rating */}
-        <Text style={styles.sectionTitle}>คะแนนขั้นต่ำ</Text>
+        <Text style={styles.sectionTitle}>{t('คะแนนขั้นต่ำ')}</Text>
         <View style={styles.chipRow}>
           {RATING_OPTIONS.map(option => {
             const selected = minRating === option.value;
@@ -140,7 +142,7 @@ const FilterSettingsScreen = () => {
                 accessibilityState={{selected}}>
                 <Text
                   style={[styles.chipText, selected && styles.chipTextActive]}>
-                  {option.label}
+                  {t(option.label)}
                 </Text>
               </TouchableOpacity>
             );
@@ -148,7 +150,7 @@ const FilterSettingsScreen = () => {
         </View>
 
         {/* Radius */}
-        <Text style={styles.sectionTitle}>รัศมีค้นหา</Text>
+        <Text style={styles.sectionTitle}>{t('รัศมีค้นหา')}</Text>
         <View style={styles.chipRow}>
           {RADIUS_OPTIONS_KM.map(option => {
             const selected = radiusKm === option;

@@ -1,3 +1,4 @@
+import {t, useTranslation} from '@/i18n';
 import React, {useEffect, useMemo, useState} from 'react';
 import {
   ActivityIndicator,
@@ -32,6 +33,7 @@ type RouteProps = RouteProp<SessionStackParamList, 'Lobby'>;
 type NavigationProp = NativeStackNavigationProp<SessionStackParamList, 'Lobby'>;
 
 const LobbyScreen = () => {
+  useTranslation();
   const route = useRoute<RouteProps>();
   const navigation = useNavigation<NavigationProp>();
   const userId = useAuthStore(state => state.userId);
@@ -69,11 +71,11 @@ const LobbyScreen = () => {
       clearSession();
       Alert.alert(
         lastEvent.data.session_cancelled
-          ? 'ห้องถูกยกเลิก'
-          : 'คุณออกจากห้องแล้ว',
+          ? t('ห้องถูกยกเลิก')
+          : t('คุณออกจากห้องแล้ว'),
         lastEvent.data.session_cancelled
-          ? 'เจ้าของห้องปิดห้องแล้ว'
-          : 'คุณไม่ได้อยู่ในห้องนี้แล้ว',
+          ? t('เจ้าของห้องปิดห้องแล้ว')
+          : t('คุณไม่ได้อยู่ในห้องนี้แล้ว'),
       );
       navigation.getParent()?.goBack();
       return;
@@ -113,11 +115,14 @@ const LobbyScreen = () => {
     }
     try {
       await Share.share({
-        title: 'เข้าห้อง Ginder กับฉัน',
-        message: `เข้าห้อง Ginder กับฉัน. รหัส: ${lobby.session.invite_code}\nginder://session/join?code=${lobby.session.invite_code}`,
+        title: t('เข้าห้อง Ginder กับฉัน'),
+        message: t(
+          'เข้าห้อง Ginder กับฉัน. รหัส: {p0}\nginder://session/join?code={p1}',
+          {p0: lobby.session.invite_code, p1: lobby.session.invite_code},
+        ),
       });
     } catch {
-      Alert.alert('แชร์ไม่สำเร็จ', 'ลองอีกครั้งหรือส่งรหัสห้องให้เพื่อน');
+      Alert.alert(t('แชร์ไม่สำเร็จ'), t('ลองอีกครั้งหรือส่งรหัสห้องให้เพื่อน'));
     }
   };
 
@@ -128,12 +133,15 @@ const LobbyScreen = () => {
         onSuccess: response => {
           setInvitedIds(ids => [...new Set([...ids, friendId])]);
           Alert.alert(
-            'ส่งคำเชิญแล้ว',
-            `${name} ตอบรับได้จากหน้าคำเชิญ\n\n${response.message}`,
+            t('ส่งคำเชิญแล้ว'),
+            t('{p0} ตอบรับได้จากหน้าคำเชิญ\n\n{p1}', {
+              p0: name,
+              p1: response.message,
+            }),
           );
         },
         onError: inviteError =>
-          Alert.alert('ส่งคำเชิญไม่สำเร็จ', inviteError.message),
+          Alert.alert(t('ส่งคำเชิญไม่สำเร็จ'), t(inviteError.message)),
       },
     );
   };
@@ -146,43 +154,47 @@ const LobbyScreen = () => {
           endsAt: response.ends_at,
         }),
       onError: startError =>
-        Alert.alert('เริ่มห้องไม่สำเร็จ', startError.message),
+        Alert.alert(t('เริ่มห้องไม่สำเร็จ'), t(startError.message)),
     });
   };
 
   const kick = (kickUserId: string, name: string) => {
-    Alert.alert('นำสมาชิกออกจากห้อง?', `${name} จะออกจากห้องนี้`, [
-      {text: 'ยกเลิก', style: 'cancel'},
-      {
-        text: 'นำออก',
-        style: 'destructive',
-        onPress: () =>
-          kickMutation.mutate(
-            {sessionId: route.params.sessionId, userId: kickUserId},
-            {
-              onError: kickError =>
-                Alert.alert('นำออกไม่สำเร็จ', kickError.message),
-            },
-          ),
-      },
-    ]);
+    Alert.alert(
+      t('นำสมาชิกออกจากห้อง?'),
+      t('{p0} จะออกจากห้องนี้', {p0: name}),
+      [
+        {text: t('ยกเลิก'), style: 'cancel'},
+        {
+          text: t('นำออก'),
+          style: 'destructive',
+          onPress: () =>
+            kickMutation.mutate(
+              {sessionId: route.params.sessionId, userId: kickUserId},
+              {
+                onError: kickError =>
+                  Alert.alert(t('นำออกไม่สำเร็จ'), t(kickError.message)),
+              },
+            ),
+        },
+      ],
+    );
   };
 
   const leave = () => {
-    const title = isHost ? 'ยกเลิกห้องนี้?' : 'ออกจากห้องนี้?';
+    const title = isHost ? t('ยกเลิกห้องนี้?') : t('ออกจากห้องนี้?');
     const message = isHost
-      ? 'ห้องจะปิดสำหรับทุกคน'
-      : 'กลับเข้ามาได้ขณะห้องยังเปิดอยู่';
+      ? t('ห้องจะปิดสำหรับทุกคน')
+      : t('กลับเข้ามาได้ขณะห้องยังเปิดอยู่');
     Alert.alert(title, message, [
-      {text: 'อยู่ต่อ', style: 'cancel'},
+      {text: t('อยู่ต่อ'), style: 'cancel'},
       {
-        text: isHost ? 'ยกเลิกห้อง' : 'ออกจากห้อง',
+        text: isHost ? t('ยกเลิกห้อง') : t('ออกจากห้อง'),
         style: 'destructive',
         onPress: () =>
           leaveMutation.mutate(route.params.sessionId, {
             onSuccess: () => navigation.getParent()?.goBack(),
             onError: leaveError =>
-              Alert.alert('ออกจากห้องไม่สำเร็จ', leaveError.message),
+              Alert.alert(t('ออกจากห้องไม่สำเร็จ'), t(leaveError.message)),
           }),
       },
     ]);
@@ -198,14 +210,14 @@ const LobbyScreen = () => {
   if (isError || !lobby) {
     return (
       <View style={styles.centered}>
-        <Text style={styles.errorTitle}>ยังโหลดห้องไม่ได้</Text>
+        <Text style={styles.errorTitle}>{t('ยังโหลดห้องไม่ได้')}</Text>
         <Text style={styles.muted}>
-          {error?.message ?? 'ห้องนี้ไม่มีอยู่แล้ว'}
+          {t(error?.message ?? 'ห้องนี้ไม่มีอยู่แล้ว')}
         </Text>
         <TouchableOpacity
           style={styles.secondaryButton}
           onPress={() => refetch()}>
-          <Text style={styles.secondaryText}>ลองอีกครั้ง</Text>
+          <Text style={styles.secondaryText}>{t('ลองอีกครั้ง')}</Text>
         </TouchableOpacity>
       </View>
     );
@@ -216,38 +228,41 @@ const LobbyScreen = () => {
       <View style={styles.header}>
         <View>
           <Text style={styles.eyebrow}>
-            {isHost ? 'ห้องของคุณ' : 'ห้องเพื่อน'}
+            {isHost ? t('ห้องของคุณ') : t('ห้องเพื่อน')}
           </Text>
-          <Text style={styles.title}>ห้องรอ</Text>
+          <Text style={styles.title}>{t('ห้องรอ')}</Text>
         </View>
         <View style={[styles.connection, isConnected && styles.connected]}>
           <Text style={styles.connectionText}>
-            {isConnected ? 'เชื่อมต่อแล้ว' : 'กำลังเชื่อมต่อ'}
+            {isConnected ? t('เชื่อมต่อแล้ว') : t('กำลังเชื่อมต่อ')}
           </Text>
         </View>
       </View>
       <View style={styles.codeCard}>
-        <Text style={styles.codeLabel}>รหัสคำเชิญ</Text>
+        <Text style={styles.codeLabel}>{t('รหัสคำเชิญ')}</Text>
         <Text selectable style={styles.code}>
           {lobby.session.invite_code}
         </Text>
         <Text style={styles.settings}>
-          {lobby.session.radius_km} กม. · {lobby.session.duration_seconds / 60}{' '}
-          นาที
+          {lobby.session.radius_km}
+          {t(' กม. · ')}
+          {lobby.session.duration_seconds / 60} {t('นาที')}
         </Text>
         <View style={styles.inviteActions}>
           <TouchableOpacity
             style={styles.inviteButton}
             onPress={() => setInviteOpen(true)}>
-            <Text style={styles.inviteButtonText}>ชวนเพื่อน</Text>
+            <Text style={styles.inviteButtonText}>{t('ชวนเพื่อน')}</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.shareButton} onPress={shareInvite}>
-            <Text style={styles.shareButtonText}>แชร์ลิงก์</Text>
+            <Text style={styles.shareButtonText}>{t('แชร์ลิงก์')}</Text>
           </TouchableOpacity>
         </View>
       </View>
       <Text style={styles.participantsTitle}>
-        สมาชิกในห้อง · {lobby.participants.length} คน
+        {t('สมาชิกในห้อง · ')}
+        {lobby.participants.length}
+        {t(' คน')}
       </Text>
       <FlatList
         data={lobby.participants}
@@ -270,18 +285,18 @@ const LobbyScreen = () => {
           {startMutation.isPending ? (
             <ActivityIndicator color="#FFF" />
           ) : (
-            <Text style={styles.startText}>เริ่มโหวต</Text>
+            <Text style={styles.startText}>{t('เริ่มโหวต')}</Text>
           )}
         </TouchableOpacity>
       ) : (
-        <Text style={styles.waiting}>รอเจ้าของห้องเริ่มโหวต…</Text>
+        <Text style={styles.waiting}>{t('รอเจ้าของห้องเริ่มโหวต…')}</Text>
       )}
       <TouchableOpacity
         style={styles.leaveButton}
         onPress={leave}
         disabled={leaveMutation.isPending}>
         <Text style={styles.leaveText}>
-          {isHost ? 'ยกเลิกห้อง' : 'ออกจากห้อง'}
+          {isHost ? t('ยกเลิกห้อง') : t('ออกจากห้อง')}
         </Text>
       </TouchableOpacity>
 
@@ -297,9 +312,9 @@ const LobbyScreen = () => {
         />
         <View style={styles.sheet}>
           <View style={styles.sheetHandle} />
-          <Text style={styles.sheetTitle}>ชวนเพื่อน</Text>
+          <Text style={styles.sheetTitle}>{t('ชวนเพื่อน')}</Text>
           <Text style={styles.sheetSubtitle}>
-            เพื่อนจะได้รับคำเชิญในแอปและกดตอบรับได้
+            {t('เพื่อนจะได้รับคำเชิญในแอปและกดตอบรับได้')}
           </Text>
           {friendsLoading ? (
             <ActivityIndicator
@@ -329,7 +344,7 @@ const LobbyScreen = () => {
                       disabled={sent || inviteMutation.isPending}
                       onPress={() => invite(item.id, item.display_name)}>
                       <Text style={styles.sendText}>
-                        {sent ? 'ส่งแล้ว' : 'ชวน'}
+                        {sent ? t('ส่งแล้ว') : t('ชวน')}
                       </Text>
                     </TouchableOpacity>
                   </View>
@@ -337,8 +352,9 @@ const LobbyScreen = () => {
               }}
               ListEmptyComponent={
                 <Text style={styles.emptyFriends}>
-                  ยังไม่มีเพื่อนให้ชวน ลองแชร์ลิงก์ เมื่อเข้าห้องจะ
-                  เพิ่มเป็นเพื่อนกันอัตโนมัติ
+                  {t(
+                    'ยังไม่มีเพื่อนให้ชวน ลองแชร์ลิงก์ เมื่อเข้าห้องจะ เพิ่มเป็นเพื่อนกันอัตโนมัติ',
+                  )}
                 </Text>
               }
             />
@@ -346,7 +362,7 @@ const LobbyScreen = () => {
           <TouchableOpacity
             style={styles.doneButton}
             onPress={() => setInviteOpen(false)}>
-            <Text style={styles.doneText}>เสร็จ</Text>
+            <Text style={styles.doneText}>{t('เสร็จ')}</Text>
           </TouchableOpacity>
         </View>
       </Modal>

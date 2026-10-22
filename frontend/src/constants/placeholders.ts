@@ -27,22 +27,3 @@ const FALLBACK = require('../assets/placeholders/other.png');
 export const getPlaceholderImage = (category: string): string =>
   Image.resolveAssetSource(PLACEHOLDER_BY_CATEGORY[category] ?? FALLBACK)
     ?.uri ?? '';
-
-/** Emoji used on the Explore tiles and empty list rows. */
-export const CATEGORY_EMOJI: Record<string, string> = {
-  Thai: '🇹🇭',
-  Japanese: '🇯🇵',
-  Korean: '🇰🇷',
-  Chinese: '🥟',
-  Italian: '🍝',
-  'Fast Food': '🍔',
-  Cafe: '☕',
-  Dessert: '🍰',
-  'Food Court': '🍱',
-  Steak: '🥩',
-  'Hot Pot': '🍲',
-  Indian: '🍛',
-};
-
-export const getCategoryEmoji = (category: string): string =>
-  CATEGORY_EMOJI[category] ?? '🍽️';

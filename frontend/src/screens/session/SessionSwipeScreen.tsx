@@ -1,4 +1,4 @@
-import {useSessionBackGuard} from '@/hooks/useSessionBackGuard';
+import {t, useTranslation} from '@/i18n';
 /**
  * Session Swipe Screen — swiping with live group voting.
  *
@@ -35,7 +35,7 @@ import {
 } from '@/hooks/useSessions';
 import {useSwipe, useVoteProgress} from '@/hooks/useVotes';
 import {useSessionWebSocket} from '@/hooks/useWebSocket';
-
+import {useSessionBackGuard} from '@/hooks/useSessionBackGuard';
 import {SessionStackParamList} from '@/navigation/types';
 import {ResolutionResponse} from '@/types/api';
 import {RestaurantCard} from '@/types/restaurant';
@@ -48,6 +48,7 @@ type NavigationProp = NativeStackNavigationProp<
 >;
 
 const SessionSwipeScreen = () => {
+  useTranslation();
   const route = useRoute<RouteProps>();
   const navigation = useNavigation<NavigationProp>();
   const {sessionId} = route.params;
@@ -157,7 +158,7 @@ const SessionSwipeScreen = () => {
               resolve(true);
             },
             onError: swipeError => {
-              Alert.alert('บันทึกการปัดไม่สำเร็จ', swipeError.message);
+              Alert.alert(t('บันทึกการปัดไม่สำเร็จ'), t(swipeError.message));
               resolve(false);
             },
           },
@@ -211,7 +212,7 @@ const SessionSwipeScreen = () => {
     return (
       <View style={styles.centered}>
         <ActivityIndicator size="large" color="#FF6B6B" />
-        <Text style={styles.loadingText}>{'กำลังโหลดร้าน...'}</Text>
+        <Text style={styles.loadingText}>{t('กำลังโหลดร้าน...')}</Text>
       </View>
     );
   }
@@ -230,18 +231,17 @@ const SessionSwipeScreen = () => {
         {isResolving ? (
           <View style={styles.waiting}>
             <ActivityIndicator size="large" color={COLORS.accent} />
-            <Text style={styles.waitingTitle}>{'กำลังสรุปผล'}</Text>
+            <Text style={styles.waitingTitle}>{t('กำลังสรุปผล')}</Text>
             <Text style={styles.waitingText}>
               {resultQuery.isError
-                ? 'ยังรับผลไม่ได้ กำลังเชื่อมต่ออีกครั้ง...'
-                : 'หมดเวลาแล้ว กำลังรับผลจากห้อง'}
+                ? t('ยังรับผลไม่ได้ กำลังเชื่อมต่ออีกครั้ง...')
+                : t('หมดเวลาแล้ว กำลังรับผลจากห้อง')}
             </Text>
             {resultQuery.isError && (
               <TouchableOpacity
                 style={styles.retryButton}
-                onPress={() => resultQuery.refetch()}
-              >
-                <Text style={styles.retryText}>{'ลองอีกครั้ง'}</Text>
+                onPress={() => resultQuery.refetch()}>
+                <Text style={styles.retryText}>{t('ลองอีกครั้ง')}</Text>
               </TouchableOpacity>
             )}
           </View>
@@ -254,17 +254,16 @@ const SessionSwipeScreen = () => {
         ) : (
           <View style={styles.waiting}>
             <Text style={styles.waitingTitle}>
-              {hasCards ? 'ดูครบแล้ว!' : 'ไม่พบร้านอาหาร'}
+              {hasCards ? t('ดูครบแล้ว!') : t('ไม่พบร้านอาหาร')}
             </Text>
             <Text style={styles.waitingText}>
-              {hasCards ? 'กำลังรอเพื่อนปัดให้ครบ' : 'กำลังรอผลของห้อง'}
+              {hasCards ? t('กำลังรอเพื่อนปัดให้ครบ') : t('กำลังรอผลของห้อง')}
             </Text>
             {reportFinished.isError && (
               <TouchableOpacity
                 style={styles.retryButton}
-                onPress={retryFinish}
-              >
-                <Text style={styles.retryText}>{'เชื่อมต่ออีกครั้ง'}</Text>
+                onPress={retryFinish}>
+                <Text style={styles.retryText}>{t('เชื่อมต่ออีกครั้ง')}</Text>
               </TouchableOpacity>
             )}
           </View>

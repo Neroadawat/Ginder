@@ -1,4 +1,4 @@
-import {useSessionBackGuard} from '@/hooks/useSessionBackGuard';
+import {t, useTranslation} from '@/i18n';
 /**
  * Spin Wheel Screen — tie-breaker and no-match draw.
  *
@@ -14,6 +14,7 @@ import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 
 import SpinWheel, {SPIN_DURATION_MS} from '@/components/SpinWheel';
 import {useSessionDeck} from '@/hooks/useRestaurants';
+import {useSessionBackGuard} from '@/hooks/useSessionBackGuard';
 import {SessionStackParamList} from '@/navigation/types';
 import {COLORS} from '@/constants/theme';
 
@@ -27,6 +28,7 @@ type NavigationProp = NativeStackNavigationProp<
 const RESULT_LINGER_MS = SPIN_DURATION_MS + 1500;
 
 const SpinWheelScreen = () => {
+  useTranslation();
   const route = useRoute<RouteProps>();
   const navigation = useNavigation<NavigationProp>();
   const {sessionId, candidateIds, winnerId, winnerName} = route.params;
@@ -36,15 +38,18 @@ const SpinWheelScreen = () => {
   // can be resolved from it without another request.
   const {data: deck} = useSessionDeck(sessionId);
 
-  const candidateNames = useMemo(() => {
+  const getCandidateNames = () => {
     if (!deck) {
-      return candidateIds.map((_, index) => `Option ${index + 1}`);
+      return candidateIds.map((_, index) =>
+        t('Option {number}', {number: index + 1}),
+      );
     }
     const byId = new Map(deck.restaurants.map(r => [r.id, r.name]));
     return candidateIds.map(
-      (id, index) => byId.get(id) ?? `Option ${index + 1}`,
+      (id, index) => byId.get(id) ?? t('Option {number}', {number: index + 1}),
     );
-  }, [candidateIds, deck]);
+  };
+  const candidateNames = getCandidateNames();
 
   const winnerIndex = useMemo(() => {
     const index = candidateIds.indexOf(winnerId);
@@ -61,11 +66,11 @@ const SpinWheelScreen = () => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>สุ่มเลือกร้าน</Text>
+      <Text style={styles.title}>{t('สุ่มเลือกร้าน')}</Text>
       <Text style={styles.subtitle}>
         {candidateIds.length > 1
-          ? 'มีหลายร้านให้เลือก วงล้อจะช่วยตัดสินใจ'
-          : 'วงล้อกำลังเลือกร้านให้คุณ'}
+          ? t('มีหลายร้านให้เลือก วงล้อจะช่วยตัดสินใจ')
+          : t('วงล้อกำลังเลือกร้านให้คุณ')}
       </Text>
 
       <View style={styles.wheelContainer}>

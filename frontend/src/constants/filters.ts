@@ -1,3 +1,4 @@
+import {t} from '@/i18n';
 /**
  * Shared filter options.
  *
@@ -50,7 +51,7 @@ export const SESSION_DURATION_OPTIONS = [
 
 /** Formats a radius for display, dropping the trailing ".0" on whole numbers. */
 export const formatRadius = (km: number): string =>
-  `${Number.isInteger(km) ? km : km.toFixed(1)} กม.`;
+  t('{p0} กม.', {p0: Number.isInteger(km) ? km : km.toFixed(1)});
 
 /** Radius choices larger than the current one, for the expand-radius screen. */
 export const getWiderRadiusOptions = (currentKm: number): number[] =>

@@ -1,4 +1,5 @@
 import React from 'react';
+import {t, useTranslation} from '@/i18n';
 import {
   Linking,
   StyleProp,
@@ -23,6 +24,7 @@ const PhotoAttribution = ({
   style,
   photoVisible = Boolean(restaurant.photo_url),
 }: Props) => {
+  useTranslation();
   if (!photoVisible || !restaurant.photo_attribution) {
     return null;
   }
@@ -36,7 +38,7 @@ const PhotoAttribution = ({
     : rawSourceUrl?.startsWith('http')
     ? rawSourceUrl
     : null;
-  const credit = `Photo: ${restaurant.photo_attribution}`;
+  const credit = t('Photo: {credit}', {credit: restaurant.photo_attribution});
   const textStyle = [styles.text, light && styles.light, style];
 
   if (!sourceUrl) {
@@ -46,7 +48,7 @@ const PhotoAttribution = ({
   return (
     <TouchableOpacity
       accessibilityRole="link"
-      accessibilityLabel={`${credit}. Open photo source`}
+      accessibilityLabel={t('{credit}. Open photo source', {credit})}
       onPress={() => Linking.openURL(sourceUrl)}>
       <Text style={textStyle}>{credit}</Text>
     </TouchableOpacity>

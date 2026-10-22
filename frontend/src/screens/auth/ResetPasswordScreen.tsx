@@ -1,3 +1,4 @@
+import {t, useTranslation} from '@/i18n';
 /**
  * Reset Password Screen — Enter new password with reset token.
  */
@@ -20,6 +21,7 @@ import {AuthStackParamList} from '@/navigation/types';
 type ResetPasswordRouteProp = RouteProp<AuthStackParamList, 'ResetPassword'>;
 
 const ResetPasswordScreen = () => {
+  useTranslation();
   const route = useRoute<ResetPasswordRouteProp>();
   const resetMutation = useResetPassword();
 
@@ -31,8 +33,8 @@ const ResetPasswordScreen = () => {
     if (newPassword.length < 8 || newPassword !== confirmPassword) {
       setValidationError(
         newPassword.length < 8
-          ? 'ใช้รหัสผ่านอย่างน้อย 8 ตัวอักษร'
-          : 'รหัสผ่านทั้งสองช่องไม่ตรงกัน',
+          ? t('ใช้รหัสผ่านอย่างน้อย 8 ตัวอักษร')
+          : t('รหัสผ่านทั้งสองช่องไม่ตรงกัน'),
       );
       return;
     }
@@ -45,37 +47,41 @@ const ResetPasswordScreen = () => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>ตั้งรหัสผ่านใหม่</Text>
-      <Text style={styles.subtitle}>กรอกรหัสผ่านใหม่อย่างน้อย 8 ตัวอักษร</Text>
+      <Text style={styles.title}>{t('ตั้งรหัสผ่านใหม่')}</Text>
+      <Text style={styles.subtitle}>
+        {t('กรอกรหัสผ่านใหม่อย่างน้อย 8 ตัวอักษร')}
+      </Text>
 
       <TextInput
         style={styles.input}
-        placeholder="รหัสผ่านใหม่"
+        placeholder={t('รหัสผ่านใหม่')}
         placeholderTextColor="#999"
         value={newPassword}
         onChangeText={setNewPassword}
         secureTextEntry
-        accessibilityLabel="New password input"
+        accessibilityLabel={t('New password input')}
       />
       <TextInput
         style={styles.input}
-        placeholder="ยืนยันรหัสผ่าน"
+        placeholder={t('ยืนยันรหัสผ่าน')}
         placeholderTextColor="#999"
         value={confirmPassword}
         onChangeText={setConfirmPassword}
         secureTextEntry
-        accessibilityLabel="Confirm password input"
+        accessibilityLabel={t('Confirm password input')}
       />
 
       {resetMutation.isSuccess && (
         <Text style={styles.successText}>
-          ตั้งรหัสผ่านสำเร็จ กลับไปเข้าสู่ระบบได้เลย
+          {t('ตั้งรหัสผ่านสำเร็จ กลับไปเข้าสู่ระบบได้เลย')}
         </Text>
       )}
       {(validationError || resetMutation.isError) && (
         <Text style={styles.errorText} accessibilityRole="alert">
-          {validationError ||
-            'ตั้งรหัสผ่านไม่สำเร็จ กรุณาขอลิงก์ใหม่หรือลองอีกครั้ง'}
+          {t(
+            validationError ||
+              'ตั้งรหัสผ่านไม่สำเร็จ กรุณาขอลิงก์ใหม่หรือลองอีกครั้ง',
+          )}
         </Text>
       )}
 
@@ -87,7 +93,7 @@ const ResetPasswordScreen = () => {
         {resetMutation.isPending ? (
           <ActivityIndicator color="#FFF" />
         ) : (
-          <Text style={styles.buttonText}>บันทึกรหัสผ่านใหม่</Text>
+          <Text style={styles.buttonText}>{t('บันทึกรหัสผ่านใหม่')}</Text>
         )}
       </TouchableOpacity>
     </View>

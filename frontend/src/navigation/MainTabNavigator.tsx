@@ -1,3 +1,4 @@
+import {t, useTranslation} from '@/i18n';
 /**
  * Main Tab Navigator — Bottom tabs for Home, Explore, Likes, History, Profile.
  */
@@ -63,6 +64,7 @@ const tabScreenOptions = ({
 });
 
 const MainTabNavigator = () => {
+  useTranslation();
   usePushNotifications();
   const {data: notifications} = useNotifications();
   useCurrentSession();
@@ -71,28 +73,28 @@ const MainTabNavigator = () => {
       <Tab.Screen
         name="HomeTab"
         component={HomeNavigator}
-        options={{tabBarLabel: 'หาร้าน'}}
+        options={{tabBarLabel: t('หาร้าน')}}
       />
       <Tab.Screen
         name="ExploreTab"
         component={ExploreNavigator}
-        options={{tabBarLabel: 'หมวดหมู่'}}
+        options={{tabBarLabel: t('หมวดหมู่')}}
       />
       <Tab.Screen
         name="LikesTab"
         component={LikesScreen}
-        options={{tabBarLabel: 'ถูกใจ'}}
+        options={{tabBarLabel: t('ถูกใจ')}}
       />
       <Tab.Screen
         name="HistoryTab"
         component={HistoryScreen}
-        options={{tabBarLabel: 'ประวัติ'}}
+        options={{tabBarLabel: t('ประวัติ')}}
       />
       <Tab.Screen
         name="ProfileTab"
         component={ProfileNavigator}
         options={{
-          tabBarLabel: 'โปรไฟล์',
+          tabBarLabel: t('โปรไฟล์'),
           tabBarBadge: notifications?.unread_count || undefined,
           tabBarBadgeStyle: {
             backgroundColor: COLORS.accent,
