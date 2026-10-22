@@ -71,7 +71,8 @@ const RootNavigator = ({onRequestLocation}: Props) => {
       <Stack.Screen
         name="Session"
         component={SessionNavigator}
-        options={{animation: 'slide_from_right'}}
+        // The parent stack can dismiss the whole nested Session navigator.
+        options={{animation: 'slide_from_right', gestureEnabled: false}}
       />
     </Stack.Navigator>
   );

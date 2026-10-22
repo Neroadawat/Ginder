@@ -1,3 +1,4 @@
+import {useSessionBackGuard} from '@/hooks/useSessionBackGuard';
 /**
  * Spin Wheel Screen — tie-breaker and no-match draw.
  *
@@ -29,6 +30,7 @@ const SpinWheelScreen = () => {
   const route = useRoute<RouteProps>();
   const navigation = useNavigation<NavigationProp>();
   const {sessionId, candidateIds, winnerId, winnerName} = route.params;
+  useSessionBackGuard();
 
   // The deck already holds every restaurant in this session, so candidate names
   // can be resolved from it without another request.

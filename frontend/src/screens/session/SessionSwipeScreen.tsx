@@ -1,3 +1,4 @@
+import {useSessionBackGuard} from '@/hooks/useSessionBackGuard';
 /**
  * Session Swipe Screen — swiping with live group voting.
  *
@@ -50,6 +51,7 @@ const SessionSwipeScreen = () => {
   const route = useRoute<RouteProps>();
   const navigation = useNavigation<NavigationProp>();
   const {sessionId} = route.params;
+  useSessionBackGuard();
 
   const {data: deck, isLoading} = useSessionDeck(sessionId);
   const {data: progress, isLoading: isProgressLoading} =
