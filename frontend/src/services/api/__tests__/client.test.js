@@ -20,6 +20,11 @@ const client = require('../client').default;
 const [prepare] = client.interceptors.request.use.mock.calls[0];
 const [success, failure] = client.interceptors.response.use.mock.calls[0];
 
+const accessJwt = userId =>
+  `eyJhbGciOiJIUzI1NiJ9.${Buffer.from(JSON.stringify({sub: userId})).toString(
+    'base64url',
+  )}.signature`;
+
 beforeEach(() => {
   getAuthRevision.mockReturnValue(1);
   useAuthStore.getState.mockReturnValue({
@@ -65,4 +70,59 @@ test('invalid login does not refresh the current account', async () => {
     }),
   ).rejects.toThrow('Invalid email or password');
   expect(axios.post).not.toHaveBeenCalled();
+});
+
+test('parallel 401 responses rotate once and both retry with the new token', async () => {
+  const state = useAuthStore.getState();
+  state.setTokens = jest.fn(async (access, refresh) => {
+    state.accessToken = access;
+    state.refreshToken = refresh;
+  });
+  const first = prepare({url: '/users/me', headers: {}});
+  const second = prepare({url: '/notifications', headers: {}});
+  let resolveRefresh;
+  axios.post.mockReturnValue(
+    new Promise(resolve => {
+      resolveRefresh = resolve;
+    }),
+  );
+  const attempts = [first, second].map(config =>
+    failure({config, response: {status: 401}}),
+  );
+  expect(axios.post).toHaveBeenCalledTimes(1);
+  const access = accessJwt('u1');
+  resolveRefresh({data: {access_token: access, refresh_token: 'r2'}});
+  await Promise.all(attempts);
+  expect(state.setTokens).toHaveBeenCalledTimes(1);
+  expect(first.headers.Authorization).toBe(`Bearer ${access}`);
+  expect(second.headers.Authorization).toBe(`Bearer ${access}`);
+});
+
+test('late 401 uses a token already rotated by another request', async () => {
+  const state = useAuthStore.getState();
+  const config = prepare({url: '/users/me', headers: {}});
+  state.accessToken = 'already-rotated';
+  state.refreshToken = 'r2';
+  await failure({config, response: {status: 401}});
+  expect(axios.post).not.toHaveBeenCalled();
+  expect(config.headers.Authorization).toBe('Bearer already-rotated');
+});
+
+test('logout during refresh cannot restore authentication', async () => {
+  const state = useAuthStore.getState();
+  state.setTokens = jest.fn();
+  const config = prepare({url: '/users/me', headers: {}});
+  let resolveRefresh;
+  axios.post.mockReturnValue(
+    new Promise(resolve => {
+      resolveRefresh = resolve;
+    }),
+  );
+  const attempt = failure({config, response: {status: 401}});
+  state.userId = null;
+  state.refreshToken = null;
+  getAuthRevision.mockReturnValue(2);
+  resolveRefresh({data: {access_token: accessJwt('u1'), refresh_token: 'r2'}});
+  await expect(attempt).rejects.toBeDefined();
+  expect(state.setTokens).not.toHaveBeenCalled();
 });

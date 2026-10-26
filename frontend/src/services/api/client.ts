@@ -59,6 +59,45 @@ type AuthRequestConfig = InternalAxiosRequestConfig & {
 const authenticationChanged = () =>
   new Error('Authentication changed. Please try again.');
 
+let pendingRefresh: {token: string; promise: Promise<string>} | undefined;
+
+const refreshAccessToken = (refreshToken: string, userId: string | null) => {
+  if (pendingRefresh?.token === refreshToken) {
+    return pendingRefresh.promise;
+  }
+  const promise = (async () => {
+    const response = await axios.post(
+      `${API_BASE_URL}/auth/refresh`,
+      {refresh_token: refreshToken},
+      {timeout: 15000},
+    );
+    if (
+      useAuthStore.getState().refreshToken !== refreshToken ||
+      useAuthStore.getState().userId !== userId
+    ) {
+      throw authenticationChanged();
+    }
+    const {access_token, refresh_token} = response.data;
+    const payload = jwtDecode<{sub: string}>(access_token);
+    if (payload.sub !== userId) {
+      throw authenticationChanged();
+    }
+    await useAuthStore
+      .getState()
+      .setTokens(access_token, refresh_token, payload.sub, refreshToken);
+    return access_token as string;
+  })();
+  pendingRefresh = {token: refreshToken, promise};
+  promise
+    .finally(() => {
+      if (pendingRefresh?.promise === promise) {
+        pendingRefresh = undefined;
+      }
+    })
+    .catch(() => {});
+  return promise;
+};
+
 // ─── Request interceptor: attach Bearer token ───
 apiClient.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
@@ -117,29 +156,14 @@ apiClient.interceptors.response.use(
       }
 
       try {
-        const response = await axios.post(
-          `${API_BASE_URL}/auth/refresh`,
-          {
-            refresh_token: refreshToken,
-          },
-          {timeout: 15000},
-        );
-
-        // A slow refresh must never restore a logged-out or different account.
-        if (
-          useAuthStore.getState().refreshToken !== refreshToken ||
-          useAuthStore.getState().userId !== userId
-        ) {
-          return Promise.reject(
-            new Error('Authentication changed. Please try again.'),
-          );
-        }
-
-        const {access_token, refresh_token} = response.data;
-        const payload = jwtDecode<{sub: string}>(access_token);
-        await useAuthStore
-          .getState()
-          .setTokens(access_token, refresh_token, payload.sub, refreshToken);
+        // A late 401 may belong to the previous access token, already rotated
+        // by another request. Retry with the current token without rotating again.
+        const currentAccess = useAuthStore.getState().accessToken;
+        const access_token =
+          currentAccess &&
+          originalRequest.headers?.Authorization !== `Bearer ${currentAccess}`
+            ? currentAccess
+            : await refreshAccessToken(refreshToken, userId);
 
         if (
           useAuthStore.getState().userId !== userId ||

@@ -7,6 +7,7 @@ import * as Keychain from 'react-native-keychain';
 import {useSessionStore} from './sessionStore';
 import {queryClient} from '@/services/queryClient';
 import {clearFCMRegistration} from '@/services/pushRegistration';
+import {revokeLogin} from '@/services/authRevocation';
 
 const TOKEN_SERVICE = 'com.tamsoot.ginder.auth';
 let authRevision = 0;
@@ -86,7 +87,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   logout: async () => {
-    const {accessToken, userId} = get();
+    const {accessToken, refreshToken, userId} = get();
     authRevision += 1;
     queryClient.clear();
     useSessionStore.getState().clearSession();
@@ -100,7 +101,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       updateCredentials(() =>
         Keychain.resetGenericPassword({service: TOKEN_SERVICE}),
       ),
-      clearFCMRegistration(accessToken, userId, () => get().userId).catch(() => {}),
+      // Remove push registration before revocation invalidates the access token.
+      clearFCMRegistration(accessToken, userId, () => get().userId)
+        .catch(() => {})
+        .then(() => revokeLogin(refreshToken))
+        .catch(() => {}),
     ]);
   },
 

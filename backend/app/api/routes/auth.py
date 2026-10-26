@@ -57,6 +57,11 @@ async def forgot_password(
     return await service.forgot_password(body)
 
 
+@router.post("/logout", response_model=MessageResponse)
+async def logout(body: RefreshTokenRequest, db: AsyncSession = Depends(get_db)):
+    return await AuthService(db).logout(body)
+
+
 @router.post("/reset-password", response_model=MessageResponse)
 async def reset_password(body: ResetPasswordRequest, db: AsyncSession = Depends(get_db)):
     """Reset password with a valid reset token."""

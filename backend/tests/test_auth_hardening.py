@@ -1,13 +1,15 @@
 """Authentication revocation, WebSocket membership and abuse controls."""
 
+import hashlib
 import uuid
+from datetime import UTC, datetime, timedelta
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
 from app.core.exceptions import UnauthorizedException
-from app.core.security import create_access_token, create_refresh_token
+from app.core.security import create_access_token, create_refresh_token, decode_token
 from app.schemas.auth import RefreshTokenRequest
 from app.services.auth_service import AuthService
 from app.services.rate_limit_service import allow_password_reset
@@ -29,7 +31,9 @@ async def test_refresh_rejects_revoked_token() -> None:
 
     with pytest.raises(UnauthorizedException):
         await service.refresh(
-            RefreshTokenRequest(refresh_token=create_refresh_token(str(user_id), 1))
+            RefreshTokenRequest(
+                refresh_token=create_refresh_token(str(user_id), 1, str(uuid.uuid4()))
+            )
         )
 
 
@@ -37,15 +41,100 @@ async def test_refresh_rejects_revoked_token() -> None:
 async def test_refresh_checks_user_and_rotates_current_version() -> None:
     user_id = uuid.uuid4()
     user = SimpleNamespace(id=user_id, is_active=True, token_version=4)
-    db = SimpleNamespace(execute=AsyncMock(return_value=_result(user)))
+    session_id = uuid.uuid4()
+    token = create_refresh_token(str(user_id), 4, str(session_id))
+    session = SimpleNamespace(
+        id=session_id, user_id=user_id,
+        refresh_hash=hashlib.sha256(token.encode()).hexdigest(),
+        revoked_at=None, expires_at=datetime.now(UTC) + timedelta(days=1),
+    )
+    db = SimpleNamespace(
+        execute=AsyncMock(side_effect=[_result(user), _result(session)]), flush=AsyncMock()
+    )
     service = AuthService(db)
 
     tokens = await service.refresh(
-        RefreshTokenRequest(refresh_token=create_refresh_token(str(user_id), 4))
+        RefreshTokenRequest(refresh_token=token)
     )
 
     assert tokens.access_token
     assert tokens.refresh_token
+    assert tokens.refresh_token != token
+    assert decode_token(tokens.access_token)["sid"] == str(session_id)
+    assert session.refresh_hash == hashlib.sha256(tokens.refresh_token.encode()).hexdigest()
+
+
+@pytest.mark.asyncio
+async def test_replayed_refresh_persists_family_revocation() -> None:
+    user_id, session_id = uuid.uuid4(), uuid.uuid4()
+    user = SimpleNamespace(id=user_id, is_active=True, token_version=0)
+    session = SimpleNamespace(
+        id=session_id, refresh_hash="0" * 64, revoked_at=None,
+        expires_at=datetime.now(UTC) + timedelta(days=1),
+    )
+    db = SimpleNamespace(
+        execute=AsyncMock(side_effect=[_result(user), _result(session)]), commit=AsyncMock()
+    )
+    with pytest.raises(UnauthorizedException, match="reused"):
+        await AuthService(db).refresh(RefreshTokenRequest(
+            refresh_token=create_refresh_token(str(user_id), 0, str(session_id))
+        ))
+    assert session.revoked_at is not None
+    db.commit.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_legacy_refresh_requires_new_login() -> None:
+    db = SimpleNamespace(execute=AsyncMock())
+    with pytest.raises(UnauthorizedException):
+        await AuthService(db).refresh(RefreshTokenRequest(
+            refresh_token=create_refresh_token(str(uuid.uuid4()))
+        ))
+    db.execute.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("expired,revoked", [(True, False), (False, True)])
+async def test_refresh_rejects_expired_or_revoked_login(expired, revoked) -> None:
+    user_id, session_id = uuid.uuid4(), uuid.uuid4()
+    user = SimpleNamespace(id=user_id, is_active=True, token_version=0)
+    session = SimpleNamespace(
+        expires_at=datetime.now(UTC) + timedelta(days=-1 if expired else 1),
+        revoked_at=datetime.now(UTC) if revoked else None,
+    )
+    db = SimpleNamespace(execute=AsyncMock(side_effect=[_result(user), _result(session)]))
+    with pytest.raises(UnauthorizedException):
+        await AuthService(db).refresh(RefreshTokenRequest(
+            refresh_token=create_refresh_token(str(user_id), 0, str(session_id))
+        ))
+
+
+@pytest.mark.asyncio
+async def test_logout_revokes_only_addressed_family_and_is_idempotent() -> None:
+    user_id, session_id = uuid.uuid4(), uuid.uuid4()
+    session = SimpleNamespace(revoked_at=None)
+    db = SimpleNamespace(execute=AsyncMock(return_value=_result(session)))
+    body = RefreshTokenRequest(
+        refresh_token=create_refresh_token(str(user_id), 0, str(session_id))
+    )
+    await AuthService(db).logout(body)
+    revoked_at = session.revoked_at
+    await AuthService(db).logout(body)
+    assert session.revoked_at == revoked_at
+    query = str(db.execute.call_args.args[0])
+    assert "auth_sessions.id =" in query and "auth_sessions.user_id =" in query
+
+
+@pytest.mark.asyncio
+async def test_access_and_websocket_check_login_revocation() -> None:
+    from app.services.auth_session_service import is_login_active
+
+    payload = {"sub": str(uuid.uuid4()), "sid": str(uuid.uuid4())}
+    db = SimpleNamespace(execute=AsyncMock(return_value=_result(None)))
+    assert not await is_login_active(payload, db)
+    db.execute.return_value = _result(uuid.uuid4())
+    assert await is_login_active(payload, db)
+    assert not await is_login_active({**payload, "sid": "bad"}, db)
 
 
 @pytest.mark.asyncio

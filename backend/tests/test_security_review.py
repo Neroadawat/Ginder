@@ -178,3 +178,30 @@ async def test_non_object_websocket_json_does_not_crash_or_leak_connection(monke
     await router.session_websocket(ws, session_id, "Bearer token")
     assert json.loads(ws.send_text.await_args.args[0])["data"] == {"message": "Invalid JSON"}
     assert not manager.get_connected_users(session_id)
+
+
+@pytest.mark.asyncio
+async def test_server_closed_websocket_receive_exits_cleanly(monkeypatch):
+    from starlette.websockets import WebSocketDisconnected
+
+    from app.websocket import router
+
+    session_id, user_id = uuid.uuid4(), uuid.uuid4()
+    db_context = MagicMock()
+    db_context.__aenter__ = AsyncMock(return_value=SimpleNamespace())
+    db_context.__aexit__ = AsyncMock(return_value=None)
+    monkeypatch.setattr(router, "async_session_factory", lambda: db_context)
+    monkeypatch.setattr(router, "authorize_session", AsyncMock(return_value=user_id))
+    monkeypatch.setattr(router, "enforce_request_limit", AsyncMock())
+    manager = ConnectionManager()
+    monkeypatch.setattr(router, "manager", manager)
+    ws = MagicMock(
+        client=SimpleNamespace(host="203.0.113.1"),
+        accept=AsyncMock(),
+        receive_text=AsyncMock(side_effect=WebSocketDisconnected("Already closed by manager")),
+    )
+
+    await router.session_websocket(ws, session_id, "Bearer token")
+
+    assert not manager.get_connected_users(session_id)
+    assert ws not in manager.authorizers

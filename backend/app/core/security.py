@@ -47,19 +47,26 @@ def create_access_token(
     subject: str,
     token_version: int = 0,
     expires_delta: timedelta | None = None,
+    session_id: str | None = None,
 ) -> str:
     """Create a JWT access token."""
     expire = datetime.now(UTC) + (
         expires_delta or timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     )
     to_encode = _token_claims(subject, "access", expire, token_version)
+    if session_id is not None:
+        to_encode["sid"] = session_id
     return jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
 
 
-def create_refresh_token(subject: str, token_version: int = 0) -> str:
+def create_refresh_token(
+    subject: str, token_version: int = 0, session_id: str | None = None
+) -> str:
     """Create a JWT refresh token."""
     expire = datetime.now(UTC) + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
     to_encode = _token_claims(subject, "refresh", expire, token_version)
+    if session_id is not None:
+        to_encode["sid"] = session_id
     return jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
 
 

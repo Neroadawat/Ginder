@@ -15,12 +15,14 @@ from uuid import UUID
 
 from fastapi import APIRouter, Header, HTTPException, WebSocket, WebSocketDisconnect
 from sqlalchemy import select
+from starlette.websockets import WebSocketDisconnected
 
 from app.core.database import async_session_factory
 from app.core.redis import redis_client
 from app.core.security import decode_token
 from app.models.session import SessionParticipant
 from app.models.user import User
+from app.services.auth_session_service import is_login_active
 from app.services.rate_limit_service import enforce_request_limit
 from app.websocket.connection_manager import manager
 from app.websocket.events import EVENT_ERROR, EVENT_PING, EVENT_PONG
@@ -49,6 +51,8 @@ async def authorize_session(token: str, session_id: UUID, db) -> UUID | None:
         )
     )
     if result.scalar_one_or_none() is None:
+        return None
+    if not await is_login_active(payload, db):
         return None
     return user_id
 
@@ -132,7 +136,10 @@ async def session_websocket(
                     session_id, user_id, EVENT_ERROR, {"message": "Invalid JSON"}
                 )
 
-    except WebSocketDisconnect:
+    except (WebSocketDisconnect, WebSocketDisconnected):
+        # The manager may close a revoked/replaced socket while this receive
+        # loop is still active. Starlette distinguishes that server-side close
+        # from the normal client disconnect event.
         pass
     finally:
         manager.disconnect(session_id, user_id, websocket)

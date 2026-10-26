@@ -1,8 +1,10 @@
 """Auth business logic — signup, login, refresh, password reset."""
 
+import hashlib
+import hmac
 import logging
 from datetime import UTC, datetime
-from uuid import UUID
+from uuid import UUID, uuid4
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -17,6 +19,7 @@ from app.core.security import (
     hash_password,
     verify_password,
 )
+from app.models.auth_session import AuthSession
 from app.models.user import User
 from app.schemas.auth import (
     ForgotPasswordRequest,
@@ -57,10 +60,7 @@ class AuthService:
         self.db.add(user)
         await self.db.flush()
 
-        return TokenResponse(
-            access_token=create_access_token(str(user.id), user.token_version),
-            refresh_token=create_refresh_token(str(user.id), user.token_version),
-        )
+        return await self._start_session(user)
 
     async def login(self, body: LoginRequest) -> TokenResponse:
         """Authenticate user with email/password and return tokens."""
@@ -75,10 +75,32 @@ class AuthService:
         ):
             raise UnauthorizedException("Invalid email or password")
 
+        return await self._start_session(user)
+
+    def _issue_tokens(self, user: User, session: AuthSession) -> TokenResponse:
+        refresh = create_refresh_token(str(user.id), user.token_version, str(session.id))
+        session.refresh_hash = hashlib.sha256(refresh.encode()).hexdigest()
+        # Rotation does not extend the original login's absolute lifetime.
         return TokenResponse(
-            access_token=create_access_token(str(user.id), user.token_version),
-            refresh_token=create_refresh_token(str(user.id), user.token_version),
+            access_token=create_access_token(
+                str(user.id), user.token_version, session_id=str(session.id)
+            ),
+            refresh_token=refresh,
         )
+
+    async def _start_session(self, user: User) -> TokenResponse:
+        from datetime import timedelta
+
+        from app.core.config import settings
+
+        session = AuthSession(
+            id=uuid4(), user_id=user.id,
+            expires_at=datetime.now(UTC) + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS),
+        )
+        tokens = self._issue_tokens(user, session)
+        self.db.add(session)
+        await self.db.flush()
+        return tokens
 
     async def refresh(self, body: RefreshTokenRequest) -> TokenResponse:
         """Issue new tokens from a valid refresh token."""
@@ -88,18 +110,54 @@ class AuthService:
 
         try:
             user_id = UUID(payload["sub"])
+            session_id = UUID(payload["sid"])
         except (KeyError, TypeError, ValueError):
             raise UnauthorizedException("Invalid refresh token") from None
 
-        result = await self.db.execute(select(User).where(User.id == user_id))
+        # Keep lock order consistent with reset-password: user, then session.
+        result = await self.db.execute(select(User).where(User.id == user_id).with_for_update())
         user = result.scalar_one_or_none()
         if not user or not user.is_active or payload.get("ver") != user.token_version:
             raise UnauthorizedException("Invalid refresh token")
 
-        return TokenResponse(
-            access_token=create_access_token(str(user.id), user.token_version),
-            refresh_token=create_refresh_token(str(user.id), user.token_version),
+        session_result = await self.db.execute(
+            select(AuthSession).where(
+                AuthSession.id == session_id, AuthSession.user_id == user_id
+            ).with_for_update()
         )
+        session = session_result.scalar_one_or_none()
+        if not session or session.revoked_at or session.expires_at <= datetime.now(UTC):
+            raise UnauthorizedException("Invalid refresh token")
+        if not hmac.compare_digest(
+            session.refresh_hash, hashlib.sha256(body.refresh_token.encode()).hexdigest()
+        ):
+            # Persist replay revocation before returning 401; the request dependency
+            # rolls back on exceptions, which would otherwise undo this protection.
+            session.revoked_at = datetime.now(UTC)
+            await self.db.commit()
+            raise UnauthorizedException("Refresh token reused; please sign in again")
+        tokens = self._issue_tokens(user, session)
+        await self.db.flush()
+        return tokens
+
+    async def logout(self, body: RefreshTokenRequest) -> MessageResponse:
+        """Idempotently revoke this login, including already-rotated tokens."""
+        payload = decode_token(body.refresh_token)
+        if payload and payload.get("type") == "refresh":
+            try:
+                user_id, session_id = UUID(payload["sub"]), UUID(payload["sid"])
+            except (KeyError, TypeError, ValueError):
+                pass
+            else:
+                result = await self.db.execute(
+                    select(AuthSession).where(
+                        AuthSession.id == session_id, AuthSession.user_id == user_id
+                    ).with_for_update()
+                )
+                session = result.scalar_one_or_none()
+                if session and not session.revoked_at:
+                    session.revoked_at = datetime.now(UTC)
+        return MessageResponse(message="Signed out")
 
     async def forgot_password(self, body: ForgotPasswordRequest) -> MessageResponse:
         """Start the password reset flow.

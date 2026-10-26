@@ -11,6 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import async_session_factory
 from app.core.security import decode_token
 from app.models.user import User
+from app.services.auth_session_service import is_login_active
 
 security_scheme = HTTPBearer()
 
@@ -53,6 +54,7 @@ async def get_current_user(
         user is None
         or not user.is_active
         or payload.get("ver") != user.token_version
+        or not await is_login_active(payload, db)
     ):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

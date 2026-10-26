@@ -10,11 +10,15 @@ jest.mock('../sessionStore', () => ({
 jest.mock('../../services/pushRegistration', () => ({
   clearFCMRegistration: jest.fn().mockResolvedValue(undefined),
 }));
+jest.mock('../../services/authRevocation', () => ({
+  revokeLogin: jest.fn().mockResolvedValue(undefined),
+}));
 
 const Keychain = require('react-native-keychain');
 const {queryClient} = require('../../services/queryClient');
 const {useAuthStore} = require('../authStore');
 const {clearFCMRegistration} = require('../../services/pushRegistration');
+const {revokeLogin} = require('../../services/authRevocation');
 
 afterEach(async () => {
   await useAuthStore.getState().logout();
@@ -31,6 +35,7 @@ test('logout and switching users clear private query data', async () => {
     expect.any(Function),
   );
   expect(queryClient.getQueryData(['profile'])).toBeUndefined();
+  expect(revokeLogin).toHaveBeenCalledWith('r1');
   queryClient.setQueryData(['history'], ['old private data']);
   await useAuthStore.getState().setTokens('a2', 'r2', 'user2');
   expect(queryClient.getQueryData(['history'])).toBeUndefined();

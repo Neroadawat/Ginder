@@ -50,7 +50,7 @@ async def enforce_request_limit(
 
 async def limit_auth_requests(request: Request, redis: Redis = Depends(get_redis)) -> None:
     action = request.url.path.rstrip("/").rsplit("/", 1)[-1]
-    limits = {"login": 30, "signup": 10, "refresh": 120, "reset-password": 20}
+    limits = {"login": 30, "signup": 10, "refresh": 120, "logout": 120, "reset-password": 20}
     if action in limits:
         await enforce_request_limit(
             redis,
