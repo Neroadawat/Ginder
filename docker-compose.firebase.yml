@@ -4,12 +4,14 @@ services:
   backend:
     environment:
       FCM_ENABLED: "true"
+      FCM_CREDENTIALS_PATH: /run/secrets/firebase-credentials.json
     secrets:
       - source: firebase-credentials
         target: firebase-credentials.json
   celery-worker:
     environment:
       FCM_ENABLED: "true"
+      FCM_CREDENTIALS_PATH: /run/secrets/firebase-credentials.json
     secrets:
       - source: firebase-credentials
         target: firebase-credentials.json

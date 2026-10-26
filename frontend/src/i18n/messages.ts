@@ -1,5 +1,8 @@
 /** English default copy, keyed by the original Thai UI text. */
 export const english: Record<string, string> = {
+  คุณได้รับคำเชิญเข้าห้องใหม่: 'You have a new session invitation.',
+  ดูคำเชิญ: 'View invitations',
+  โหลดร้านอาหารไม่สำเร็จ: 'Could not load restaurants',
   เลือกร้าน: 'You picked',
   'ตรงกัน!': 'the same place!',
   'ทุกคนเลือกร้าน ': 'Everyone chose ',

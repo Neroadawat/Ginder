@@ -129,7 +129,12 @@ class NotificationService:
                 token=fcm_token,
                 title=notification.title,
                 body=notification.body,
-                data={"payload": notification.data or ""},
+                data={
+                    "payload": notification.data or "",
+                    "notification_id": str(notification.id),
+                    "recipient_id": str(notification.user_id),
+                    "type": notification.type.value,
+                },
             )
         except Exception:
             logger.exception("Failed to send FCM push to token ending in ...%s", fcm_token[-6:])

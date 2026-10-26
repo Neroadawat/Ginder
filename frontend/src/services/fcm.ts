@@ -6,10 +6,13 @@ import {
   AuthorizationStatus,
   getMessaging,
   getToken,
+  getInitialNotification,
   onMessage,
+  onNotificationOpenedApp,
   onTokenRefresh,
   requestPermission,
   setBackgroundMessageHandler,
+  RemoteMessage,
 } from '@react-native-firebase/messaging';
 
 import {userApi} from './api/userApi';
@@ -69,14 +72,41 @@ export async function setupFCM(userId: string): Promise<() => void> {
  * Handle incoming foreground messages.
  */
 export function setupForegroundMessageHandler(
-  onUpdate: () => void,
+  onUpdate: (message: RemoteMessage) => void,
 ): () => void {
   if (!isFCMAvailable()) {
     return () => {};
   }
-  return onMessage(getMessaging(), async () => {
-    onUpdate();
+  return onMessage(getMessaging(), async message => {
+    onUpdate(message);
   });
+}
+
+/** Consume notification taps only while this authenticated screen is mounted. */
+export function setupNotificationOpenHandler(
+  onOpen: (message: RemoteMessage) => void,
+): () => void {
+  if (!isFCMAvailable()) {
+    return () => {};
+  }
+  let cancelled = false;
+  const messaging = getMessaging();
+  const unsubscribe = onNotificationOpenedApp(messaging, message => {
+    if (!cancelled) {
+      onOpen(message);
+    }
+  });
+  getInitialNotification(messaging)
+    .then(message => {
+      if (!cancelled && message) {
+        onOpen(message);
+      }
+    })
+    .catch(() => {});
+  return () => {
+    cancelled = true;
+    unsubscribe();
+  };
 }
 
 /**

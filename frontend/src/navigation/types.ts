@@ -8,7 +8,7 @@ export type RootStackParamList = {
   Consent: undefined;
   Auth: undefined;
   PermissionGate: undefined;
-  Main: undefined;
+  Main: NavigatorScreenParams<MainTabParamList> | undefined;
   Session: NavigatorScreenParams<SessionStackParamList>;
 };
 
@@ -24,7 +24,7 @@ export type MainTabParamList = {
   ExploreTab: undefined;
   LikesTab: undefined;
   HistoryTab: undefined;
-  ProfileTab: undefined;
+  ProfileTab: NavigatorScreenParams<ProfileStackParamList> | undefined;
 };
 
 export type HomeStackParamList = {
