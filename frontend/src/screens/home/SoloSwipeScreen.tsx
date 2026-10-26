@@ -66,7 +66,14 @@ const SoloSwipeScreen = () => {
   const locationError = useLocationStore(state => state.error);
   const needsFreshGps = !isLocationFresh(capturedAt);
 
-  const {data: deck, isLoading} = useSoloDeck({
+  const {
+    data: deck,
+    isLoading,
+    isError,
+    error,
+    isFetching,
+    refetch,
+  } = useSoloDeck({
     category,
     priceLevel,
     minRating,
@@ -154,6 +161,29 @@ const SoloSwipeScreen = () => {
     );
   }
 
+  // A failed request has no deck. Never present it as a completed deck.
+  if (isError && !deck) {
+    return (
+      <View style={styles.centered}>
+        <Text style={styles.emptyTitle}>{t('โหลดร้านอาหารไม่สำเร็จ')}</Text>
+        <Text style={styles.emptySubtitle}>
+          {error instanceof Error
+            ? t(error.message)
+            : t('กรุณาตรวจการเชื่อมต่อแล้วลองอีกครั้ง')}
+        </Text>
+        <TouchableOpacity
+          style={styles.retryButton}
+          disabled={isFetching}
+          onPress={() => refetch()}
+          accessibilityRole="button">
+          <Text style={styles.retryText}>
+            {isFetching ? t('กำลังค้นหาร้าน...') : t('ลองอีกครั้ง')}
+          </Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
       <View style={styles.topControls}>
@@ -231,6 +261,15 @@ const SoloSwipeScreen = () => {
               onPress={() => navigation.navigate('ExpandRadius')}
               accessibilityRole="button">
               <Text style={styles.retryText}>{t('ขยายรัศมีค้นหา')}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.retryButton}
+              disabled={isFetching}
+              onPress={() => refetch()}
+              accessibilityRole="button">
+              <Text style={styles.retryText}>
+                {isFetching ? t('กำลังค้นหาร้าน...') : t('ลองอีกครั้ง')}
+              </Text>
             </TouchableOpacity>
           </View>
         )}
