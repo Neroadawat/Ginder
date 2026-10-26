@@ -13,6 +13,15 @@ const env = Object.fromEntries(fs.readFileSync(envPath, 'utf8').split(/\r?\n/)
     const index = line.indexOf('=');
     return [line.slice(0, index).trim(), line.slice(index + 1).trim().replace(/^['"]|['"]$/g, '')];
   }));
+const publicKeys = new Set([
+  'API_BASE_URL', 'WS_BASE_URL', 'DEEP_LINK_PREFIX', 'FCM_ENABLED',
+  'PRIVACY_POLICY_URL', 'TERMS_OF_SERVICE_URL',
+]);
+for (const key of Object.keys(env)) {
+  if (!publicKeys.has(key)) {
+    errors.push(`Unexpected production key ${key}: frontend configuration is public in the APK`);
+  }
+}
 for (const key of ['API_BASE_URL', 'WS_BASE_URL', 'PRIVACY_POLICY_URL', 'TERMS_OF_SERVICE_URL']) {
   try {
     const url = new URL(env[key]);

@@ -118,7 +118,7 @@ android {
         applicationId = "com.tamsoot.ginder"
         minSdk = rootProject.ext.minSdkVersion
         targetSdk = rootProject.ext.targetSdkVersion
-        versionCode = 10000
+        versionCode = 10001
         versionName = "1.0.0"
         externalNativeBuild {
             cmake {

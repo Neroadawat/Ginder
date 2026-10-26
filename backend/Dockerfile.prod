@@ -2,6 +2,11 @@ FROM python:3.11-slim@sha256:233de06753d30d120b1a3ce359d8d3be8bda78524cd8f520c99
 
 WORKDIR /build
 
+# Audit the installed image as well as application requirements: the base
+# image's packaging tools may have advisories even when app dependencies pass.
+RUN python -m pip install --no-cache-dir --upgrade \
+    pip==26.2.2 setuptools==84.1.0 wheel==0.46.2
+
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     libpq-dev \
@@ -23,7 +28,10 @@ RUN groupadd --gid 10001 ginder \
 WORKDIR /app
 
 COPY --from=builder /wheels /wheels
-RUN pip install --no-cache-dir /wheels/* && rm -rf /wheels
+RUN python -m pip install --no-cache-dir --upgrade \
+    pip==26.2.2 setuptools==84.1.0 wheel==0.46.2 \
+    && python -m pip install --no-cache-dir /wheels/* \
+    && rm -rf /wheels
 
 COPY --chown=ginder:ginder app ./app
 COPY --chown=ginder:ginder alembic ./alembic

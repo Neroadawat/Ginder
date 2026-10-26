@@ -36,11 +36,11 @@ dev = [
 requires = ["setuptools>=68.0"]
 build-backend = "setuptools.build_meta"
 
-# Only "app" is importable; alembic/ and scripts/ are run as files, not imported
-# as packages. Without this, setuptools auto-discovery fails on the extra
-# top-level directories.
-[tool.setuptools]
-packages = ["app"]
+# Include app's subpackages in the installed wheel. Explicitly listing only
+# "app" omits app.core/app.services and breaks scripts outside the source cwd.
+# Exclude the other top-level directories from package discovery.
+[tool.setuptools.packages.find]
+include = ["app", "app.*"]
 
 [tool.setuptools.package-data]
 app = ["public/*.html", "public/*.js"]

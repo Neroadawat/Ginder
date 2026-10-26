@@ -42,7 +42,8 @@
     "zustand": "5.0.15"
   },
   "overrides": {
-    "@grpc/grpc-js": "1.14.6"
+    "@grpc/grpc-js": "1.14.6",
+    "body-parser": "2.4.0"
   },
   "devDependencies": {
     "@babel/core": "7.29.7",

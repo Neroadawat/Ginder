@@ -41,7 +41,7 @@ jobs:
       - run: npm run lint
       - run: npm run typecheck
       - run: npm test -- --runInBand
-      - run: npm audit --omit=dev --audit-level=critical
+      - run: npm audit --omit=dev --audit-level=high
 
   android-release-build:
     runs-on: ubuntu-latest
