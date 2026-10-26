@@ -1,12 +1,12 @@
-# 🍽️ Ginder
+# Ginder
 
 แอปหาร้านอาหารใกล้ตัวด้วย UI แบบ Swipe — หาที่กินกับเพื่อนแบบ Real-time
 
 The app starts in English and supports Thai. Change the language on the login,
 profile or settings screen; the selection is saved on each device.
 
-See the [documentation index](docs/README.md) for development, release and
-security guides.
+Guides: [Development](docs/DEVELOPMENT.md), [Operations](docs/OPERATIONS.md),
+and [Release checklist](docs/RELEASE.md#release-checklist).
 
 ## Tech Stack
 
@@ -25,10 +25,9 @@ security guides.
 Ginder/
 ├── backend/          # FastAPI backend
 ├── frontend/         # React Native app
-├── docs/             # Mobile guides, security reviews and documentation index
+├── docs/             # Three guides: development, operations and release
 ├── ops/              # Backup and restore scripts
 ├── docker-compose.yml
-├── DEPLOYMENT.md
 └── README.md
 ```
 
@@ -97,7 +96,7 @@ docker compose up -d
 
 The Android project includes a separate `appetize` build that bundles its
 JavaScript and assets into a signed preview APK. It does not change the normal
-Android Studio/Metro debug workflow. Follow the [development preview guide](docs/mobile/appetize.md) to
+Android Studio/Metro debug workflow. Follow the [development preview guide](docs/DEVELOPMENT.md#android-and-appetize) to
 expose the local API through HTTPS, configure `.env.appetize`, build the APK,
 upload it, and simulate the launch-area location.
 
@@ -118,7 +117,7 @@ The production candidate dataset is stored in
 restaurants within 3 km of the Rangsit campus. Missing ratings, prices, photos,
 and opening hours remain unknown rather than being filled with mock values.
 
-See `backend/data/README.md` for audit results, attribution requirements, review,
+See [Restaurant data](docs/DEVELOPMENT.md#restaurant-data) for audit results, attribution requirements, review,
 refresh, and import commands. Synthetic restaurant generation is for local
 development and automated tests only.
 
@@ -182,8 +181,8 @@ remain permanent.
 Google Places is deliberately not used for this persistent fallback. Google
 permits long-term storage of place IDs, but generally restricts caching of
 Places content and photo resource names; that conflicts with this app's saved
-likes and shared session decks. A future Google-backed live preview should be a
-separate, non-persistent flow with Google attribution and billing safeguards.
+likes and shared session decks. The optional Google-backed live preview below
+is a separate, non-persistent flow with attribution and billing safeguards.
 
 ### Google Places live fallback
 
@@ -225,9 +224,10 @@ Production assets now include a non-root backend image, automatic migrations,
 private PostgreSQL/Redis networking, Celery services, Caddy HTTPS termination,
 strict production configuration validation, database/Redis readiness checks,
 and Android release signing that never reuses the debug key. Follow
-[`DEPLOYMENT.md`](DEPLOYMENT.md) for secrets, DNS, data import, release build,
-smoke tests, backups, monitoring, and rollback. The user-facing policies are in
-[`PRIVACY.md`](PRIVACY.md) and [`TERMS.md`](TERMS.md).
+[deployment runbook](docs/OPERATIONS.md#deployment-runbook) for secrets, DNS, data import,
+smoke tests, backups, monitoring, and rollback. Track remaining launch work in
+the [release checklist](docs/RELEASE.md#release-checklist). The [legal content index](docs/RELEASE.md#published-legal-pages)
+identifies the actual published HTML sources and separates them from historical drafts.
 
 ## License
 

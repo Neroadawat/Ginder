@@ -1,4 +1,11 @@
-# Ginder development preview
+# Development
+
+คู่มือพัฒนาและข้อมูลเฉพาะโปรเจกต์ รวมไว้ในไฟล์เดียว
+ดูงานที่ยังเหลือใน [Release checklist](RELEASE.md#release-checklist)
+
+หัวข้อ: [Android/Appetize](#android-and-appetize) · [ข้อมูลร้าน](#restaurant-data) · [ภาษา](#languages)
+
+## Android and Appetize
 
 Run the commands below from the repository root unless a step says otherwise.
 
@@ -14,7 +21,7 @@ The Appetize build uses the repository debug signing key and the application ID
 `com.tamsoot.ginder.appetize`. It is only a preview artifact and cannot replace a
 properly signed production build.
 
-## Prerequisites
+### Prerequisites
 
 - Node.js 22.13 or newer
 - JDK 17
@@ -30,7 +37,7 @@ cd frontend
 npm install
 ```
 
-## Run with Android Studio or a local Android emulator
+### Run with Android Studio or a local Android emulator
 
 1. Start PostgreSQL, Redis, the API, and background workers from the repository
    root:
@@ -103,7 +110,7 @@ npm install
 The debug build keeps Metro Fast Refresh and is unaffected by the Appetize
 configuration.
 
-## Run on Appetize.io
+### Run on Appetize.io
 
 An Appetize cloud device cannot connect to `localhost` or `10.0.2.2` on the
 developer computer. The local API must first be exposed through HTTPS.
@@ -178,7 +185,7 @@ developer computer. The local API must first be exposed through HTTPS.
    upload the new APK build. Metro/Fast Refresh is intentionally not used by
    this variant.
 
-## Troubleshooting
+### Troubleshooting
 
 - `Missing frontend/.env.appetize`: copy the example file as described above.
 - API requests fail: verify `/health/ready` through the public URL and confirm
@@ -190,3 +197,118 @@ developer computer. The local API must first be exposed through HTTPS.
   new APK because environment values are compiled into the app.
 - The temporary-drive step fails: disconnect an unused mapped drive or move the
   repository closer to the drive root, then retry.
+
+## Restaurant data
+
+CSV and curation paths in this section are relative to `backend/data/`.
+This is the seed snapshot, not the live production database count.
+
+`thammasat_rangsit_restaurants.csv` is the reviewed import candidate for the
+initial launch area:
+
+- Centre: Thammasat University, Rangsit Campus (`14.0708, 100.6065`)
+- Radius: 3 km
+- Source: OpenStreetMap via Overpass
+- Retrieved: 2026-10-09
+- Licence: Open Database License (ODbL)
+
+The app must display `© OpenStreetMap contributors` with a link to
+<https://www.openstreetmap.org/copyright> wherever this dataset is used.
+
+### Current audit
+
+- 189 raw OSM eateries returned
+- 75 unnamed POIs excluded because they cannot form a usable swipe card
+- 1 same-name POI pair within 25 metres deduplicated
+- 113 named restaurants retained
+- 13 restaurants include parseable opening hours
+- 4 include an address
+- 0 include an approved photo
+- 45 restaurants were recategorised with an auditable reason and source
+- 14 remain in the `Other` category and still need local verification
+
+The category decisions are recorded in `category_curation.csv`. Rows were
+changed only when an OSM tag, an explicit restaurant name, or an official brand
+source identified the category. Ambiguous names remain `Other`.
+
+Unknown price levels, ratings, review counts, photos, and hours are deliberately
+left blank. They must not be fabricated for production. The app should hide
+unknown values or show a neutral fallback.
+
+### Review and import
+
+Edit the CSV directly to add verified categories, addresses, hours, and photo
+URLs. A photo is accepted only when all three fields are present:
+
+- `photo_url`: direct HTTPS image URL
+- `photo_source`: source or licence page URL (or `owner_upload` for a team photo)
+- `photo_attribution`: the credit text that must appear in the app
+
+The importer ignores a photo that is missing its source or attribution. This is
+intentional: an image being publicly reachable does not mean the project has
+permission to reuse it. The two old Imgur URLs currently present in OSM were
+therefore not imported.
+Preserve `place_id` for OSM rows so repeated imports update rather than duplicate
+the same POI.
+
+Every imported row is stored with separate `source` and `source_place_id`
+metadata. OSM and reviewed manual imports receive a `verified_at` timestamp;
+photo origin and attribution are stored separately from the image URL. This
+keeps future providers from being mixed together and lets production discovery
+exclude synthetic development data safely.
+
+Preview without touching the database:
+
+```powershell
+cd backend
+python scripts/seed_restaurants.py `
+  --source csv `
+  --file data/thammasat_rangsit_restaurants.csv `
+  --dry-run
+```
+
+Import or update the reviewed rows:
+
+```powershell
+python scripts/seed_restaurants.py `
+  --source csv `
+  --file data/thammasat_rangsit_restaurants.csv
+```
+
+Refresh the candidate sheet from current OSM data for a new review cycle:
+
+```powershell
+python scripts/seed_restaurants.py `
+  --source osm `
+  --dry-run `
+  --export-csv data/thammasat_rangsit_restaurants.csv
+```
+
+Do not use `--clear` on a shared or production database; it deletes every
+restaurant, including manually curated rows.
+
+## Languages
+
+New installations start in English regardless of the phone's system locale.
+The English/Thai selector is available on consent, login, profile and settings
+screens. The choice is saved per installation in the `ginder.preferences`
+MMKV store and is independent of authentication.
+
+- `frontend/src/i18n/messages.ts`: English translations of the original Thai UI copy and Thai
+  translations of originally English UI/accessibility copy.
+- `frontend/src/i18n/index.ts`: `t`, `useTranslation` and `dateLocale`.
+- `frontend/src/stores/languageStore.ts`: validated language selection and persistence.
+- `frontend/src/components/LanguageSwitcher.tsx`: accessible selector shared by screens.
+
+Use `useTranslation()` in components that display localized copy so they
+subscribe to language changes; call `t(key, parameters)` at render/event time.
+Do not translate labels when defining module-level option arrays. Translate
+those labels when displaying them, keeping API values, invite codes and links
+unchanged. Never use a translated label as a category or route identifier.
+
+Restaurant names, user names and unknown server text retain their original
+values. Public legal/reset pages and email templates are separate backend
+content; this mobile language selector does not switch those documents.
+
+Tests cover the English default, invalid saved values, persistence, live
+switching without remounting a form, units, filter values and interpolation.
