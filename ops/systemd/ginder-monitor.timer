@@ -1,0 +1,10 @@
+[Unit]
+Description=Ginder operational checks every five minutes
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=5min
+Unit=ginder-monitor.service
+
+[Install]
+WantedBy=timers.target

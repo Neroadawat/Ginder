@@ -1,0 +1,17 @@
+[Unit]
+Description=Ginder operational health checks
+After=docker.service network-online.target
+
+[Service]
+Type=oneshot
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/home/ubuntu/Ginder
+ExecStart=/usr/bin/python3 /home/ubuntu/Ginder/ops/monitor.py
+TimeoutStartSec=90
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=/home/ubuntu/.local/state/ginder-ops

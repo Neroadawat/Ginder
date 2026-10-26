@@ -1,0 +1,11 @@
+[Unit]
+Description=Daily Ginder backup at 03:15 UTC
+
+[Timer]
+OnCalendar=*-*-* 03:15:00 UTC
+RandomizedDelaySec=5min
+Persistent=true
+Unit=ginder-backup.service
+
+[Install]
+WantedBy=timers.target
