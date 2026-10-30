@@ -291,7 +291,6 @@
             <p class="fine">
               คะแนนร้านคงตามแหล่งข้อมูลเดิม ไม่สร้างคะแนนขึ้นเอง
             </p>
-            <button type="submit" class="primary full">บันทึกข้อมูลร้าน</button>
           </form>
           <div class="media-column">
             <h3><span class="section-number">04</span> รูปประจำร้าน</h3>
@@ -339,21 +338,60 @@
                   >มีสิทธิ์ใช้รูปนี้และระบุเครดิตถูกต้องแล้ว</span
                 ></label
               >
-              <button id="upload-photo" class="primary full" type="submit">
-                อัปโหลดและบันทึกรูป
+              <p id="photo-selection-status" class="fine" role="status">
+                เลือกรูปใหม่เพื่อเปลี่ยนรูปและระบุเครดิต
+              </p>
+              <button
+                id="discard-photo"
+                class="text-button"
+                type="button"
+                hidden
+              >
+                ยกเลิกการเปลี่ยนรูป
               </button>
               <button
                 id="remove-photo"
                 class="danger-button full"
                 type="button"
               >
-                นำรูปปัจจุบันออก
+                นำรูปออกเมื่อบันทึก
               </button>
             </form>
             <h3 class="history-title">ประวัติการแก้ไข</h3>
             <div id="history" class="history"></div>
           </div>
         </div>
+        <footer class="editor-footer">
+          <div id="discard-confirmation" class="discard-confirmation" hidden>
+            <p>
+              ยกเลิกสิ่งที่ยังไม่บันทึกและโหลดข้อมูลล่าสุดหรือไม่?
+              สิ่งที่บันทึกสำเร็จแล้วจะยังอยู่
+            </p>
+            <button id="keep-editing" class="secondary" type="button">
+              แก้ไขต่อ
+            </button>
+            <button id="confirm-discard" class="danger-button" type="button">
+              ยืนยันยกเลิก
+            </button>
+          </div>
+          <div class="save-feedback" aria-live="polite" aria-atomic="true">
+            <strong id="save-status">ยังไม่มีการแก้ไข</strong>
+            <span id="save-detail">ข้อมูลและรูปจะบันทึกเมื่อกดปุ่มด้านขวา</span>
+          </div>
+          <div class="save-actions">
+            <button
+              id="discard-changes"
+              class="secondary"
+              type="button"
+              disabled
+            >
+              ยกเลิกการแก้ไข
+            </button>
+            <button id="save-all" class="primary" type="button" disabled>
+              บันทึกทั้งหมด
+            </button>
+          </div>
+        </footer>
       </section>
     </div>
     <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>

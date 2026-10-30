@@ -9,6 +9,9 @@
     row: null,
     dirty: false,
     photo: null,
+    removePhoto: false,
+    saveError: "",
+    saveProgress: "",
     busy: false,
     storage: false,
     listRequest: 0,
@@ -39,6 +42,8 @@
   };
   const form = $("restaurant-form");
   const field = (name) => form.elements.namedItem(name);
+  const hasChanges = () =>
+    Boolean(state.dirty || state.photo || state.removePhoto);
   let locationMap = null,
     locationMarker = null;
   let previewURL = "",
@@ -64,11 +69,66 @@
       error ? 9000 : 4000
     );
   }
+  function updateSaveState() {
+    const changed = hasChanges();
+    $("save-all").disabled = state.busy || !changed;
+    $("discard-changes").disabled = state.busy || !changed;
+    $("save-all").textContent = state.busy
+      ? "กำลังบันทึก…"
+      : state.saveError && !state.dirty
+      ? "ลองบันทึกรูปอีกครั้ง"
+      : "บันทึกทั้งหมด";
+    $("save-status").textContent = state.busy
+      ? state.saveProgress
+      : state.saveError
+      ? "บันทึกยังไม่ครบ"
+      : changed
+      ? "มีการแก้ไขที่ยังไม่บันทึก"
+      : "ข้อมูลตรงกับที่บันทึกไว้";
+    $("save-detail").textContent =
+      state.saveError ||
+      (changed
+        ? [
+            state.dirty && "ข้อมูลร้าน",
+            state.photo && "รูปใหม่",
+            state.removePhoto && "นำรูปออก",
+          ]
+            .filter(Boolean)
+            .join(" · ") + " — กดบันทึกทั้งหมดเพื่อยืนยัน"
+        : "แก้ข้อมูลหรือเลือกรูปได้ แล้วบันทึกพร้อมกันที่นี่");
+    $("save-detail").classList.toggle("save-error", Boolean(state.saveError));
+    $("editor").setAttribute("aria-busy", String(state.busy));
+    $("photo-form")
+      .querySelectorAll("input,select")
+      .forEach((control) => {
+        control.disabled = state.busy || !state.photo;
+      });
+    $("photo-file").disabled = state.busy || !state.storage;
+    $("photo-drop").classList.toggle("unavailable", !state.storage);
+    $("discard-photo").hidden = !state.photo && !state.removePhoto;
+    $("remove-photo").hidden = !state.row?.photo_url || state.removePhoto;
+    $("photo-selection-status").textContent = state.photo
+      ? `รอบันทึก: ${state.photo.name} · ${(
+          state.photo.size /
+          1024 /
+          1024
+        ).toFixed(2)} MB`
+      : state.removePhoto
+      ? "จะนำรูปเดิมออกเมื่อกดบันทึกทั้งหมด ยังยกเลิกได้"
+      : "เลือกรูปใหม่เพื่อเปลี่ยนรูปและระบุเครดิต";
+  }
+  function markDirty() {
+    $("discard-confirmation").hidden = true;
+    state.dirty = true;
+    updateSaveState();
+  }
   function showLogin() {
     state.csrf = "";
     state.row = null;
     state.dirty = false;
     state.photo = null;
+    state.removePhoto = false;
+    state.saveError = "";
     $("editor").hidden = true;
     document.body.classList.remove("modal-open");
     $("restaurant-rows").replaceChildren();
@@ -100,7 +160,9 @@
         typeof data.detail === "string"
           ? data.detail
           : "กรุณาตรวจข้อมูลที่กรอกให้ครบและถูกต้อง";
-      throw new Error(detail);
+      const error = new Error(detail);
+      error.status = response.status;
+      throw error;
     }
     return data;
   }
@@ -149,7 +211,7 @@
   });
   $("logout").addEventListener("click", async () => {
     if (
-      (state.dirty || state.photo) &&
+      hasChanges() &&
       !confirm("มีการแก้ไขที่ยังไม่ได้บันทึก ต้องการออกจากระบบหรือไม่?")
     )
       return;
@@ -225,6 +287,7 @@
     cell.append(name);
     identity.append(cell);
     const category = element("td");
+    category.dataset.label = "หมวดอาหาร";
     category.append(
       element(
         "span",
@@ -238,14 +301,16 @@
     if (!row.opening_hours?.periods?.length) missing.push("เวลาเปิด–ปิด");
     if (row.price_level === null) missing.push("ราคา");
     const issues = element("td");
-    issues.append(
-      element(
-        "span",
-        "issue-text",
-        missing.length ? missing.join(" · ") : "ข้อมูลครบ"
-      )
-    );
+    issues.dataset.label = "ข้อมูลที่ยังไม่มี";
+    const tags = element("div", "issue-tags");
+    if (missing.length)
+      missing.forEach((label) =>
+        tags.append(element("span", "issue-chip", label))
+      );
+    else tags.append(element("span", "badge good", "ข้อมูลครบ"));
+    issues.append(tags);
     const status = element("td");
+    status.dataset.label = "การตรวจสอบ";
     status.append(
       element(
         "span",
@@ -253,8 +318,9 @@
         row.reviewed ? "✓ ตรวจแล้ว" : "รอตรวจสอบ"
       )
     );
-    const action = element("td"),
+    const action = element("td", "restaurant-action"),
       button = element("button", "row-edit", "จัดการ →");
+    button.setAttribute("aria-label", "จัดการร้าน " + row.name);
     button.addEventListener("click", () => openEditor(row.id));
     action.append(button);
     tr.append(identity, category, issues, status, action);
@@ -315,7 +381,7 @@
     remove.type = "button";
     remove.addEventListener("click", () => {
       row.remove();
-      state.dirty = true;
+      markDirty();
     });
     row.append(openDay, closeDay, openTime, closeTime, remove);
     $("hours-rows").append(row);
@@ -367,7 +433,7 @@
       6
     );
     field("longitude").value = latlng.wrap().lng.toFixed(6);
-    state.dirty = true;
+    markDirty();
     updateMapLink();
     $("map-status").textContent =
       "เลือกตำแหน่งใหม่แล้ว กดบันทึกข้อมูลร้านเพื่อยืนยัน";
@@ -424,7 +490,7 @@
     if (!state.row || state.busy) return;
     field("latitude").value = state.row.latitude;
     field("longitude").value = state.row.longitude;
-    state.dirty = true;
+    markDirty();
     updateMapLink();
     locationMap?.setView([state.row.latitude, state.row.longitude], 17);
     $("map-status").textContent = "กลับไปตำแหน่งที่บันทึกไว้แล้ว";
@@ -438,11 +504,11 @@
     true
   );
   form.addEventListener("input", () => {
-    state.dirty = true;
+    markDirty();
     updateMapLink();
   });
   form.addEventListener("change", () => {
-    state.dirty = true;
+    markDirty();
   });
   $("hours-mode").addEventListener("change", () => {
     $("hours-controls").hidden = $("hours-mode").value !== "weekly";
@@ -456,7 +522,7 @@
     if ($("hours-rows").children.length >= 28)
       return notify("เพิ่มได้สูงสุด 28 ช่วงเวลา", true);
     addHours();
-    state.dirty = true;
+    markDirty();
   });
   function setPhotoPreview(url) {
     $("photo-preview").hidden = !url;
@@ -465,6 +531,7 @@
     else $("photo-preview").removeAttribute("src");
   }
   async function openEditor(id) {
+    const openingNew = $("editor").hidden || state.row?.id !== id;
     try {
       const data = await api("/restaurants/" + id),
         row = data.restaurant;
@@ -472,6 +539,9 @@
       state.row = row;
       state.dirty = false;
       state.photo = null;
+      state.removePhoto = false;
+      state.saveError = "";
+      $("discard-confirmation").hidden = true;
       if (previewURL) URL.revokeObjectURL(previewURL);
       previewURL = "";
       form.reset();
@@ -507,7 +577,6 @@
         row.photo_source === "permission_granted"
           ? row.photo_source
           : "owner_upload";
-      $("upload-photo").disabled = !state.storage;
       $("remove-photo").hidden = !row.photo_url;
       $("similar-restaurants").hidden = !data.similar.length;
       $("similar-restaurants").replaceChildren();
@@ -567,18 +636,22 @@
         $("history").append(item);
       }
       $("editor").hidden = false;
+      if (openingNew) $("editor").querySelector(".editor-body").scrollTop = 0;
+      updateSaveState();
       openLocationMap();
       $("workspace").inert = true;
       document.body.classList.add("modal-open");
       $("close-editor").focus();
+      return true;
     } catch (error) {
       notify(error.message, true);
+      return false;
     }
   }
   function closeEditor() {
     if (state.busy) return;
     if (
-      (state.dirty || state.photo) &&
+      hasChanges() &&
       !confirm("ยังมีการแก้ไขที่ไม่ได้บันทึก ต้องการปิดหรือไม่?")
     )
       return;
@@ -590,6 +663,7 @@
     state.row = null;
     state.dirty = false;
     state.photo = null;
+    state.removePhoto = false;
     if (previewURL) URL.revokeObjectURL(previewURL);
     if (previousFocus?.isConnected) previousFocus.focus();
     else $("search").focus();
@@ -619,7 +693,7 @@
     }
   });
   window.addEventListener("beforeunload", (event) => {
-    if (state.dirty || state.photo || state.busy) {
+    if (hasChanges() || state.busy) {
       event.preventDefault();
       event.returnValue = "";
     }
@@ -639,13 +713,11 @@
       $("hours-rows")
         .querySelectorAll("input")
         .forEach((input) => (input.disabled = $("hours-controls").hidden));
-    $("upload-photo").disabled = value || !state.storage;
+    updateSaveState();
   }
-  form.addEventListener("submit", async (event) => {
-    event.preventDefault();
-    if (!state.row || state.busy) return;
+  function restaurantBody() {
     const values = new FormData(form);
-    const body = {
+    return {
       expected_version: state.row.version,
       name: values.get("name"),
       primary_category: values.get("primary_category"),
@@ -660,35 +732,124 @@
       admin_notes: values.get("admin_notes") || null,
       reviewed: field("reviewed").checked,
     };
+  }
+  async function saveAll() {
+    if (!state.row || state.busy || !hasChanges()) return;
+    $("discard-confirmation").hidden = true;
+    if (!form.reportValidity()) return;
+    if (state.photo && !$("photo-form").reportValidity()) return;
+    if (state.photo && !state.storage)
+      return notify("ยังไม่ได้เชื่อมที่เก็บรูป จึงยังบันทึกรูปไม่ได้", true);
+    const body = restaurantBody();
+    const photoData = state.photo ? new FormData($("photo-form")) : null;
+    if (photoData) {
+      photoData.set("file", state.photo);
+      photoData.set("rights_confirmed", "true");
+    }
+    const id = state.row.id;
+    let savedData = false;
+    let stage = state.dirty ? "data" : "photo";
+    state.saveError = "";
+    state.saveProgress = state.dirty
+      ? "กำลังบันทึกข้อมูลร้าน…"
+      : "กำลังบันทึกรูป…";
     busy(true);
     try {
-      const updated = await api("/restaurants/" + state.row.id, {
-        method: "PATCH",
-        body: JSON.stringify(body),
-      });
-      state.row = updated;
-      state.dirty = false;
-      if (!state.photo) await openEditor(updated.id);
-      else $("editor-title").textContent = updated.name;
+      if (state.dirty) {
+        state.row = await api("/restaurants/" + id, {
+          method: "PATCH",
+          body: JSON.stringify(body),
+        });
+        state.dirty = false;
+        savedData = true;
+        $("editor-title").textContent = state.row.name;
+      }
+      stage = "photo";
+      if (photoData || state.removePhoto) {
+        state.saveProgress = savedData
+          ? "ข้อมูลร้านบันทึกแล้ว กำลังบันทึกรูป…"
+          : "กำลังบันทึกรูป…";
+        updateSaveState();
+        if (photoData) {
+          photoData.set("expected_version", state.row.version);
+          state.row = await api("/restaurants/" + id + "/photo", {
+            method: "POST",
+            body: photoData,
+          });
+        } else {
+          state.row = await api("/restaurants/" + id + "/photo", {
+            method: "DELETE",
+            body: JSON.stringify({ expected_version: state.row.version }),
+          });
+        }
+        state.photo = null;
+        state.removePhoto = false;
+      }
+      const refreshed = await openEditor(id);
       await loadList();
-      notify("บันทึกข้อมูลร้านเรียบร้อยแล้ว");
+      notify(
+        refreshed
+          ? "บันทึกการแก้ไขทั้งหมดแล้ว"
+          : "บันทึกสำเร็จ แต่โหลดข้อมูลล่าสุดไม่ได้ กรุณาปิดและเปิดร้านใหม่",
+        !refreshed
+      );
     } catch (error) {
-      notify(error.message, true);
+      if (state.row) {
+        state.saveError =
+          error.status === 409
+            ? "ข้อมูลถูกแก้จากที่อื่น กรุณาคัดลอกสิ่งที่ยังไม่บันทึก แล้วปิดและเปิดร้านใหม่ก่อนลองอีกครั้ง"
+            : stage === "photo"
+            ? (savedData
+                ? "ข้อมูลร้านบันทึกแล้ว แต่บันทึกรูปไม่สำเร็จ "
+                : "ยังบันทึกรูปไม่สำเร็จ ") +
+              (state.removePhoto
+                ? "รูปเดิมยังอยู่ กดลองนำรูปออกอีกครั้งได้ — "
+                : "รูปที่เลือกยังอยู่ กดลองบันทึกอีกครั้งได้ — ") +
+              error.message
+            : "ยังบันทึกข้อมูลร้านไม่สำเร็จ การแก้ไขยังอยู่ — " + error.message;
+        notify("บันทึกยังไม่ครบ ตรวจรายละเอียดที่แถบด้านล่าง", true);
+        if (savedData) await loadList();
+      }
+    } finally {
+      busy(false);
+    }
+  }
+  form.addEventListener("submit", (event) => {
+    event.preventDefault();
+    saveAll();
+  });
+  $("save-all").addEventListener("click", saveAll);
+  $("discard-changes").addEventListener("click", () => {
+    if (!state.row || state.busy) return;
+    $("discard-confirmation").hidden = false;
+    $("keep-editing").focus();
+  });
+  $("keep-editing").addEventListener("click", () => {
+    $("discard-confirmation").hidden = true;
+    $("discard-changes").focus();
+  });
+  $("confirm-discard").addEventListener("click", async () => {
+    if (!state.row || state.busy) return;
+    busy(true);
+    try {
+      await openEditor(state.row.id);
     } finally {
       busy(false);
     }
   });
   function selectPhoto(file) {
-    if (!file) return;
+    if (!file || state.busy || !state.storage) return;
     if (
       !["image/jpeg", "image/png", "image/webp"].includes(file.type) ||
       file.size > 5 * 1024 * 1024
     )
       return notify("เลือกรูป JPG, PNG หรือ WebP ขนาดไม่เกิน 5 MB", true);
     state.photo = file;
+    state.removePhoto = false;
     if (previewURL) URL.revokeObjectURL(previewURL);
     previewURL = URL.createObjectURL(file);
     setPhotoPreview(previewURL);
+    updateSaveState();
   }
   $("photo-file").addEventListener("change", (event) =>
     selectPhoto(event.target.files[0])
@@ -705,52 +866,34 @@
     $("photo-drop").classList.remove("dragging");
     selectPhoto(event.dataTransfer.files[0]);
   });
-  $("photo-form").addEventListener("submit", async (event) => {
+  $("photo-form").addEventListener("submit", (event) => {
     event.preventDefault();
-    if (!state.row || state.busy) return;
-    if (state.dirty) return notify("กรุณาบันทึกข้อมูลร้านก่อนอัปโหลดรูป", true);
-    if (!state.photo) return notify("กรุณาเลือกรูปจากคอมก่อน", true);
-    const data = new FormData(event.currentTarget);
-    data.set("file", state.photo);
-    data.set("expected_version", state.row.version);
-    data.set("rights_confirmed", "true");
-    busy(true);
-    try {
-      await api("/restaurants/" + state.row.id + "/photo", {
-        method: "POST",
-        body: data,
-      });
-      const id = state.row.id;
-      state.photo = null;
-      await openEditor(id);
-      await loadList();
-      notify("อัปโหลดรูปเรียบร้อยแล้ว");
-    } catch (error) {
-      notify(error.message, true);
-    } finally {
-      busy(false);
-    }
+    saveAll();
   });
-  $("remove-photo").addEventListener("click", async () => {
-    if (state.dirty || state.photo)
-      return notify("กรุณาบันทึกหรือยกเลิกการแก้ไขก่อนนำรูปออก", true);
-    if (!confirm("ต้องการนำรูปปัจจุบันออกหรือไม่? แอปจะกลับไปใช้ภาพตัวอย่าง"))
-      return;
-    busy(true);
-    try {
-      await api("/restaurants/" + state.row.id + "/photo", {
-        method: "DELETE",
-        body: JSON.stringify({ expected_version: state.row.version }),
-      });
-      const id = state.row.id;
-      await openEditor(id);
-      await loadList();
-      notify("นำรูปออกแล้ว");
-    } catch (error) {
-      notify(error.message, true);
-    } finally {
-      busy(false);
-    }
+  $("remove-photo").addEventListener("click", () => {
+    if (!state.row || state.busy) return;
+    state.photo = null;
+    state.removePhoto = true;
+    setPhotoPreview(null);
+    updateSaveState();
+  });
+  $("discard-photo").addEventListener("click", () => {
+    if (!state.row || state.busy) return;
+    state.photo = null;
+    state.removePhoto = false;
+    state.saveError = "";
+    $("photo-file").value = "";
+    $("photo-form").reset();
+    $("photo-form").elements.namedItem("attribution").value =
+      state.row.photo_attribution || "";
+    $("photo-form").elements.namedItem("source").value =
+      state.row.photo_source === "permission_granted"
+        ? "permission_granted"
+        : "owner_upload";
+    if (previewURL) URL.revokeObjectURL(previewURL);
+    previewURL = "";
+    setPhotoPreview(state.row.photo_url);
+    updateSaveState();
   });
   restoreSession().catch(() => showLogin());
 })();
