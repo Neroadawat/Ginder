@@ -64,10 +64,34 @@
     if (row.price_level == null) missing.push("ราคา");
     return missing;
   }
+  function requestError(status, path = "") {
+    if (status === 401)
+      return path === "/login"
+        ? "อีเมลหรือรหัสผ่านไม่ถูกต้อง หรือบัญชีนี้ยังไม่มีสิทธิ์ผู้ดูแล"
+        : "หมดเวลาเข้าสู่ระบบ กรุณาเข้าสู่ระบบอีกครั้ง";
+    if (status === 403)
+      return "ไม่สามารถยืนยันสิทธิ์ได้ กรุณาเข้าสู่ระบบอีกครั้งจากที่อยู่เว็บไซต์ที่ถูกต้อง";
+    if (status === 404)
+      return "ไม่พบข้อมูลที่ต้องการ หรือระบบผู้ดูแลยังไม่เปิดใช้งาน";
+    if (status === 409)
+      return "ข้อมูลร้านถูกแก้ไขจากที่อื่น กรุณาตรวจข้อมูลล่าสุดก่อนบันทึก";
+    if (status === 413)
+      return "ไฟล์หรือข้อมูลมีขนาดใหญ่เกินไป กรุณาเลือกรูปไม่เกิน 5 MB";
+    if (status === 422)
+      return path.endsWith("/photo")
+        ? "รูปหรือข้อมูลภาพไม่ถูกต้อง ตรวจไฟล์ เครดิต และการยืนยันสิทธิ์ใช้งาน"
+        : "กรุณาตรวจข้อมูลที่กรอกให้ถูกต้อง";
+    if (status === 429)
+      return "ทำรายการถี่เกินไป กรุณารอสักครู่แล้วลองอีกครั้ง";
+    if (status >= 500)
+      return "ระบบยังทำรายการไม่ได้ กรุณารอสักครู่แล้วลองอีกครั้ง";
+    return "เชื่อมต่อระบบไม่ได้ ตรวจอินเทอร์เน็ตแล้วลองอีกครั้ง";
+  }
   const helpers = Object.freeze({
     cropRectangle,
     weeklyPeriods,
     missingFields,
+    requestError,
   });
   if (typeof module !== "undefined" && module.exports) module.exports = helpers;
   else root.GinderAdminTools = helpers;

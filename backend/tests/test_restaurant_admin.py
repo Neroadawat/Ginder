@@ -165,6 +165,7 @@ async def test_cookie_session_logout_and_database_revocation(context):
     headers = await sign_in(context)
     response = await context.client.get("/admin/api/session")
     assert response.status_code == 200
+    assert response.json()["user_id"] == str(context.ids.owner)
     assert "no-store" in response.headers["cache-control"]
     assert "frame-ancestors 'none'" in response.headers["content-security-policy"]
     async with context.db() as db:

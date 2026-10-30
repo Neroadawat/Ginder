@@ -4,7 +4,17 @@ const {
   cropRectangle,
   weeklyPeriods,
   missingFields,
+  requestError,
 } = require("../app/admin_ui/admin-tools.js");
+
+test("request errors stay in Thai and distinguish sign-in from session expiry", () => {
+  for (const status of [0, 401, 403, 404, 409, 413, 422, 429, 500, 503]) {
+    assert.match(requestError(status, "/restaurants"), /[ก-๙]/);
+  }
+  assert.match(requestError(401, "/login"), /อีเมลหรือรหัสผ่าน/);
+  assert.match(requestError(401, "/session"), /หมดเวลา/);
+  assert.match(requestError(422, "/restaurants/id/photo"), /เครดิต/);
+});
 
 test("portrait crop preserves its ratio inside a landscape source", () => {
   assert.deepEqual(cropRectangle(1600, 900, 0.8), {

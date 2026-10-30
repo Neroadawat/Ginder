@@ -12,13 +12,13 @@
   </head>
   <body>
     <section id="login-view" class="login-view" hidden>
-      <form id="login-form" class="login-card">
+      <form id="login-form" class="login-card" novalidate>
         <div class="brand">
           <span class="brand-symbol">g.</span
-          ><span>Ginder<span class="brand-tag">ADMIN</span></span>
+          ><span>Ginder<span class="brand-tag">ผู้ดูแล</span></span>
         </div>
-        <p class="eyebrow">RESTAURANT WORKSPACE</p>
-        <h1>ดูแลร้านดี ๆ<br />ให้คนเจอง่ายขึ้น</h1>
+        <p class="eyebrow">ระบบจัดการร้านอาหาร</p>
+        <h1>เข้าสู่ระบบผู้ดูแล</h1>
         <p class="muted">เข้าสู่ระบบผู้ดูแลเพื่อจัดการข้อมูลร้านและรูปภาพ</p>
         <label
           >อีเมล<input
@@ -37,7 +37,7 @@
             maxlength="128"
         /></label>
         <p id="login-error" class="error" role="alert"></p>
-        <button class="primary full" type="submit">เข้าสู่ระบบ →</button>
+        <button class="primary full" type="submit">เข้าสู่ระบบ</button>
         <p class="fine">สำหรับบัญชีที่ได้รับสิทธิ์ผู้ดูแล Ginder เท่านั้น</p>
       </form>
     </section>
@@ -46,15 +46,16 @@
       <aside class="sidebar">
         <div class="brand">
           <span class="brand-symbol">g.</span
-          ><span>Ginder<span class="brand-tag">ADMIN</span></span>
+          ><span>Ginder<span class="brand-tag">ผู้ดูแล</span></span>
         </div>
-        <p class="nav-label">WORKSPACE</p>
+        <p class="nav-label">เมนูหลัก</p>
         <a class="nav-current" href="/admin"
-          ><span>▦</span> ร้านอาหาร <span class="nav-dot"></span
+          ><span data-icon="store"></span> ร้านอาหาร
+          <span class="nav-dot"></span
         ></a>
         <div class="sidebar-note">
-          <span class="note-icon">✦</span
-          ><strong>ข้อมูลจริง เริ่มที่คุณ</strong>
+          <span class="note-icon" data-icon="check"></span
+          ><strong>ตรวจสอบตามข้อมูลจริง</strong>
           <p>ตรวจข้อมูลก่อนยืนยัน<br />เว้นสิ่งที่ยังไม่ทราบไว้ได้</p>
         </div>
         <div class="sidebar-bottom">
@@ -66,7 +67,7 @@
             aria-label="ออกจากระบบ"
             title="ออกจากระบบ"
           >
-            ↗
+            <span data-icon="logout"></span>
           </button>
         </div>
       </aside>
@@ -74,17 +75,19 @@
       <main class="content">
         <header class="page-header">
           <div>
-            <p class="eyebrow">GINDER / RESTAURANTS</p>
+            <p class="eyebrow">Ginder · ระบบผู้ดูแล</p>
             <h1>จัดการร้านอาหาร<span class="title-dot">.</span></h1>
             <p class="muted">
-              เติมข้อมูล ตรวจความถูกต้อง และเลือกรูปที่เล่าเรื่องของแต่ละร้าน
+              ตรวจสอบข้อมูลร้าน เพิ่มรูปภาพ และติดตามรายการที่ยังไม่ครบ
             </p>
           </div>
-          <button id="refresh" class="secondary">↻ รีเฟรชข้อมูล</button>
+          <button id="refresh" class="secondary">
+            <span data-icon="refresh"></span>โหลดข้อมูลล่าสุด
+          </button>
         </header>
         <p id="preview-banner" class="notice" hidden>
-          LOCAL PREVIEW · ฐานข้อมูลและรูปชั่วคราวในเครื่อง ไม่เชื่อม EC2 หรือ S3
-          จริง
+          โหมดทดลองในเครื่อง · ข้อมูลและรูปเป็นข้อมูลชั่วคราว
+          ไม่เชื่อมกับระบบจริง
         </p>
         <div class="stats" aria-label="ภาพรวมข้อมูลร้าน">
           <button class="stat active" data-issue="">
@@ -92,7 +95,7 @@
             ><small>ร้านในระบบ</small>
           </button>
           <button class="stat" data-issue="missing_photo">
-            <span>รอเติมรูปภาพ <i class="rose-dot"></i></span
+            <span>ยังไม่มีรูป <i class="rose-dot"></i></span
             ><strong id="stat-missing_photo">—</strong
             ><small>เพิ่มภาพให้ร้านน่าสนใจ</small>
           </button>
@@ -117,7 +120,7 @@
           </div>
           <div class="toolbar">
             <label class="search-box"
-              ><span>⌕</span
+              ><span data-icon="search"></span
               ><input
                 id="search"
                 aria-label="ค้นหาร้านอาหาร"
@@ -128,11 +131,23 @@
             ><select id="issue-filter" aria-label="กรองสิ่งที่ต้องตรวจ">
               <option value="">ทุกสถานะ</option>
               <option value="missing_photo">ยังไม่มีรูป</option>
-              <option value="other">หมวดอื่น ๆ</option>
+              <option value="other">ยังไม่จัดหมวด</option>
               <option value="duplicates">ชื่อซ้ำ</option>
               <option value="unreviewed">รอตรวจข้อมูล</option>
               <option value="missing_hours">ไม่มีเวลาเปิด–ปิด</option>
             </select>
+          </div>
+          <p
+            id="list-status"
+            class="list-status"
+            role="status"
+            aria-live="polite"
+          ></p>
+          <div id="list-error" class="inline-notice" role="alert" hidden>
+            <p id="list-error-text"></p>
+            <button id="retry-list" class="secondary" type="button">
+              <span data-icon="refresh"></span>ลองโหลดอีกครั้ง
+            </button>
           </div>
           <div class="table-scroll">
             <table>
@@ -140,7 +155,7 @@
                 <tr>
                   <th>ร้านอาหาร</th>
                   <th>หมวด</th>
-                  <th>ข้อมูลที่ต้องเติม</th>
+                  <th>ข้อมูลที่ยังไม่มี</th>
                   <th>การตรวจสอบ</th>
                   <th><span class="sr-only">จัดการ</span></th>
                 </tr>
@@ -149,20 +164,23 @@
             </table>
           </div>
           <div id="empty-state" class="empty-state" hidden>
-            <span>⌕</span>
+            <span data-icon="search"></span>
             <h3>ไม่พบร้านที่ตรงกับการค้นหา</h3>
             <p>ลองเปลี่ยนคำค้นหรือเลือกตัวกรองใหม่</p>
           </div>
           <footer class="pagination">
             <span id="page-label" class="muted small"></span>
             <div>
-              <button id="previous" class="secondary">← ก่อนหน้า</button
-              ><button id="next" class="secondary">ถัดไป →</button>
+              <button id="previous" class="secondary">
+                <span data-icon="left"></span>ก่อนหน้า</button
+              ><button id="next" class="secondary">
+                ถัดไป<span data-icon="right"></span>
+              </button>
             </div>
           </footer>
         </section>
         <p class="workspace-footer">
-          Ginder Admin <span>ข้อมูลที่ไม่ทราบจะไม่ถูกเติมขึ้นเอง</span>
+          Ginder · ระบบผู้ดูแล <span>เว้นข้อมูลที่ยังไม่ทราบไว้ได้</span>
         </p>
       </main>
     </div>
@@ -177,7 +195,7 @@
       >
         <header class="editor-header">
           <div>
-            <p class="eyebrow">RESTAURANT DETAILS</p>
+            <p class="eyebrow">แก้ไขข้อมูลร้าน</p>
             <h2 id="editor-title">จัดการร้านอาหาร</h2>
           </div>
           <button
@@ -185,12 +203,64 @@
             class="icon-button"
             aria-label="ปิดหน้าจัดการร้าน"
           >
-            ×
+            <span data-icon="close"></span>
           </button>
         </header>
+        <nav class="editor-nav" aria-label="ไปยังส่วนของข้อมูลร้าน">
+          <button type="button" data-section="section-info">
+            <span data-icon="store"></span>ข้อมูลร้าน
+          </button>
+          <button type="button" data-section="section-location">
+            <span data-icon="pin"></span>ตำแหน่งและเวลา
+          </button>
+          <button type="button" data-section="section-photo">
+            <span data-icon="image"></span>รูปภาพ
+          </button>
+          <button type="button" data-section="history-panel">
+            <span data-icon="history"></span>ประวัติ
+          </button>
+        </nav>
         <div class="editor-body">
-          <form id="restaurant-form" class="info-column">
-            <h3><span class="section-number">01</span> ข้อมูลร้าน</h3>
+          <section
+            id="session-renewal"
+            class="inline-notice session-renewal"
+            hidden
+            aria-labelledby="session-renewal-title"
+          >
+            <h3 id="session-renewal-title">กรุณาเข้าสู่ระบบอีกครั้ง</h3>
+            <p>
+              ข้อมูลที่ยังไม่บันทึกยังอยู่ในหน้านี้ อย่าเพิ่งรีเฟรช
+              เข้าสู่ระบบด้วยบัญชีเดิมเพื่อบันทึกต่อ
+            </p>
+            <form id="renew-form" novalidate>
+              <label
+                >อีเมลเดิม<input
+                  name="email"
+                  type="email"
+                  autocomplete="username"
+                  required
+                  maxlength="254" /></label
+              ><label
+                >รหัสผ่าน<input
+                  name="password"
+                  type="password"
+                  autocomplete="current-password"
+                  required
+                  maxlength="128" /></label
+              ><button class="primary" type="submit">
+                เข้าสู่ระบบเพื่อแก้ไขต่อ
+              </button>
+              <p id="renew-error" class="error" role="alert"></p>
+            </form>
+          </section>
+          <form id="restaurant-form" class="info-column" novalidate>
+            <h3 id="section-info" tabindex="-1">
+              <span class="section-number">01</span> ข้อมูลร้าน
+            </h3>
+            <details class="record-info">
+              <summary>แหล่งข้อมูลและรหัสร้าน</summary>
+              <dl id="record-info"></dl>
+            </details>
             <label
               >ชื่อร้าน / สาขา<input name="name" required maxlength="255"
             /></label>
@@ -205,7 +275,12 @@
                 placeholder="ยังไม่ทราบ สามารถเว้นว่างได้"
               ></textarea>
             </label>
-            <section class="location-picker" aria-labelledby="location-title">
+            <section
+              id="section-location"
+              class="location-picker"
+              tabindex="-1"
+              aria-labelledby="location-title"
+            >
               <h4 id="location-title">ตำแหน่งร้าน</h4>
               <p id="location-help" class="fine">
                 คลิกบนแผนที่หรือลากหมุดไปตรงร้าน ระบบจะใส่พิกัดให้เอง
@@ -217,7 +292,7 @@
               ></div>
               <p id="map-status" class="fine" role="status"></p>
               <button id="reset-location" class="text-button" type="button">
-                ↶ กลับไปตำแหน่งที่บันทึกไว้
+                <span data-icon="undo"></span>กลับไปตำแหน่งที่บันทึกไว้
               </button>
               <details id="coordinate-details">
                 <summary>ปรับพิกัดด้วยตัวเลข</summary>
@@ -246,7 +321,7 @@
                 class="text-link"
                 target="_blank"
                 rel="noopener noreferrer"
-                >↗ เปิดตำแหน่งบน Google Maps</a
+                ><span data-icon="external"></span>เปิดตำแหน่งบน Google Maps</a
               >
             </section>
             <label
@@ -256,7 +331,7 @@
                 <option value="1">฿ — ประหยัด</option>
                 <option value="2">฿฿ — ปานกลาง</option>
                 <option value="3">฿฿฿ — สูง</option>
-                <option value="4">฿฿฿ — สูงมาก</option>
+                <option value="4">฿฿฿฿ — สูงมาก</option>
               </select></label
             >
             <h3><span class="section-number">02</span> เวลาเปิด–ปิด</h3>
@@ -315,7 +390,7 @@
               </details>
               <div id="hours-rows"></div>
               <button id="add-hours" type="button" class="text-button">
-                ＋ เพิ่มช่วงเวลา
+                <span data-icon="plus"></span>เพิ่มช่วงเวลา
               </button>
               <p class="fine">
                 เวลาไทย เลือกวันปิดเป็นวันถัดไปสำหรับร้านที่ปิดหลังเที่ยงคืน
@@ -332,7 +407,7 @@
             </label>
             <label class="checkbox-row"
               ><input name="reviewed" type="checkbox" /><span
-                >ตรวจข้อมูลร้านนี้แล้ว</span
+                >ยืนยันว่าตรวจสอบข้อมูลแล้ว</span
               ></label
             >
             <p class="fine">
@@ -349,12 +424,13 @@
               คะแนนร้านคงตามแหล่งข้อมูลเดิม ไม่สร้างคะแนนขึ้นเอง
             </p>
           </form>
-          <div class="media-column">
+          <div id="section-photo" class="media-column" tabindex="-1">
             <h3><span class="section-number">04</span> รูปประจำร้าน</h3>
             <div id="photo-drop" class="photo-drop">
               <img id="photo-preview" alt="ตัวอย่างรูปประจำร้าน" hidden />
               <div id="photo-placeholder">
-                <span>▧</span><strong>ให้ภาพเล่าเรื่องร้านนี้</strong>
+                <span data-icon="image"></span
+                ><strong>เพิ่มรูปประจำร้าน</strong>
                 <p>ลากรูปมาวาง หรือเลือกจากคอม</p>
               </div>
               <label class="file-button"
@@ -364,6 +440,9 @@
                   accept="image/jpeg,image/png,image/webp"
               /></label>
             </div>
+            <p id="photo-state-label" class="photo-state-label" role="status">
+              ยังไม่มีรูปประจำร้าน
+            </p>
             <details id="crop-controls" class="crop-controls" hidden>
               <summary>ปรับกรอบรูปก่อนบันทึก</summary>
               <label
@@ -442,7 +521,21 @@
               ยังไม่ได้เชื่อมที่เก็บรูป S3 จึงยังอัปโหลดไม่ได้
               แต่จัดการข้อมูลร้านได้ตามปกติ
             </p>
-            <form id="photo-form">
+            <div
+              id="upload-feedback"
+              class="upload-feedback"
+              hidden
+              role="status"
+            >
+              <progress
+                id="upload-progress"
+                max="100"
+                value="0"
+                aria-label="ความคืบหน้าการส่งรูป"
+              ></progress>
+              <p id="upload-status"></p>
+            </div>
+            <form id="photo-form" novalidate>
               <label
                 >เครดิตภาพ<input
                   name="attribution"
@@ -481,11 +574,15 @@
                 class="danger-button full"
                 type="button"
               >
-                นำรูปออกเมื่อบันทึก
+                <span data-icon="trash"></span>ลบรูปปัจจุบันเมื่อบันทึก
               </button>
             </form>
-            <h3 class="history-title">ประวัติการแก้ไข</h3>
-            <div id="history" class="history"></div>
+            <details id="history-panel" class="history-panel">
+              <summary>
+                ประวัติการแก้ไข <span id="history-count"></span>
+              </summary>
+              <div id="history" class="history"></div>
+            </details>
           </div>
         </div>
         <footer class="editor-footer">
@@ -518,7 +615,7 @@
               บันทึกทั้งหมด
             </button>
             <button id="save-next" class="secondary" type="button">
-              บันทึกแล้วไปร้านถัดไป →
+              บันทึกแล้วไปร้านถัดไป<span data-icon="right"></span>
             </button>
           </div>
           <span id="queue-status" class="fine queue-status"></span>
@@ -529,5 +626,12 @@
     <div id="initial-loading" class="initial-loading">
       กำลังเปิด Ginder Admin…
     </div>
+    <section id="startup-error" class="startup-error" hidden>
+      <h1>เปิดระบบผู้ดูแลไม่ได้</h1>
+      <p id="startup-error-text"></p>
+      <button id="retry-startup" class="primary" type="button">
+        ลองเชื่อมต่ออีกครั้ง
+      </button>
+    </section>
   </body>
 </html>

@@ -126,6 +126,7 @@ async def login(
 @router.get("/api/session")
 async def session(request: Request, user: User = Depends(get_admin)):
     return {
+        "user_id": str(user.id),
         "name": user.display_name,
         "csrf_token": csrf_token(request.cookies[COOKIE]),
         "categories": CATEGORIES,
