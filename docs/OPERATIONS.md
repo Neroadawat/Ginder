@@ -1,5 +1,32 @@
 # Operations
 
+## EC2 source preservation 2026-10-30
+
+Recovered the application changes unique to the running EC2 API onto GitHub
+base `0afd271`, keeping the newer authentication regression tests from that base:
+
+- `backend/app/main.py`: UTC `X-Server-Time`, processing-duration headers and
+  their CORS exposure for client clock synchronization.
+- `backend/app/websocket/connection_manager.py`: concurrent delivery so one
+  slow participant does not hold up messages to the rest of the room. Existing
+  per-socket authorization and send timeouts remain in use.
+
+Before editing locally, copied 114 allowlisted source files from EC2 into a
+local archive and verified each file against a SHA-256 manifest. Credentials,
+environment secrets and database contents were excluded. The archive SHA-256 is
+`1eb54543cd0b7355ba15b81711200ab5ff25871130dd6ca7c3277bef50dfb5c4`.
+
+Local validation on Python 3.12 passed all 313 backend tests, including clock
+headers on successful/error responses, CORS exposure, concurrent WebSocket
+delivery and disconnected-client cleanup. Ruff and mypy passed. These are isolated tests,
+not a new production deployment or a database restore drill.
+
+This preservation does not deploy or reconcile the server checkout. Its Git HEAD
+still predates the uncommitted deployment files. The API and Celery images also
+differ; identify a future release by its reviewed commit and image IDs, preserve
+the Firebase overlay and database volumes, and plan reconciliation before pulling
+into the dirty server checkout. This work does not migrate or restart production.
+
 ## Auth sessions release candidate 2026-10-25
 
 Deployed with user approval on 25 October. Migration is now 0006. Backend,

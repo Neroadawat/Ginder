@@ -94,11 +94,14 @@ class ConnectionManager:
         if not connections:
             return
 
-        for user_id, ws in list(connections.items()):
+        async def deliver(user_id, ws):
             try:
                 await self._send_authorized(ws, message)
             except Exception:
                 self.disconnect(session_id, user_id, ws)
+
+        # A slow participant must not delay the event for everyone behind them.
+        await asyncio.gather(*(deliver(uid, ws) for uid, ws in list(connections.items())))
 
     async def send_to_user(self, session_id: UUID, user_id: UUID, event: str, data: dict):
         """Send a message to a specific user in a session (local delivery only).
