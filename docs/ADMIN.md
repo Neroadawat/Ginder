@@ -1,13 +1,14 @@
-# Ginder restaurant administration
+# คู่มือผู้ดูแลร้านอาหาร Ginder
 
-Admin is served by the existing FastAPI application at `/admin`. It reads and
-updates the existing `restaurants` table; it does not import the CSV on startup.
-The feature is disabled by default. This branch prepares code and a migration;
-it does not deploy EC2 or create any AWS resources.
+หน้า Admin อยู่ที่ `/admin` ของ backend FastAPI เดิม ใช้อ่านและแก้ไขตาราง
+`restaurants` ในฐานข้อมูลเดียวกับแอป ไม่ได้นำเข้า CSV ทุกครั้งที่เปิดระบบ
+ค่าเริ่มต้นปิดหน้า Admin ไว้ งานนี้เตรียมโค้ดและ migration เท่านั้น
+ยังไม่ได้ deploy ขึ้น EC2 หรือสร้างทรัพยากรบน AWS
 
-## Try the screen locally
+## 1. ทดลองหน้าจอบนคอมก่อน
 
-From `backend/`, with Python 3.11–3.13 and development dependencies installed:
+เปิด PowerShell ในโฟลเดอร์ `backend/` โดยติดตั้ง Python รุ่น 3.11–3.13 ไว้ก่อน
+ตัวอย่างนี้ใช้ Python 3.12:
 
 ```powershell
 py -3.12 -m venv .venv
@@ -15,29 +16,32 @@ py -3.12 -m venv .venv
 .\.venv\Scripts\python.exe scripts/admin_preview.py
 ```
 
-Open `http://127.0.0.1:8010/admin`. Use `preview@example.com` and the random,
-temporary password printed in that terminal. The yellow LOCAL PREVIEW banner is
-always visible after signing in. This mode uses a disposable SQLite database
-seeded from the CSV and in-memory photos, with no PostgreSQL, Redis, S3 or EC2
-connections. Stop with Ctrl+C; preview edits, the password and uploaded photos
-are discarded. The script refuses production mode. Its local rate limiter is a
-test double; this process must remain bound to loopback.
+เปิดเว็บ `http://127.0.0.1:8010/admin` แล้วเข้าสู่ระบบด้วยอีเมล
+`preview@example.com` ส่วนรหัสผ่านชั่วคราวจะแสดงใน PowerShell ที่รันคำสั่ง
+หลังเข้าสู่ระบบจะมีแถบสีเหลือง `LOCAL PREVIEW` แสดงอยู่เสมอ
 
-SQLite HTTP tests validate persistence, permissions and upload transactions;
-they do not certify PostgreSQL row locking or an applied Alembic migration.
-The `admin-postgres` GitHub Actions job applies migrations, runs the same HTTP
-tests against disposable PostgreSQL (including concurrent edits), then checks
-downgrade to `0006` and upgrade to head. Await that job before deployment.
+โหมดนี้สร้างฐานข้อมูล SQLite ชั่วคราวจาก CSV และเก็บรูปในหน่วยความจำของเครื่อง
+ไม่เชื่อมต่อ PostgreSQL, Redis, S3 หรือ EC2 จริง กด **Ctrl+C** เพื่อหยุด
+ข้อมูลที่แก้ รหัสผ่าน และรูปในรอบนั้นจะไม่ถูกเก็บไว้ใช้รอบถัดไป
+สคริปต์ไม่ยอมทำงานในโหมด production และต้องเปิดรับการเชื่อมต่อเฉพาะในเครื่อง
+เพราะตัวจำกัดจำนวนครั้งที่เข้าสู่ระบบเป็นตัวจำลองสำหรับทดสอบ
 
-## Test with isolated PostgreSQL and Redis
+การทดสอบ HTTP ด้วย SQLite ตรวจการบันทึก สิทธิ์ และขั้นตอนอัปโหลดได้
+แต่ยังไม่ยืนยันการล็อกแถวหรือการปรับโครงสร้างฐานข้อมูลบน PostgreSQL จริง
+งาน `admin-postgres` ใน GitHub Actions จะทดลอง migration และทดสอบกับ
+PostgreSQL ชั่วคราว รวมถึงการแก้ร้านเดียวกันพร้อมกัน แล้วทดสอบถอย migration
+กลับไป `0006` และอัปเกรดกลับมารุ่นล่าสุด ต้องรอให้งานนี้ผ่านก่อน deploy
 
-With Docker Desktop running, from the repository root:
+## 2. ทดสอบกับ PostgreSQL และ Redis ที่แยกจากระบบจริง
+
+เปิด Docker Desktop ให้พร้อม แล้วรันจากโฟลเดอร์หลักของโปรเจกต์:
 
 ```powershell
 docker compose -f docker-compose.admin-dev.yml up -d --wait
 ```
 
-In a terminal at `backend/`, set only local test connections:
+จากนั้นเปิด terminal ใน `backend/` ใช้ Python ที่ติดตั้ง dependency ของโปรเจกต์แล้ว
+และตั้งค่าต่อไปนี้ให้เชื่อมเฉพาะฐานข้อมูลทดสอบในเครื่อง:
 
 ```powershell
 $env:APP_ENV = 'development'
@@ -45,32 +49,39 @@ $env:ADMIN_ENABLED = 'true'
 $env:PUBLIC_BASE_URL = 'http://127.0.0.1:8010'
 $env:DATABASE_URL = 'postgresql+asyncpg://ginder_admin_dev:local-development-only@127.0.0.1:55432/ginder_admin_dev'
 $env:REDIS_URL = 'redis://127.0.0.1:56379/0'
-python -m alembic upgrade head
-python scripts/seed_restaurants.py --source csv --file data/thammasat_rangsit_restaurants.csv
-python scripts/manage_admin.py --email YOUR_EMAIL --name YOUR_NAME --create
-python -m uvicorn app.main:app --host 127.0.0.1 --port 8010
+.\.venv\Scripts\python.exe -m alembic upgrade head
+.\.venv\Scripts\python.exe scripts/seed_restaurants.py --source csv --file data/thammasat_rangsit_restaurants.csv
+.\.venv\Scripts\python.exe scripts/manage_admin.py --email YOUR_EMAIL --name YOUR_NAME --create
+.\.venv\Scripts\python.exe -m uvicorn app.main:app --host 127.0.0.1 --port 8010
 ```
 
-This Compose project uses `ginder-admin-dev` names, loopback-only ports 55432 and
-56379 and its own volume. It never loads `.env.production`. Shut down with
-`docker compose -f docker-compose.admin-dev.yml down` to retain test data.
-S3 is optional for editing text; without it the UI explains why upload is unavailable.
+แทน `YOUR_EMAIL` และ `YOUR_NAME` ด้วยอีเมลและชื่อที่ต้องการใช้
+หากชื่อมีช่องว่างให้ครอบด้วยเครื่องหมายคำพูด สคริปต์จะให้ตั้งรหัสผ่านเมื่อสร้างบัญชีใหม่
 
-## AWS setup: a new bucket only
+Compose ชุดนี้ใช้ชื่อโปรเจกต์ `ginder-admin-dev` เปิดพอร์ต 55432 และ 56379
+ให้เข้าถึงได้เฉพาะในเครื่อง มีพื้นที่เก็บข้อมูลของตัวเอง และไม่อ่าน `.env.production`
+เมื่อต้องการหยุด ให้รันจากโฟลเดอร์หลัก:
 
-1. Create a new S3 general-purpose bucket dedicated to Ginder restaurant photos
-   in the chosen region. Record the exact bucket name and region.
-2. Keep all Block Public Access settings enabled and ACLs disabled (Bucket owner
-   enforced). The application accesses private objects through the EC2 instance
-   role and serves the public restaurant image through HTTPS on the API domain.
-3. Enable default encryption (SSE-S3). The upload code also specifies AES256.
-4. Attach a scoped policy to the EC2 role using
-   `ops/restaurant-photo-iam-policy.example.json`, replacing the bucket placeholder
-   with this NEW bucket name. Do not grant access to an unrelated bucket.
-   Verify the SDK can obtain the instance role from inside the Docker container;
-   inspect IMDSv2/hop-limit settings if role discovery fails rather than adding
-   long-lived AWS keys to the container.
-5. Set these values in the server's private `.env.production`:
+```powershell
+docker compose -f docker-compose.admin-dev.yml down
+```
+
+คำสั่งนี้ยังเก็บข้อมูลทดสอบไว้ แก้ข้อความของร้านได้โดยยังไม่ตั้งค่า S3
+แต่หน้าเว็บจะแจ้งเหตุผลที่ยังอัปโหลดรูปไม่ได้
+
+## 3. เตรียม AWS: ใช้ bucket ใหม่สำหรับงานนี้
+
+1. สร้าง S3 แบบ general-purpose bucket ใหม่ สำหรับรูปร้าน Ginder โดยเฉพาะ
+   จดชื่อ bucket และ region ให้ตรงกับที่สร้าง
+2. เปิด **Block Public Access** ทุกข้อ และปิด ACL โดยใช้ **Bucket owner enforced**
+   ระบบอ่านไฟล์ส่วนตัวผ่าน IAM role ของ EC2 แล้วส่งรูปให้แอปผ่าน HTTPS บนโดเมน API
+3. เปิดการเข้ารหัสเริ่มต้นแบบ **SSE-S3** โค้ดอัปโหลดระบุ AES256 ไว้ด้วย
+4. ใช้ไฟล์ `ops/restaurant-photo-iam-policy.example.json` เป็นตัวอย่างนโยบายสิทธิ์
+   แทนชื่อ bucket ตัวอย่างด้วยชื่อ bucket ใหม่ แล้วผูกนโยบายกับ role ของ EC2
+   ไม่ให้สิทธิ์เข้าถึง bucket อื่นที่ไม่เกี่ยวข้อง ตรวจว่า SDK ภายใน Docker อ่าน
+   instance role ได้ หากไม่ได้ ให้ตรวจ IMDSv2 และ hop limit ก่อน
+   ไม่ใช้ AWS access key อายุยาวใส่ลง container เพื่อแก้ปัญหานี้
+5. ใส่ค่าต่อไปนี้ในไฟล์ส่วนตัว `.env.production` บน server:
 
 ```dotenv
 ADMIN_ENABLED=true
@@ -80,105 +91,109 @@ RESTAURANT_PHOTO_REGION=YOUR_BUCKET_REGION
 RESTAURANT_PHOTO_MAX_BYTES=5242880
 ```
 
-No AWS keys belong in Git, HTML, JavaScript or the Android app. No public bucket
-policy or browser-to-S3 CORS configuration is needed for this upload flow.
-Private originals are not retained: JPG/PNG/WebP is decoded, oriented, resized
-to at most 1600×1600 and re-encoded as WebP with GPS/EXIF removed. Only still images
-up to 5 MiB and 25 million pixels are accepted.
+แทน `YOUR_NEW_GINDER_BUCKET` และ `YOUR_BUCKET_REGION` ด้วยค่าจริง
+ห้ามใส่ AWS key ลง Git, HTML, JavaScript หรือแอป Android
+ขั้นตอนอัปโหลดนี้ไม่ต้องเปิด bucket เป็นสาธารณะหรือตั้ง CORS ให้ browser ส่งไฟล์ตรงไป S3
 
-## Production deployment and first administrator
+ระบบรับรูปนิ่ง JPG, PNG และ WebP ขนาดไม่เกิน 5 MiB และ 25 ล้านพิกเซล
+จะปรับทิศทาง ย่อให้ไม่เกิน 1600×1600 พิกเซล แปลงเป็น WebP และลบข้อมูล GPS/EXIF
+ก่อนเก็บ โดยไม่เก็บไฟล์ต้นฉบับไว้
 
-Before deployment, preserve the dirty EC2 checkout and identify the reviewed
-source/image version as described in OPERATIONS.md. Back up the database and
-retain the previous image. Do not reset the checkout or reseed production.
+## 4. Deploy ระบบจริงและสร้างผู้ดูแลคนแรก
 
-1. Review/apply migration `0007` on isolated PostgreSQL first. It adds the Admin
-   fields and tables without changing restaurant IDs or existing data. All
-   existing users start with `is_admin=false`.
-2. Prepare the new bucket and restricted EC2 role. Build the reviewed image and
-   run the production migration before recreating API/worker/beat together.
-   Retain the Firebase Compose overlay and all database volumes. Validate Caddy's
-   updated configuration before reload: only the restaurant photo POST route
-   permits a 6 MiB request; other requests retain the 64 KB cap.
-3. In the new backend container, grant an existing account or create a dedicated
-   administrator interactively (replace the email/name):
+ส่วนนี้ใช้กับ EC2 จริง ก่อนเริ่มต้องเก็บการแก้ไขที่ยังไม่ commit บน EC2 ให้ปลอดภัย
+และระบุรุ่นโค้ดกับ image ที่ตรวจแล้ว ตามคู่มือ `OPERATIONS.md`
+สำรองฐานข้อมูลและเก็บ image รุ่นก่อนหน้าไว้ ห้าม reset โค้ดหรือ seed ฐานข้อมูลจริงใหม่ทันที
+
+1. ตรวจ migration `0007` บน PostgreSQL ทดสอบก่อน โดย migration คือขั้นตอนปรับโครงสร้างฐานข้อมูล
+   รุ่นนี้เพิ่มตารางและฟิลด์ของ Admin โดยไม่เปลี่ยนรหัสร้านหรือข้อมูลเดิม
+   ผู้ใช้เดิมทุกคนเริ่มด้วย `is_admin=false`
+2. เตรียม bucket ใหม่และ role ของ EC2 ที่จำกัดสิทธิ์ จากนั้น build image จากโค้ดที่ตรวจแล้ว
+   รัน migration บนระบบจริงก่อนสร้าง container API, worker และ beat ใหม่ให้ใช้รุ่นเดียวกัน
+   คง Firebase Compose overlay และพื้นที่เก็บฐานข้อมูลทั้งหมดไว้ ตรวจ Caddyfile ก่อน reload:
+   เฉพาะเส้นทาง POST อัปโหลดรูปร้านรับ request ได้ 6 MiB ส่วนเส้นทางอื่นยังจำกัด 64 KB
+3. ใน backend container รุ่นใหม่ ให้สิทธิ์บัญชีเดิมหรือสร้างบัญชีผู้ดูแลแยก
+   โดยแทนอีเมลและชื่อในคำสั่งนี้:
 
 ```sh
 docker compose --env-file .env.production -f docker-compose.prod.yml -f docker-compose.firebase.yml exec backend python scripts/manage_admin.py --email YOUR_EMAIL --name YOUR_NAME --create --production
 ```
 
-The password is entered through a hidden prompt only when creating an account.
-To revoke access, use the same command with `--revoke --production` instead of
-`--create`. Grant/revoke clears that user's browser Admin sessions. Public signup
-cannot assign `is_admin`; no HTTP endpoint grants roles.
+ถ้ายังไม่มีบัญชี สคริปต์จะให้กรอกรหัสผ่านแบบไม่แสดงตัวอักษร
+ต้องยาว 12–128 ตัวอักษร และกรอกยืนยันอีกครั้ง ถ้ามีบัญชีอยู่แล้วจะใช้รหัสผ่านเดิม
+หากต้องการถอนสิทธิ์ ให้เปลี่ยน `--create` เป็น `--revoke` โดยคง `--production` ไว้
+การให้หรือถอนสิทธิ์จะล้าง session ของ Admin คนนั้นและต้องเข้าสู่ระบบใหม่
+การสมัครสมาชิกทั่วไปไม่สามารถกำหนด `is_admin` และไม่มี API สำหรับให้สิทธิ์ผู้ดูแล
 
-4. Open `https://YOUR_API_DOMAIN/admin`. Confirm unauthenticated/member access is
-   rejected, upload a permitted test photo to the NEW bucket, inspect its
-   appearance and credit from Android, then remove the test photo through Admin.
-5. Verify health/readiness, real-time sessions, scheduled jobs and mobile login.
-   Backend data/photo edits need no new AAB. The filter-help text added to Android
-   needs a new build for existing installations to receive that explanation.
+4. เปิด `https://YOUR_API_DOMAIN/admin` โดยแทนโดเมนด้วยค่าจริง
+   ตรวจว่าผู้ที่ยังไม่เข้าสู่ระบบและสมาชิกทั่วไปเรียกข้อมูลผู้ดูแลไม่ได้
+   อัปโหลดรูปทดสอบที่มีสิทธิ์ใช้ลง bucket ใหม่ ตรวจรูปและเครดิตจากแอป Android
+   แล้วลบรูปทดสอบผ่านหน้า Admin
+5. ตรวจ health/readiness การทำงานของห้องแบบทันที งานตามเวลา และการล็อกอินบนมือถือ
+   การแก้ข้อมูลหรือรูปผ่าน backend ไม่ต้องสร้าง AAB ใหม่
+   แต่ข้อความอธิบายตัวกรองที่เพิ่มใน Android ต้อง build แอปรุ่นใหม่ ผู้ใช้จึงจะเห็นข้อความนั้น
 
-Admin cookie sessions expire absolutely after four hours by default, are HttpOnly,
-SameSite=Strict, restricted to `/admin`, and Secure in production. Writes also
-require a matching Origin and a session-bound CSRF token. Password reset,
-deactivation, role removal and account deletion revoke subsequent access.
-Audit records retain actor ID (or null if that account is deleted), changed
-fields and before/after values; choose their retention with the privacy policy.
+session ของ Admin มีอายุ 4 ชั่วโมงเป็นค่าเริ่มต้น โดยไม่นับต่ออายุจากการใช้งาน
+cookie เป็น HttpOnly, SameSite=Strict จำกัดเส้นทาง `/admin` และใช้ Secure ใน production
+การแก้ข้อมูลต้องมี Origin ตรงกับระบบและ CSRF token ที่ผูกกับ session ด้วย
+การรีเซ็ตรหัสผ่าน ปิดบัญชี ถอนสิทธิ์ หรือลบบัญชี จะทำให้ใช้งานต่อไม่ได้
 
-## Editing and data integrity
+ประวัติการแก้ไขบันทึกรหัสผู้แก้ ฟิลด์ที่เปลี่ยน และค่าก่อน/หลัง
+ถ้าบัญชีผู้แก้ถูกลบ รหัสผู้แก้จะเป็น null ต้องกำหนดระยะเวลาเก็บประวัติให้สอดคล้องกับ Privacy Policy
 
-- Search by name, filter category, and triage missing photos/hours, Other,
-  unreviewed records and repeated names. Repeated-name counts count restaurant
-  rows, not duplicate groups. Compare coordinates and map links before deciding
-  whether names refer to different branches. No automatic merge/delete is offered.
-- Save data and photos separately. A version check returns 409 when another tab
-  changed the row: copy unsaved notes, close/reopen and reapply deliberately.
-- Each change writes its audit record in the same database transaction. An S3
-  upload failure preserves the old database record; database failure triggers
-  deletion of the newly uploaded object. If cleanup cannot reach S3, investigate
-  the logged cleanup failure and compare keys against the database. Obsolete keys
-  are no longer served by the application even if cleanup needs retrying.
-- Changed rows become permanent and are protected from OSM refresh/expiry. CSV
-  reimport skips rows with an Admin edit version. Never use seed `--clear` in
-  production. Stable IDs preserve likes, votes and session references.
-- Price and rating filters already exclude unknown values. Explicit open-now
-  discovery now requires recorded hours; ordinary discovery still includes shops
-  without them. Do not invent prices, hours or ratings to fill the screen.
-- Photo URLs contain a new object ID on every replacement. Public image responses
-  have a five-minute cache lifetime; removal may take that long in existing caches.
-  Photos are streamed via the API, so bandwidth passes through EC2. A future
-  private-origin CDN can reduce that cost if traffic grows.
+## 5. วิธีจัดการข้อมูลร้านและรูป
 
-## Rollback and pending checks
+- ค้นหาจากชื่อ กรองหมวด และคัดร้านที่ขาดรูป ขาดเวลาเปิด–ปิด อยู่หมวด Other
+  ยังไม่ตรวจ หรือชื่อซ้ำ ตัวเลขชื่อซ้ำนับเป็นจำนวนแถวร้าน ไม่ใช่จำนวนกลุ่ม
+  ตรวจพิกัดและลิงก์แผนที่ก่อนตัดสินว่าเป็นร้านเดียวกันหรือคนละสาขา
+  ระบบยังไม่มีปุ่มรวมร้านหรือลบร้านอัตโนมัติ
+- บันทึกข้อมูลร้านกับรูปแยกกัน หากมีอีกแท็บแก้ร้านเดียวกันก่อน ระบบจะตอบ 409
+  เพื่อกันการเขียนทับ ให้คัดลอกข้อความที่ยังไม่บันทึก ปิดแล้วเปิดร้านใหม่เพื่อตรวจและแก้อีกครั้ง
+- ทุกรายการแก้ไขบันทึกประวัติพร้อมข้อมูลใน transaction เดียวกัน
+  ถ้าอัปโหลด S3 ไม่สำเร็จ ข้อมูลเดิมยังอยู่ หากบันทึกฐานข้อมูลล้มเหลว ระบบจะพยายามลบไฟล์ใหม่
+  ถ้าลบไม่ได้เพราะติดต่อ S3 ไม่สำเร็จ ต้องตรวจ log แล้วเทียบชื่อไฟล์กับฐานข้อมูลเพื่อล้างภายหลัง
+  แอปจะไม่ส่งไฟล์ที่เลิกอ้างอิงแล้ว แม้ยังต้องลองลบไฟล์นั้นซ้ำ
+- ร้านที่แก้ผ่าน Admin จะเป็นข้อมูลถาวรและไม่ถูก OSM refresh หรือหมดอายุทับ
+  การนำเข้า CSV ซ้ำจะข้ามร้านที่มีรุ่นการแก้ไขของ Admin ห้ามใช้ seed `--clear` บน production
+  การคงรหัสร้านเดิมช่วยรักษาการอ้างอิงจากรายการถูกใจ การโหวต และห้อง
+- ตัวกรองราคาและคะแนนจะไม่รวมร้านที่ไม่มีข้อมูลนั้น ตัวกรอง “เปิดอยู่ตอนนี้”
+  ต้องมีเวลาเปิด–ปิดที่บันทึกไว้ ส่วนการค้นหาปกติยังแสดงร้านที่ไม่มีเวลาได้
+  ไม่ควรเดาราคา เวลา หรือคะแนนเพื่อกรอกให้ครบ
+- ทุกครั้งที่เปลี่ยนรูป URL จะมีรหัสไฟล์ใหม่ รูปมี cache 5 นาที จึงอาจยังเห็นรูปที่ลบไปแล้ว
+  ใน cache เดิมได้ช่วงนั้น รูปส่งผ่าน API จึงใช้ bandwidth ของ EC2
+  หากผู้ใช้เพิ่มขึ้น ภายหลังอาจเพิ่ม CDN ที่อ่านจากแหล่งเก็บส่วนตัวเพื่อลดภาระนี้
+- เมื่อเลือกรูป ให้ระบุแหล่งที่มา เครดิต และยืนยันสิทธิ์ใช้งานก่อนอัปโหลด
+  ใช้รูปที่ถ่ายเองหรือได้รับอนุญาตให้ใช้กับบริการนี้
 
-Keep the additive `0007` schema if rolling back only application code; the older
-application ignores the added columns. Do not automatically downgrade or delete
-Admin tables containing audit records or photo references. The feature can be
-closed by setting `ADMIN_ENABLED=false` and recreating the application; current
-public photo URLs continue to serve existing restaurant images.
+## 6. การย้อนรุ่นและสิ่งที่ต้องตรวจเพิ่ม
 
-Before enabling production, verify migration upgrade/downgrade on a disposable
-PostgreSQL database, actual IAM/S3 access, image delivery through Caddy, and an
-Android device's photo rendering. A green unit-test run does not substitute for
-these environment checks. No production credentials are included in the preview.
+ถ้าย้อนเฉพาะโค้ดแอป ให้คงโครงสร้าง `0007` ไว้ได้ แอปรุ่นเก่าจะไม่ใช้คอลัมน์ที่เพิ่มมา
+ไม่ควรถอย migration หรือลบตาราง Admin อัตโนมัติ เพราะอาจมีประวัติหรือข้อมูลอ้างอิงรูปอยู่
+ถ้าต้องการปิดหน้า Admin ให้ตั้ง `ADMIN_ENABLED=false` แล้วสร้าง container แอปใหม่
+URL รูปสาธารณะที่อ้างอิงอยู่ยังส่งรูปร้านเดิมได้
 
-## Implementation validation — 30 October 2026
+ก่อนเปิด production ต้องตรวจ migration ขึ้น/ลงกับ PostgreSQL ชั่วคราว
+สิทธิ์ IAM/S3 จริง การส่งรูปผ่าน Caddy และการแสดงรูปบน Android
+การผ่าน unit test ยังไม่ทดแทนการตรวจสภาพแวดล้อมเหล่านี้
+โหมด preview ไม่มีข้อมูลเข้าสู่ระบบ production
 
-- Python 3.12: 342 backend tests passed, including SQL-backed Admin HTTP tests
-  against disposable SQLite and S3 SDK request verification using Stubber.
-- Frontend: 54 tests, ESLint and TypeScript passed.
-- Backend Ruff, mypy and runtime dependency audit passed; wheel packaging includes
-  all three Admin UI assets. Alembic generated PostgreSQL SQL through `0007`.
-- The running Caddy binary parsed the proposed Caddyfile with `caddy adapt`;
-  no configuration file was changed or reloaded on EC2.
-- Browser QA: sign-in, list, edit notes, photo selection/upload/credit, persisted
-  preview readback and responsive layout at 390 px were exercised. Preview media
-  remained in local memory and no AWS upload was made.
-- Docker Desktop was unavailable locally. Applied PostgreSQL migrations and the
-  PostgreSQL-only concurrent-edit test remain for the `admin-postgres` CI job.
-  S3/IAM and production deployment have not been performed.
+## 7. ผลตรวจตอนพัฒนา — 30 ตุลาคม 2026
 
-Implementation references: [AWS S3 security guidance](https://docs.aws.amazon.com/AmazonS3/latest/userguide/security-best-practices.html),
-[Boto3 PutObject](https://docs.aws.amazon.com/boto3/latest/reference/services/s3/client/put_object.html),
-and [OWASP CSRF prevention](https://cheatsheetseries.owasp.org/cheatsheets/Cross-Site_Request_Forgery_Prevention_Cheat_Sheet.html).
+- Python 3.12: backend ผ่าน 342 tests รวมการทดสอบ HTTP ของ Admin กับ SQLite ชั่วคราว
+  และตรวจคำสั่ง S3 SDK ด้วย Stubber ซึ่งจำลองการตอบกลับ ไม่ได้อัปโหลดเข้า AWS จริง
+- Frontend: ผ่าน 54 tests, ESLint และ TypeScript
+- Backend: ผ่าน Ruff, mypy และการตรวจช่องโหว่ dependency ขณะตรวจ
+  แพ็กเกจ wheel มีไฟล์หน้าจอ Admin ครบทั้งสามไฟล์ และ Alembic สร้าง SQL ของ PostgreSQL ถึง `0007` ได้
+- ทดลองให้ Caddy ที่กำลังใช้งานอ่าน Caddyfile ที่เสนอด้วย `caddy adapt` สำเร็จ
+  ไม่ได้เปลี่ยนไฟล์ตั้งค่าหรือ reload บน EC2
+- ทดสอบผ่าน browser: เข้าสู่ระบบ ดูรายการ แก้หมายเหตุ เลือกและอัปโหลดรูปพร้อมเครดิต
+  อ่านข้อมูลที่บันทึกกลับมา และตรวจหน้าจอที่ความกว้าง 390 พิกเซล
+  รูปใน preview อยู่ในหน่วยความจำของเครื่อง ไม่มีการอัปโหลดเข้า AWS
+- ขณะทดสอบยังใช้ Docker Desktop ในเครื่องไม่ได้ การรัน migration บน PostgreSQL จริง
+  และการทดสอบแก้ร้านพร้อมกันบน PostgreSQL ยังต้องรอ `admin-postgres` ใน CI
+  ยังไม่ได้ตั้งค่า S3/IAM หรือ deploy production
+
+เอกสารอ้างอิงการพัฒนา:
+[แนวทางความปลอดภัยของ AWS S3](https://docs.aws.amazon.com/AmazonS3/latest/userguide/security-best-practices.html),
+[คำสั่ง Boto3 PutObject](https://docs.aws.amazon.com/boto3/latest/reference/services/s3/client/put_object.html)
+และ [แนวทางป้องกัน CSRF ของ OWASP](https://cheatsheetseries.owasp.org/cheatsheets/Cross-Site_Request_Forgery_Prevention_Cheat_Sheet.html)
