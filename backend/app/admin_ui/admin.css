@@ -622,6 +622,63 @@ td:first-child {
   gap: 12px;
   margin-bottom: 10px;
 }
+.location-picker {
+  margin: 18px 0;
+}
+.location-picker h4 {
+  margin: 0;
+  font-size: 14px;
+}
+#location-map {
+  height: 290px;
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: #eef1e9;
+  z-index: 0;
+}
+#location-map[inert] {
+  pointer-events: none;
+  opacity: 0.65;
+}
+#location-map .leaflet-control-zoom a {
+  color: #30342d;
+  text-decoration: none;
+}
+#location-map .leaflet-control-attribution {
+  font-size: 10px;
+  background: rgba(255, 255, 255, 0.92);
+}
+.restaurant-pin span {
+  display: block;
+  width: 30px;
+  height: 30px;
+  border: 3px solid white;
+  border-radius: 50% 50% 50% 0;
+  background: #e34d71;
+  transform: rotate(-45deg);
+  box-shadow: 0 2px 7px #0004;
+}
+.restaurant-pin span::after {
+  content: "";
+  display: block;
+  width: 8px;
+  height: 8px;
+  margin: 8px;
+  background: white;
+  border-radius: 50%;
+}
+#coordinate-details {
+  margin: 12px 0;
+}
+#coordinate-details summary {
+  cursor: pointer;
+  font-size: 13px;
+  color: #696773;
+}
+#coordinate-details .field-pair {
+  margin-top: 12px;
+}
 .text-link {
   font-size: 11px;
   text-decoration: none;

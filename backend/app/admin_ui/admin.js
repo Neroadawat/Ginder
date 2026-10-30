@@ -39,6 +39,8 @@
   };
   const form = $("restaurant-form");
   const field = (name) => form.elements.namedItem(name);
+  let locationMap = null,
+    locationMarker = null;
   let previewURL = "",
     toastTimer,
     searchTimer,
@@ -340,12 +342,101 @@
     };
   }
   function updateMapLink() {
+    if (!field("latitude").value || !field("longitude").value) return;
     const latitude = Number(field("latitude").value),
       longitude = Number(field("longitude").value);
+    if (
+      !Number.isFinite(latitude) ||
+      !Number.isFinite(longitude) ||
+      Math.abs(latitude) > 90 ||
+      Math.abs(longitude) > 180
+    )
+      return;
     $(
       "map-link"
     ).href = `https://www.google.com/maps/search/?api=1&query=${latitude},${longitude}`;
+    if (locationMarker) {
+      locationMarker.setLatLng([latitude, longitude]);
+      if (!locationMap.getBounds().contains([latitude, longitude]))
+        locationMap.panTo([latitude, longitude]);
+    }
   }
+  function selectLocation(latlng) {
+    if (state.busy || !state.row) return;
+    field("latitude").value = Math.max(-90, Math.min(90, latlng.lat)).toFixed(
+      6
+    );
+    field("longitude").value = latlng.wrap().lng.toFixed(6);
+    state.dirty = true;
+    updateMapLink();
+    $("map-status").textContent =
+      "เลือกตำแหน่งใหม่แล้ว กดบันทึกข้อมูลร้านเพื่อยืนยัน";
+  }
+  function openLocationMap() {
+    if (locationMap) locationMap.remove();
+    locationMap = locationMarker = null;
+    $("coordinate-details").open = false;
+    $("map-status").textContent =
+      "หมุดแสดงตำแหน่งที่บันทึกไว้ ถ้าถูกต้องแล้วไม่ต้องเปลี่ยน";
+    if (!window.L) {
+      $("map-status").textContent =
+        "เปิดแผนที่ไม่ได้ กรุณารีเฟรช หรือใช้ช่องปรับพิกัดด้วยตัวเลข";
+      $("coordinate-details").open = true;
+      return;
+    }
+    const position = [
+      Number(field("latitude").value),
+      Number(field("longitude").value),
+    ];
+    locationMap = L.map("location-map", { scrollWheelZoom: false }).setView(
+      position,
+      17
+    );
+    L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 19,
+      referrerPolicy: "strict-origin-when-cross-origin",
+      attribution:
+        '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a> contributors',
+    })
+      .on("tileerror", () => {
+        $("map-status").textContent =
+          "โหลดภาพแผนที่บางส่วนไม่ได้ ลองเปิดใหม่ หรือปรับพิกัดด้วยตัวเลข";
+      })
+      .addTo(locationMap);
+    locationMarker = L.marker(position, {
+      draggable: true,
+      title: "ตำแหน่งร้าน — ลากหมุดเพื่อเปลี่ยน",
+      alt: "หมุดตำแหน่งร้าน",
+      icon: L.divIcon({
+        className: "restaurant-pin",
+        html: "<span></span>",
+        iconSize: [30, 38],
+        iconAnchor: [15, 38],
+      }),
+    }).addTo(locationMap);
+    locationMarker.on("dragend", () =>
+      selectLocation(locationMarker.getLatLng())
+    );
+    locationMap.on("click", (event) => selectLocation(event.latlng));
+    requestAnimationFrame(() => locationMap?.invalidateSize());
+  }
+  $("reset-location").addEventListener("click", () => {
+    if (!state.row || state.busy) return;
+    field("latitude").value = state.row.latitude;
+    field("longitude").value = state.row.longitude;
+    state.dirty = true;
+    updateMapLink();
+    locationMap?.setView([state.row.latitude, state.row.longitude], 17);
+    $("map-status").textContent = "กลับไปตำแหน่งที่บันทึกไว้แล้ว";
+  });
+  form.addEventListener(
+    "invalid",
+    (event) => {
+      if (["latitude", "longitude"].includes(event.target.name))
+        $("coordinate-details").open = true;
+    },
+    true
+  );
   form.addEventListener("input", () => {
     state.dirty = true;
     updateMapLink();
@@ -476,6 +567,7 @@
         $("history").append(item);
       }
       $("editor").hidden = false;
+      openLocationMap();
       $("workspace").inert = true;
       document.body.classList.add("modal-open");
       $("close-editor").focus();
@@ -491,6 +583,8 @@
     )
       return;
     $("editor").hidden = true;
+    if (locationMap) locationMap.remove();
+    locationMap = locationMarker = null;
     $("workspace").inert = false;
     document.body.classList.remove("modal-open");
     state.row = null;
@@ -533,6 +627,11 @@
 
   function busy(value) {
     state.busy = value;
+    $("location-map").inert = value;
+    if (locationMarker) {
+      if (value) locationMarker.dragging.disable();
+      else locationMarker.dragging.enable();
+    }
     $("editor")
       .querySelectorAll("button,input,select,textarea")
       .forEach((control) => (control.disabled = value));

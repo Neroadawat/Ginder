@@ -4,7 +4,9 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Ginder · จัดการร้านอาหาร</title>
+    <link rel="stylesheet" href="/admin/assets/leaflet.css" />
     <link rel="stylesheet" href="/admin/assets/admin.css" />
+    <script src="/admin/assets/leaflet.js" defer></script>
     <script src="/admin/assets/admin.js" defer></script>
   </head>
   <body>
@@ -202,32 +204,50 @@
                 placeholder="ยังไม่ทราบ สามารถเว้นว่างได้"
               ></textarea>
             </label>
-            <div class="field-pair">
-              <label
-                >ละติจูด<input
-                  name="latitude"
-                  type="number"
-                  step="any"
-                  min="-90"
-                  max="90"
-                  required /></label
-              ><label
-                >ลองจิจูด<input
-                  name="longitude"
-                  type="number"
-                  step="any"
-                  min="-180"
-                  max="180"
-                  required
-              /></label>
-            </div>
-            <a
-              id="map-link"
-              class="text-link"
-              target="_blank"
-              rel="noopener noreferrer"
-              >↗ เปิดตำแหน่งบน Google Maps</a
-            >
+            <section class="location-picker" aria-labelledby="location-title">
+              <h4 id="location-title">ตำแหน่งร้าน</h4>
+              <p id="location-help" class="fine">
+                คลิกบนแผนที่หรือลากหมุดไปตรงร้าน ระบบจะใส่พิกัดให้เอง
+              </p>
+              <div
+                id="location-map"
+                aria-label="แผนที่เลือกตำแหน่งร้าน"
+                aria-describedby="location-help"
+              ></div>
+              <p id="map-status" class="fine" role="status"></p>
+              <button id="reset-location" class="text-button" type="button">
+                ↶ กลับไปตำแหน่งที่บันทึกไว้
+              </button>
+              <details id="coordinate-details">
+                <summary>ปรับพิกัดด้วยตัวเลข</summary>
+                <div class="field-pair">
+                  <label
+                    >ละติจูด<input
+                      name="latitude"
+                      type="number"
+                      step="any"
+                      min="-90"
+                      max="90"
+                      required /></label
+                  ><label
+                    >ลองจิจูด<input
+                      name="longitude"
+                      type="number"
+                      step="any"
+                      min="-180"
+                      max="180"
+                      required
+                  /></label>
+                </div>
+              </details>
+              <a
+                id="map-link"
+                class="text-link"
+                target="_blank"
+                rel="noopener noreferrer"
+                >↗ เปิดตำแหน่งบน Google Maps</a
+              >
+            </section>
             <label
               >ระดับราคา<select name="price_level">
                 <option value="">ยังไม่ทราบ</option>
