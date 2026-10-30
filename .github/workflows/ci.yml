@@ -41,6 +41,7 @@ jobs:
       - run: npm run lint
       - run: npm run typecheck
       - run: npm test -- --runInBand
+      - run: node --test ../backend/tests/admin_ui_helpers.test.cjs
       - run: npm audit --omit=dev --audit-level=high
 
   admin-postgres:

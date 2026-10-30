@@ -58,7 +58,14 @@ async def admin_page():
 
 @router.get("/assets/{name}", include_in_schema=False)
 async def admin_asset(
-    name: Literal["admin.js", "admin.css", "leaflet.js", "leaflet.css", "leaflet-LICENSE.txt"],
+    name: Literal[
+        "admin.js",
+        "admin-tools.js",
+        "admin.css",
+        "leaflet.js",
+        "leaflet.css",
+        "leaflet-LICENSE.txt",
+    ],
 ):
     return FileResponse(UI / name, headers={"Cache-Control": "no-cache"})
 

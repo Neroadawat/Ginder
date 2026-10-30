@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="/admin/assets/leaflet.css" />
     <link rel="stylesheet" href="/admin/assets/admin.css" />
     <script src="/admin/assets/leaflet.js" defer></script>
+    <script src="/admin/assets/admin-tools.js" defer></script>
     <script src="/admin/assets/admin.js" defer></script>
   </head>
   <body>
@@ -265,6 +266,53 @@
               <option value="weekly">กำหนดช่วงเวลา</option>
             </select>
             <div id="hours-controls" hidden>
+              <details class="hours-bulk">
+                <summary>ตั้งเวลาหลายวัน / คัดลอกเวลา</summary>
+                <p class="fine">
+                  เลือกวันและเวลา แล้วนำไปใช้กับวันที่เลือกเท่านั้น
+                </p>
+                <div class="day-presets">
+                  <button type="button" data-days="0,1,2,3,4,5,6">
+                    ทุกวัน
+                  </button>
+                  <button type="button" data-days="1,2,3,4,5">
+                    จันทร์–ศุกร์
+                  </button>
+                  <button type="button" data-days="0,6">เสาร์–อาทิตย์</button>
+                </div>
+                <div
+                  id="bulk-days"
+                  class="bulk-days"
+                  role="group"
+                  aria-label="วันที่ใช้เวลาร่วมกัน"
+                ></div>
+                <div class="field-pair">
+                  <label
+                    >เวลาเปิดร่วมกัน<input
+                      id="bulk-open"
+                      type="time"
+                      value="09:00"
+                  /></label>
+                  <label
+                    >เวลาปิดร่วมกัน<input
+                      id="bulk-close"
+                      type="time"
+                      value="21:00"
+                  /></label>
+                </div>
+                <label class="checkbox-row"
+                  ><input id="bulk-next-day" type="checkbox" /><span
+                    >ปิดในวันถัดไป (รวมเปิดครบ 24 ชั่วโมงของวันนั้น)</span
+                  ></label
+                >
+                <button id="apply-hours" class="secondary" type="button">
+                  ใช้เวลากับวันที่เลือก
+                </button>
+                <p class="fine">
+                  แทนช่วงเวลาเดิมของวันที่เลือก วันอื่นยังเหมือนเดิม
+                </p>
+                <p id="hours-error" class="error" role="alert"></p>
+              </details>
               <div id="hours-rows"></div>
               <button id="add-hours" type="button" class="text-button">
                 ＋ เพิ่มช่วงเวลา
@@ -287,6 +335,15 @@
                 >ตรวจข้อมูลร้านนี้แล้ว</span
               ></label
             >
+            <p class="fine">
+              ยืนยันว่าได้ตรวจแล้ว แม้บางข้อมูลยังไม่ทราบ
+              ไม่จำเป็นต้องกรอกให้ครบทุกช่อง
+            </p>
+            <div
+              id="completeness"
+              class="completeness"
+              aria-live="polite"
+            ></div>
             <div id="similar-restaurants" class="notice" hidden></div>
             <p class="fine">
               คะแนนร้านคงตามแหล่งข้อมูลเดิม ไม่สร้างคะแนนขึ้นเอง
@@ -307,6 +364,76 @@
                   accept="image/jpeg,image/png,image/webp"
               /></label>
             </div>
+            <details id="crop-controls" class="crop-controls" hidden>
+              <summary>ปรับกรอบรูปก่อนบันทึก</summary>
+              <label
+                >สัดส่วนรูป<select id="crop-ratio" aria-label="สัดส่วนรูป">
+                  <option value="original">เก็บภาพเต็มตามต้นฉบับ</option>
+                  <option value="0.8">แนวตั้ง 4:5</option>
+                  <option value="1">สี่เหลี่ยม 1:1</option>
+                  <option value="1.3333333333333333">แนวนอน 4:3</option>
+                </select></label
+              >
+              <div id="crop-adjustments" hidden>
+                <canvas
+                  id="crop-canvas"
+                  aria-label="กรอบรูปที่จะบันทึก"
+                ></canvas>
+                <label
+                  >ขยายภาพ<input
+                    id="crop-zoom"
+                    type="range"
+                    min="1"
+                    max="3"
+                    step="0.05"
+                    value="1"
+                /></label>
+                <label
+                  >ตำแหน่งซ้าย–ขวา<input
+                    id="crop-x"
+                    type="range"
+                    min="0"
+                    max="100"
+                    value="50"
+                /></label>
+                <label
+                  >ตำแหน่งบน–ล่าง<input
+                    id="crop-y"
+                    type="range"
+                    min="0"
+                    max="100"
+                    value="50"
+                /></label>
+              </div>
+              <p class="fine">
+                กรอบที่เลือกจะถูกใช้กับไฟล์ที่บันทึกจริง
+                เลือกภาพเต็มเพื่อยกเลิกการครอป
+              </p>
+            </details>
+            <section
+              id="app-preview"
+              class="app-preview"
+              hidden
+              aria-labelledby="app-preview-title"
+            >
+              <h4 id="app-preview-title">ตัวอย่างเมื่อแสดงในแอป</h4>
+              <div class="app-card-preview">
+                <img id="app-card-photo" alt="ตัวอย่างการ์ดร้าน" />
+                <div>
+                  <strong id="app-card-name"></strong
+                  ><span id="app-card-category"></span>
+                </div>
+              </div>
+              <div class="app-list-preview">
+                <img id="app-list-photo" alt="ตัวอย่างรูปในรายการร้าน" /><span
+                  id="app-list-name"
+                ></span>
+              </div>
+              <p class="fine">
+                ตัวอย่างกรอบแนวตั้งและภาพย่อ
+                ภาพจริงอาจถูกตัดต่างกันตามขนาดหน้าจอ
+              </p>
+            </section>
             <p class="fine">
               JPG, PNG หรือ WebP · สูงสุด 5 MB<br />ระบบปรับขนาดและนำข้อมูล GPS
               ในภาพออกให้
@@ -390,7 +517,11 @@
             <button id="save-all" class="primary" type="button" disabled>
               บันทึกทั้งหมด
             </button>
+            <button id="save-next" class="secondary" type="button">
+              บันทึกแล้วไปร้านถัดไป →
+            </button>
           </div>
+          <span id="queue-status" class="fine queue-status"></span>
         </footer>
       </section>
     </div>

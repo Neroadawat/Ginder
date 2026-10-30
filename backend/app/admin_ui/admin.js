@@ -42,6 +42,14 @@
   };
   const form = $("restaurant-form");
   const field = (name) => form.elements.namedItem(name);
+  const { cropRectangle, weeklyPeriods, missingFields } =
+    window.GinderAdminTools;
+  let photoBitmap = null,
+    photoLoadRequest = 0;
+  state.items = [];
+  state.queue = [];
+  state.queueIndex = -1;
+  state.photoLoading = false;
   const hasChanges = () =>
     Boolean(state.dirty || state.photo || state.removePhoto);
   let locationMap = null,
@@ -71,7 +79,21 @@
   }
   function updateSaveState() {
     const changed = hasChanges();
-    $("save-all").disabled = state.busy || !changed;
+    $("save-all").disabled = state.busy || state.photoLoading || !changed;
+    const hasNext =
+      state.queueIndex >= 0 && state.queueIndex + 1 < state.queue.length;
+    $("save-next").disabled = state.busy || state.photoLoading || !hasNext;
+    $("save-next").textContent = changed
+      ? "บันทึกแล้วไปร้านถัดไป →"
+      : "ร้านถัดไป →";
+    $("queue-status").textContent =
+      state.queueIndex >= 0
+        ? `ร้าน ${state.queueIndex + 1} / ${state.queue.length} ในหน้านี้${
+            hasNext
+              ? " · ใช้ลำดับเดิมของรายการที่เปิด"
+              : " · ครบหน้านี้แล้ว กลับรายการเพื่อเลือกหน้าถัดไป"
+          }`
+        : "";
     $("discard-changes").disabled = state.busy || !changed;
     $("save-all").textContent = state.busy
       ? "กำลังบันทึก…"
@@ -116,6 +138,50 @@
       : state.removePhoto
       ? "จะนำรูปเดิมออกเมื่อกดบันทึกทั้งหมด ยังยกเลิกได้"
       : "เลือกรูปใหม่เพื่อเปลี่ยนรูปและระบุเครดิต";
+    if (state.photoLoading)
+      $("photo-selection-status").textContent = "กำลังเปิดภาพสำหรับปรับกรอบ…";
+    renderCompleteness();
+    updateAppPreviewText();
+  }
+  function renderCompleteness() {
+    if (!state.row) return;
+    const value = {
+      name: field("name").value,
+      primary_category: field("primary_category").value,
+      latitude:
+        field("latitude").value === "" ? null : Number(field("latitude").value),
+      longitude:
+        field("longitude").value === ""
+          ? null
+          : Number(field("longitude").value),
+      address: field("address").value,
+      price_level:
+        field("price_level").value === ""
+          ? null
+          : Number(field("price_level").value),
+      opening_hours: readHours(),
+    };
+    value.photo_url = state.photo
+      ? "pending"
+      : state.removePhoto
+      ? null
+      : state.row.photo_url;
+    const missing = missingFields(value);
+    $("completeness").replaceChildren(
+      element("strong", "", `ข้อมูลพื้นฐาน ${7 - missing.length} / 7 รายการ`),
+      element(
+        "p",
+        "fine",
+        missing.length
+          ? "ยังไม่มี: " + missing.join(" · ")
+          : "มีข้อมูลพื้นฐานครบตามรายการนี้"
+      ),
+      element(
+        "p",
+        "fine",
+        "สถานะตรวจสอบแยกจากความครบถ้วน ไม่รวมคะแนนร้าน และยังไม่ใช่การรับรองความถูกต้อง"
+      )
+    );
   }
   function markDirty() {
     $("discard-confirmation").hidden = true;
@@ -123,6 +189,7 @@
     updateSaveState();
   }
   function showLogin() {
+    clearPhotoTools();
     state.csrf = "";
     state.row = null;
     state.dirty = false;
@@ -234,6 +301,7 @@
       const data = await api("/restaurants?" + params);
       if (requestId !== state.listRequest || !state.csrf) return;
       state.total = data.total;
+      state.items = data.items;
       for (const key of ["all", "missing_photo", "unreviewed", "duplicates"])
         $("stat-" + key).textContent = data.stats[key];
       $("result-count").textContent = data.total + " รายการ";
@@ -295,11 +363,7 @@
         labels[row.primary_category] || row.primary_category
       )
     );
-    const missing = [];
-    if (!row.photo_url) missing.push("รูปภาพ");
-    if (!row.address) missing.push("ที่อยู่");
-    if (!row.opening_hours?.periods?.length) missing.push("เวลาเปิด–ปิด");
-    if (row.price_level === null) missing.push("ราคา");
+    const missing = missingFields(row);
     const issues = element("td");
     issues.dataset.label = "ข้อมูลที่ยังไม่มี";
     const tags = element("div", "issue-tags");
@@ -309,6 +373,9 @@
       );
     else tags.append(element("span", "badge good", "ข้อมูลครบ"));
     issues.append(tags);
+    issues.append(
+      element("small", "data-count", `ข้อมูลพื้นฐาน ${7 - missing.length}/7`)
+    );
     const status = element("td");
     status.dataset.label = "การตรวจสอบ";
     status.append(
@@ -321,7 +388,10 @@
     const action = element("td", "restaurant-action"),
       button = element("button", "row-edit", "จัดการ →");
     button.setAttribute("aria-label", "จัดการร้าน " + row.name);
-    button.addEventListener("click", () => openEditor(row.id));
+    button.addEventListener("click", () => {
+      state.queue = state.items.map((item) => item.id);
+      openEditor(row.id);
+    });
     action.append(button);
     tr.append(identity, category, issues, status, action);
     return tr;
@@ -383,7 +453,28 @@
       row.remove();
       markDirty();
     });
-    row.append(openDay, closeDay, openTime, closeTime, remove);
+    const copy = element("button", "copy-hours", "คัดลอกไปวันอื่น");
+    copy.type = "button";
+    copy.addEventListener("click", () => {
+      const daysApart =
+        (Number(closeDay.value) - Number(openDay.value) + 7) % 7;
+      if (daysApart > 1)
+        return notify(
+          "ช่วงเวลานี้ข้ามหลายวัน กรุณาตั้งช่วงเวลาใหม่ในเครื่องมือหลายวัน",
+          true
+        );
+      $("bulk-open").value = openTime.value;
+      $("bulk-close").value = closeTime.value;
+      $("bulk-next-day").checked = daysApart === 1;
+      $("bulk-days")
+        .querySelectorAll("input")
+        .forEach((input) => {
+          input.checked = Number(input.value) === Number(openDay.value);
+        });
+      $("hours-controls").querySelector("details").open = true;
+      $("bulk-open").focus();
+    });
+    row.append(openDay, closeDay, openTime, closeTime, copy, remove);
     $("hours-rows").append(row);
   }
   function readHours() {
@@ -406,6 +497,62 @@
         };
       }),
     };
+  }
+  days.forEach((day, index) => {
+    const label = element("label", "checkbox-row");
+    const input = element("input");
+    input.type = "checkbox";
+    input.value = index;
+    label.append(input, element("span", "", day));
+    $("bulk-days").append(label);
+  });
+  document.querySelectorAll("[data-days]").forEach((button) =>
+    button.addEventListener("click", () => {
+      const selected = button.dataset.days.split(",");
+      $("bulk-days")
+        .querySelectorAll("input")
+        .forEach((input) => {
+          input.checked = selected.includes(input.value);
+        });
+    })
+  );
+  $("apply-hours").addEventListener("click", () => {
+    if (state.busy) return;
+    $("hours-error").textContent = "";
+    try {
+      const selected = [
+        ...$("bulk-days").querySelectorAll("input:checked"),
+      ].map((input) => Number(input.value));
+      const added = weeklyPeriods(
+        selected,
+        $("bulk-open").value.replace(":", ""),
+        $("bulk-close").value.replace(":", ""),
+        $("bulk-next-day").checked
+      );
+      const unchanged = readHours().periods.filter(
+        (period) => !selected.includes(period.open.day)
+      );
+      const periods = [...unchanged, ...added].sort(
+        (a, b) =>
+          a.open.day - b.open.day || a.open.time.localeCompare(b.open.time)
+      );
+      if (periods.length > 28) throw new Error("เพิ่มได้สูงสุด 28 ช่วงเวลา");
+      $("hours-rows").replaceChildren();
+      periods.forEach(addHours);
+      markDirty();
+      notify(`ใช้เวลากับ ${added.length} วันแล้ว รอกดบันทึกทั้งหมด`);
+    } catch (error) {
+      $("hours-error").textContent = error.message;
+    }
+  });
+  function syncHoursControls() {
+    const hidden = $("hours-mode").value !== "weekly";
+    $("hours-controls").hidden = hidden;
+    $("hours-controls")
+      .querySelectorAll("input,button,select")
+      .forEach((control) => {
+        control.disabled = hidden || state.busy;
+      });
   }
   function updateMapLink() {
     if (!field("latitude").value || !field("longitude").value) return;
@@ -503,20 +650,20 @@
     },
     true
   );
-  form.addEventListener("input", () => {
+  form.addEventListener("input", (event) => {
+    if (event.target.closest(".hours-bulk")) return;
     markDirty();
     updateMapLink();
   });
-  form.addEventListener("change", () => {
+  form.addEventListener("change", (event) => {
+    if (event.target.closest(".hours-bulk")) return;
     markDirty();
   });
   $("hours-mode").addEventListener("change", () => {
-    $("hours-controls").hidden = $("hours-mode").value !== "weekly";
-    $("hours-rows")
-      .querySelectorAll("input")
-      .forEach((input) => (input.disabled = $("hours-controls").hidden));
+    syncHoursControls();
     if (!$("hours-controls").hidden && !$("hours-rows").children.length)
       addHours();
+    renderCompleteness();
   });
   $("add-hours").addEventListener("click", () => {
     if ($("hours-rows").children.length >= 28)
@@ -529,6 +676,151 @@
     $("photo-placeholder").hidden = Boolean(url);
     if (url) $("photo-preview").src = url;
     else $("photo-preview").removeAttribute("src");
+    $("app-preview").hidden = !url;
+    for (const id of ["app-card-photo", "app-list-photo"]) {
+      if (url) $(id).src = url;
+      else $(id).removeAttribute("src");
+    }
+    updateAppPreviewText();
+  }
+  function updateAppPreviewText() {
+    $("app-card-name").textContent = field("name").value || "ชื่อร้าน";
+    $("app-list-name").textContent = field("name").value || "ชื่อร้าน";
+    $("app-card-category").textContent =
+      labels[field("primary_category").value] || "หมวดอาหาร";
+  }
+  function clearPhotoTools() {
+    photoLoadRequest++;
+    photoBitmap?.close();
+    photoBitmap = null;
+    state.photoLoading = false;
+    $("crop-controls").hidden = true;
+    $("crop-controls").open = false;
+  }
+  function photoCrop() {
+    return cropRectangle(
+      photoBitmap.width,
+      photoBitmap.height,
+      Number($("crop-ratio").value),
+      Number($("crop-zoom").value),
+      Number($("crop-x").value),
+      Number($("crop-y").value)
+    );
+  }
+  function drawPhotoCrop(canvas, maxSide) {
+    const rect = photoCrop();
+    const scale = Math.min(1, maxSide / Math.max(rect.width, rect.height));
+    canvas.width = Math.max(1, Math.round(rect.width * scale));
+    canvas.height = Math.max(1, Math.round(rect.height * scale));
+    const context = canvas.getContext("2d");
+    context.fillStyle = "white";
+    context.fillRect(0, 0, canvas.width, canvas.height);
+    context.drawImage(
+      photoBitmap,
+      rect.x,
+      rect.y,
+      rect.width,
+      rect.height,
+      0,
+      0,
+      canvas.width,
+      canvas.height
+    );
+  }
+  function renderPhotoCrop() {
+    if (!state.photo || !photoBitmap || state.busy) return;
+    const cropping = $("crop-ratio").value !== "original";
+    $("crop-adjustments").hidden = !cropping;
+    if (!cropping) setPhotoPreview(previewURL);
+    else {
+      drawPhotoCrop($("crop-canvas"), 600);
+      setPhotoPreview($("crop-canvas").toDataURL("image/webp", 0.85));
+    }
+    updateSaveState();
+  }
+  for (const id of ["crop-ratio", "crop-zoom", "crop-x", "crop-y"])
+    $(id).addEventListener("input", renderPhotoCrop);
+  async function photoForUpload() {
+    if (!photoBitmap || $("crop-ratio").value === "original")
+      return state.photo;
+    const canvas = document.createElement("canvas");
+    drawPhotoCrop(canvas, 1600);
+    const blob = await new Promise((resolve) =>
+      canvas.toBlob(resolve, "image/webp", 0.9)
+    );
+    if (!blob || blob.size > 5 * 1024 * 1024)
+      throw new Error("สร้างไฟล์รูปไม่สำเร็จ ลองเลือกภาพเต็มหรือไฟล์ใหม่");
+    return new File([blob], "restaurant-crop.webp", { type: blob.type });
+  }
+  const historyLabels = {
+    name: "ชื่อร้าน",
+    primary_category: "หมวดอาหาร",
+    latitude: "ละติจูด",
+    longitude: "ลองจิจูด",
+    address: "ที่อยู่",
+    price_level: "ระดับราคา",
+    opening_hours: "เวลาเปิด–ปิด",
+    admin_notes: "หมายเหตุ",
+    reviewed: "สถานะตรวจสอบ",
+    photo_attribution: "เครดิตภาพ",
+    photo_source: "แหล่งภาพ",
+    photo_url: "รูปประจำร้าน",
+  };
+  function readableHistoryValue(key, value) {
+    if (key === "reviewed") return value ? "ตรวจแล้ว" : "รอตรวจสอบ";
+    if (value == null || value === "") return "ยังไม่มีข้อมูล";
+    if (key === "primary_category") return labels[value] || String(value);
+    if (key === "price_level")
+      return (
+        [
+          "ไม่มีค่าใช้จ่าย",
+          "฿ — ประหยัด",
+          "฿฿ — ปานกลาง",
+          "฿฿฿ — สูง",
+          "฿฿฿฿ — สูงมาก",
+        ][value] || String(value)
+      );
+    if (key === "photo_url") return "มีรูปภาพ";
+    if (key === "photo_source")
+      return (
+        { owner_upload: "ทีมถ่ายเอง", permission_granted: "ได้รับอนุญาต" }[
+          value
+        ] || String(value)
+      );
+    if (key === "opening_hours") {
+      if (!value.periods?.length) return "ยังไม่ทราบเวลา";
+      if (value.periods.length === 1 && !value.periods[0].close)
+        return "เปิด 24 ชั่วโมงทุกวัน";
+      return value.periods
+        .map(
+          (period) =>
+            `${days[period.open.day]} ${timeValue(period.open.time)} – ${
+              days[period.close?.day] || ""
+            } ${period.close ? timeValue(period.close.time) : "ไม่ระบุ"}`
+        )
+        .join("\n");
+    }
+    return typeof value === "object" ? JSON.stringify(value) : String(value);
+  }
+  function renderAuditChanges(audit, item) {
+    const list = element("dl", "audit-changes");
+    for (const [key, change] of Object.entries(audit.changes)) {
+      if (!historyLabels[key]) continue;
+      const before = readableHistoryValue(key, change.before),
+        after = readableHistoryValue(key, change.after);
+      list.append(element("dt", "", historyLabels[key]));
+      const value = element("dd");
+      if (key === "photo_url" && change.before && change.after)
+        value.textContent = "เปลี่ยนเป็นรูปใหม่";
+      else
+        value.append(
+          element("span", "audit-before", before),
+          element("span", "audit-arrow", " → "),
+          element("span", "audit-after", after)
+        );
+      list.append(value);
+    }
+    item.append(list);
   }
   async function openEditor(id) {
     const openingNew = $("editor").hidden || state.row?.id !== id;
@@ -537,10 +829,12 @@
         row = data.restaurant;
       if ($("editor").hidden) previousFocus = document.activeElement;
       state.row = row;
+      state.queueIndex = state.queue.indexOf(id);
       state.dirty = false;
       state.photo = null;
       state.removePhoto = false;
       state.saveError = "";
+      clearPhotoTools();
       $("discard-confirmation").hidden = true;
       if (previewURL) URL.revokeObjectURL(previewURL);
       previewURL = "";
@@ -568,7 +862,9 @@
         ? "always"
         : "weekly";
       if (periods && !always) periods.forEach(addHours);
-      $("hours-controls").hidden = $("hours-mode").value !== "weekly";
+      syncHoursControls();
+      $("hours-error").textContent = "";
+      $("hours-controls").querySelector("details").open = false;
       updateMapLink();
       setPhotoPreview(row.photo_url);
       $("photo-form").elements.namedItem("attribution").value =
@@ -618,7 +914,9 @@
           element(
             "small",
             "",
-            audit.actor +
+            (audit.actor === "Former administrator"
+              ? "ผู้ดูแลที่ลบบัญชีแล้ว"
+              : audit.actor) +
               " · " +
               new Date(audit.created_at).toLocaleString("th-TH", {
                 timeZone: "Asia/Bangkok",
@@ -626,8 +924,9 @@
               " น."
           )
         );
+        renderAuditChanges(audit, item);
         const details = element("details"),
-          summary = element("summary", "", "ดูข้อมูลที่เปลี่ยน");
+          summary = element("summary", "", "รายละเอียดทางเทคนิค");
         details.append(
           summary,
           element("pre", "", JSON.stringify(audit.changes, null, 2))
@@ -664,6 +963,7 @@
     state.dirty = false;
     state.photo = null;
     state.removePhoto = false;
+    clearPhotoTools();
     if (previewURL) URL.revokeObjectURL(previewURL);
     if (previousFocus?.isConnected) previousFocus.focus();
     else $("search").focus();
@@ -709,10 +1009,7 @@
     $("editor")
       .querySelectorAll("button,input,select,textarea")
       .forEach((control) => (control.disabled = value));
-    if (!value)
-      $("hours-rows")
-        .querySelectorAll("input")
-        .forEach((input) => (input.disabled = $("hours-controls").hidden));
+    syncHoursControls();
     updateSaveState();
   }
   function restaurantBody() {
@@ -733,8 +1030,22 @@
       reviewed: field("reviewed").checked,
     };
   }
-  async function saveAll() {
-    if (!state.row || state.busy || !hasChanges()) return;
+  async function goNext() {
+    const id = state.queue[state.queueIndex + 1];
+    if (!id) return;
+    busy(true);
+    try {
+      await openEditor(id);
+    } finally {
+      busy(false);
+    }
+  }
+  async function saveAll(andNext = false) {
+    if (!state.row || state.busy || state.photoLoading) return;
+    if (!hasChanges()) {
+      if (andNext) await goNext();
+      return;
+    }
     $("discard-confirmation").hidden = true;
     if (!form.reportValidity()) return;
     if (state.photo && !$("photo-form").reportValidity()) return;
@@ -743,7 +1054,6 @@
     const body = restaurantBody();
     const photoData = state.photo ? new FormData($("photo-form")) : null;
     if (photoData) {
-      photoData.set("file", state.photo);
       photoData.set("rights_confirmed", "true");
     }
     const id = state.row.id;
@@ -755,6 +1065,7 @@
       : "กำลังบันทึกรูป…";
     busy(true);
     try {
+      if (photoData) photoData.set("file", await photoForUpload());
       if (state.dirty) {
         state.row = await api("/restaurants/" + id, {
           method: "PATCH",
@@ -793,6 +1104,7 @@
           : "บันทึกสำเร็จ แต่โหลดข้อมูลล่าสุดไม่ได้ กรุณาปิดและเปิดร้านใหม่",
         !refreshed
       );
+      if (andNext && refreshed) await goNext();
     } catch (error) {
       if (state.row) {
         state.saveError =
@@ -818,7 +1130,8 @@
     event.preventDefault();
     saveAll();
   });
-  $("save-all").addEventListener("click", saveAll);
+  $("save-all").addEventListener("click", () => saveAll());
+  $("save-next").addEventListener("click", () => saveAll(true));
   $("discard-changes").addEventListener("click", () => {
     if (!state.row || state.busy) return;
     $("discard-confirmation").hidden = false;
@@ -837,18 +1150,52 @@
       busy(false);
     }
   });
-  function selectPhoto(file) {
+  async function selectPhoto(file) {
     if (!file || state.busy || !state.storage) return;
     if (
       !["image/jpeg", "image/png", "image/webp"].includes(file.type) ||
       file.size > 5 * 1024 * 1024
     )
       return notify("เลือกรูป JPG, PNG หรือ WebP ขนาดไม่เกิน 5 MB", true);
+    const request = ++photoLoadRequest;
+    state.photoLoading = true;
+    updateSaveState();
+    let bitmap;
+    try {
+      bitmap = await createImageBitmap(file);
+      if (request !== photoLoadRequest) {
+        bitmap.close();
+        return;
+      }
+      if (bitmap.width * bitmap.height > 25_000_000) {
+        bitmap.close();
+        throw new Error("รูปต้องไม่เกิน 25 ล้านพิกเซล");
+      }
+    } catch (error) {
+      if (request !== photoLoadRequest) return;
+      state.photoLoading = false;
+      updateSaveState();
+      return notify(
+        error.message === "รูปต้องไม่เกิน 25 ล้านพิกเซล"
+          ? error.message
+          : "เปิดรูปไม่ได้ กรุณาเลือก JPG, PNG หรือ WebP ที่ไม่เสียหาย",
+        true
+      );
+    }
+    photoBitmap?.close();
+    photoBitmap = bitmap;
+    state.photoLoading = false;
     state.photo = file;
     state.removePhoto = false;
     if (previewURL) URL.revokeObjectURL(previewURL);
     previewURL = URL.createObjectURL(file);
     setPhotoPreview(previewURL);
+    $("crop-controls").hidden = false;
+    $("crop-ratio").value = "original";
+    $("crop-zoom").value = "1";
+    $("crop-x").value = $("crop-y").value = "50";
+    $("crop-adjustments").hidden = true;
+    $("photo-form").elements.namedItem("rights_confirmed").checked = false;
     updateSaveState();
   }
   $("photo-file").addEventListener("change", (event) =>
@@ -874,6 +1221,7 @@
     if (!state.row || state.busy) return;
     state.photo = null;
     state.removePhoto = true;
+    clearPhotoTools();
     setPhotoPreview(null);
     updateSaveState();
   });
@@ -882,6 +1230,7 @@
     state.photo = null;
     state.removePhoto = false;
     state.saveError = "";
+    clearPhotoTools();
     $("photo-file").value = "";
     $("photo-form").reset();
     $("photo-form").elements.namedItem("attribution").value =

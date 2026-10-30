@@ -619,13 +619,191 @@ td:first-child {
   position: relative;
   flex-shrink: 0;
   padding: 17px 30px max(17px, env(safe-area-inset-bottom));
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
   justify-content: space-between;
   gap: 20px;
   border-top: 1px solid var(--border);
   background: white;
   box-shadow: 0 -5px 20px #25142106;
+}
+.queue-status {
+  grid-column: 1 / -1;
+  margin: -8px 0 0;
+}
+.data-count {
+  display: block;
+  color: #786f7c;
+  font-size: 10px;
+  margin-top: 7px;
+}
+.completeness {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px;
+  margin: 12px 0;
+}
+.completeness strong {
+  font-size: 13px;
+}
+.completeness .fine {
+  margin: 7px 0 0;
+}
+.hours-bulk,
+.crop-controls {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px;
+  margin: 14px 0;
+}
+.hours-bulk summary,
+.crop-controls summary {
+  cursor: pointer;
+  color: var(--rose);
+  font-size: 12px;
+}
+.hours-bulk > .fine {
+  margin-top: 12px;
+}
+.hours-bulk .error {
+  margin-bottom: 0;
+}
+.day-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin: 12px 0;
+}
+.day-presets button {
+  border: 1px solid #e5d5dd;
+  border-radius: 7px;
+  background: #fff9fc;
+  color: var(--rose);
+  padding: 8px;
+  font-size: 11px;
+}
+.bulk-days {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 9px;
+  margin: 14px 0;
+}
+.bulk-days .checkbox-row {
+  font-size: 11px;
+  align-items: center;
+}
+.bulk-days input {
+  margin: 0;
+}
+.hours-bulk > .secondary {
+  margin-top: 14px;
+  font-size: 12px;
+}
+.hours-row .copy-hours {
+  grid-column: 1;
+  text-align: left;
+  color: var(--rose);
+}
+.crop-controls label {
+  margin: 14px 0;
+}
+.crop-controls input[type="range"] {
+  padding: 0;
+  border: 0;
+  height: 24px;
+  accent-color: var(--rose);
+}
+#crop-canvas {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 280px;
+  object-fit: contain;
+  margin-top: 16px;
+  background: #f5f2f4;
+  border-radius: 7px;
+}
+.app-preview {
+  margin: 22px 0;
+}
+.app-preview h4 {
+  font-size: 13px;
+}
+.app-card-preview {
+  width: min(100%, 230px);
+  aspect-ratio: 4 / 5;
+  border-radius: 15px;
+  overflow: hidden;
+  position: relative;
+  background: #eee;
+}
+.app-card-preview > img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.app-card-preview > div {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 40px 15px 15px;
+  color: white;
+  background: linear-gradient(transparent, #000b);
+}
+.app-card-preview strong {
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 17px;
+}
+.app-card-preview span {
+  font-size: 12px;
+}
+.app-list-preview {
+  margin: 12px 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  overflow: hidden;
+}
+.app-list-preview img {
+  width: 70px;
+  height: 70px;
+  object-fit: cover;
+}
+.app-list-preview span {
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+.app-preview > .fine {
+  margin-top: 10px;
+}
+.audit-changes {
+  margin: 10px 0;
+}
+.audit-changes dt {
+  font-size: 11px;
+  color: #756773;
+  margin-top: 7px;
+}
+.audit-changes dd {
+  margin: 2px 0 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.audit-before {
+  color: #8b7a85;
+}
+.audit-arrow {
+  color: #ab7890;
+}
+.audit-after {
+  color: #362b32;
 }
 .discard-confirmation {
   position: absolute;
@@ -992,6 +1170,13 @@ body.modal-open {
   }
 }
 @media (max-width: 1000px) {
+  .editor-footer {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+  }
+  .save-actions {
+    flex-wrap: wrap;
+  }
   .table-scroll {
     overflow: visible;
   }
@@ -1149,10 +1334,19 @@ body.modal-open {
   }
   .editor-footer {
     padding: 14px 20px max(14px, env(safe-area-inset-bottom));
-    display: block;
+    display: grid;
   }
   .save-actions {
-    margin-top: 12px;
+    margin-top: 0;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+  #save-next {
+    grid-column: 1 / -1;
+  }
+  .queue-status {
+    font-size: 10px;
+    margin-top: 0;
   }
   .save-actions .primary {
     flex: 1;
