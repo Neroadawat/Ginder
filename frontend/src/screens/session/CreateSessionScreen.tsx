@@ -221,6 +221,9 @@ const CreateSessionScreen = () => {
       </View>
 
       {/* Timer */}
+      <Text style={styles.filterNotice}>
+        {t('เมื่อกรองราคา คะแนน หรือเวลาเปิด ร้านที่ไม่มีข้อมูลนั้นจะไม่แสดง')}
+      </Text>
       <Text style={styles.sectionTitle}>{t('เวลาโหวต')}</Text>
       <View style={styles.chipRow}>
         {SESSION_DURATION_OPTIONS.map(option => (
@@ -312,6 +315,12 @@ const styles = StyleSheet.create({
   switchLabel: {
     flex: 1,
     paddingRight: 16,
+  },
+  filterNotice: {
+    fontSize: 12,
+    lineHeight: 18,
+    color: COLORS.textMuted,
+    marginTop: 16,
   },
   chipRow: {
     flexDirection: 'row',

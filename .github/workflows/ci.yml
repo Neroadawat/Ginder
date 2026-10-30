@@ -43,6 +43,39 @@ jobs:
       - run: npm test -- --runInBand
       - run: npm audit --omit=dev --audit-level=high
 
+  admin-postgres:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_USER: ginder_admin_check
+          POSTGRES_PASSWORD: ci-only-password
+          POSTGRES_DB: ginder_admin_check_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U ginder_admin_check -d ginder_admin_check_ci"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      APP_ENV: test
+      DATABASE_URL: postgresql+asyncpg://ginder_admin_check:ci-only-password@127.0.0.1:5432/ginder_admin_check_ci
+      ADMIN_TEST_POSTGRES_URL: postgresql+asyncpg://ginder_admin_check:ci-only-password@127.0.0.1:5432/ginder_admin_check_ci
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: pip install -e ".[dev]"
+      - run: python -m alembic upgrade head
+      - run: python -m pytest tests/test_restaurant_admin.py -q
+      - run: python -m alembic downgrade 0006
+      - run: python -m alembic upgrade head
+
   android-release-build:
     runs-on: ubuntu-latest
     defaults:
