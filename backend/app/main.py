@@ -2,6 +2,8 @@
 
 import logging
 from contextlib import asynccontextmanager
+from datetime import UTC, datetime
+from time import perf_counter
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -46,6 +48,17 @@ app = FastAPI(
     openapi_url="/openapi.json" if settings.EXPOSE_API_DOCS else None,
 )
 
+
+@app.middleware("http")
+async def server_clock(request, call_next):
+    started = perf_counter()
+    response = await call_next(request)
+    # Generated after request processing, unlike a cached whole-second Date.
+    response.headers["X-Server-Time"] = datetime.now(UTC).isoformat()
+    response.headers["X-Server-Processing-Ms"] = str((perf_counter() - started) * 1000)
+    return response
+
+
 if settings.ALLOWED_HOSTS != ["*"]:
     app.add_middleware(TrustedHostMiddleware, allowed_hosts=settings.ALLOWED_HOSTS)
 
@@ -56,6 +69,7 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["X-Server-Time", "X-Server-Processing-Ms"],
 )
 
 # ─── REST API Routes ───
