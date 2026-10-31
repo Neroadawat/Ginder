@@ -7,6 +7,7 @@ profile or settings screen; the selection is saved on each device.
 
 Guides: [Development](docs/DEVELOPMENT.md), [Operations](docs/OPERATIONS.md),
 and [Release checklist](docs/RELEASE.md#release-checklist).
+Restaurant administration and local preview: [Admin guide](docs/ADMIN.md).
 
 ## Tech Stack
 

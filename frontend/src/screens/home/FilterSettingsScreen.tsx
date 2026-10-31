@@ -129,6 +129,9 @@ const FilterSettingsScreen = () => {
         </View>
 
         {/* Rating */}
+        <Text style={styles.filterNotice}>
+          {t('เมื่อกรองราคา คะแนน หรือเวลาเปิด ร้านที่ไม่มีข้อมูลนั้นจะไม่แสดง')}
+        </Text>
         <Text style={styles.sectionTitle}>{t('คะแนนขั้นต่ำ')}</Text>
         <View style={styles.chipRow}>
           {RATING_OPTIONS.map(option => {
@@ -228,6 +231,12 @@ const styles = StyleSheet.create({
     color: '#999',
     marginTop: -8,
     marginBottom: 4,
+  },
+  filterNotice: {
+    fontSize: 12,
+    lineHeight: 18,
+    color: '#888',
+    marginTop: 16,
   },
   chipRow: {
     flexDirection: 'row',

@@ -1,5 +1,6 @@
 """SQLAlchemy models — import all models here for Alembic auto-detection."""
 
+from app.models.admin import AdminSession, RestaurantAudit
 from app.models.auth_session import AuthSession
 from app.models.external_api_usage import ExternalApiUsage
 from app.models.friendship import Friendship
@@ -12,6 +13,8 @@ from app.models.user import User
 from app.models.vote import Vote
 
 __all__ = [
+    "AdminSession",
+    "RestaurantAudit",
     "AuthSession",
     "User",
     "Friendship",

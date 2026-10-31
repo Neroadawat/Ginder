@@ -86,6 +86,10 @@ class Restaurant(Base):
     photo_url: Mapped[str | None] = mapped_column(Text, nullable=True)
     photo_source: Mapped[str | None] = mapped_column(String(30), nullable=True)
     photo_attribution: Mapped[str | None] = mapped_column(Text, nullable=True)
+    photo_s3_key: Mapped[str | None] = mapped_column(Text, nullable=True)
+    admin_version: Mapped[int] = mapped_column(Integer, default=1, server_default="1")
+    admin_reviewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    admin_notes: Mapped[str | None] = mapped_column(Text)
     google_maps_url: Mapped[str | None] = mapped_column(Text, nullable=True)
     verified_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 

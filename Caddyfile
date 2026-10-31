@@ -1,9 +1,21 @@
 {$DOMAIN} {
     encode zstd gzip
-    request_body {
-        max_size 64KB
+    @restaurant_photo {
+        method POST
+        path_regexp restaurant_photo ^/admin/api/restaurants/[0-9a-fA-F-]{36}/photo$
     }
-    reverse_proxy backend:8000
+    handle @restaurant_photo {
+        request_body {
+            max_size 6MB
+        }
+        reverse_proxy backend:8000
+    }
+    handle {
+        request_body {
+            max_size 64KB
+        }
+        reverse_proxy backend:8000
+    }
 
     header {
         Strict-Transport-Security "max-age=31536000; includeSubDomains"
