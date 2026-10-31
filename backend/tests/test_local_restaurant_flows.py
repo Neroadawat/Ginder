@@ -27,6 +27,19 @@ CURATED_CSV = (
 )
 
 
+@pytest.mark.asyncio
+async def test_open_now_requires_known_hours_but_unfiltered_discovery_keeps_unknown(monkeypatch):
+    unknown = restaurant()
+    known = restaurant()
+    known.opening_hours = {"periods": [{"open": {"day": 0, "time": "0000"}}]}
+    service = RestaurantService(SimpleNamespace())
+    monkeypatch.setattr(
+        service, "_execute_radius_query", AsyncMock(return_value=[unknown, known])
+    )
+    assert await service._search(TU_LAT, TU_LNG, 1.5) == [unknown, known]
+    assert await service._search(TU_LAT, TU_LNG, 1.5, open_now=True) == [known]
+
+
 def restaurant(
     *,
     latitude: float = TU_LAT,

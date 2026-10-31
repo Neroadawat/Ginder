@@ -247,8 +247,8 @@ class RestaurantService:
 
         within_radius = await self._execute_radius_query(query, latitude, longitude, radius_km)
 
-        google_live_enabled = (
-            settings.GOOGLE_PLACES_ENABLED and bool(settings.GOOGLE_PLACES_API_KEY)
+        google_live_enabled = settings.GOOGLE_PLACES_ENABLED and bool(
+            settings.GOOGLE_PLACES_API_KEY
         )
         if (
             not within_radius
@@ -283,7 +283,13 @@ class RestaurantService:
         # Evaluated in Python: matching Google's `periods` structure in SQL
         # would be far harder to read for no practical gain at this data size.
         moment = now_in_timezone(settings.APP_TIMEZONE)
-        return [r for r in within_radius if is_open_at(r.opening_hours, moment)]
+        return [
+            r
+            for r in within_radius
+            if r.opening_hours
+            and r.opening_hours.get("periods")
+            and is_open_at(r.opening_hours, moment)
+        ]
 
     async def _execute_radius_query(
         self,
@@ -404,10 +410,7 @@ class RestaurantService:
     @staticmethod
     def _should_request_google(local_count: int, radius_km: float) -> bool:
         """Google is a last-resort Solo supplement at the maximum radius."""
-        return (
-            local_count < settings.MIN_LOCAL_RESTAURANTS
-            and radius_km >= settings.MAX_RADIUS_KM
-        )
+        return local_count < settings.MIN_LOCAL_RESTAURANTS and radius_km >= settings.MAX_RADIUS_KM
 
     @staticmethod
     def _deduplicate_google_cards(

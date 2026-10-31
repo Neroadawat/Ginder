@@ -23,10 +23,13 @@ dependencies = [
     "firebase-admin==6.6.0",
     "httpx==0.28.1",
     "tzdata==2025.2; sys_platform == 'win32'",
+    "boto3==1.43.122",
+    "Pillow==13.0.0",
 ]
 
 [project.optional-dependencies]
 dev = [
+    "aiosqlite==0.22.1",
     "pytest==8.3.4",
     "pytest-asyncio==0.25.0",
     "ruff==0.8.4",
@@ -44,7 +47,7 @@ build-backend = "setuptools.build_meta"
 include = ["app", "app.*"]
 
 [tool.setuptools.package-data]
-app = ["public/*.html", "public/*.js"]
+app = ["public/*.html", "public/*.js", "admin_ui/*.html", "admin_ui/*.js", "admin_ui/*.css", "admin_ui/*LICENSE.txt"]
 
 [tool.ruff]
 target-version = "py311"

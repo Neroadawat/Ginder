@@ -13,8 +13,11 @@ from fastapi.staticfiles import StaticFiles
 from sqlalchemy import text
 
 from app.api.router import api_router
+from app.api.routes.admin import media_router
+from app.api.routes.admin import router as admin_router
 from app.api.routes.public import PAGE_DIR
 from app.api.routes.public import router as public_router
+from app.core.admin_boundary import AdminBoundaryMiddleware
 from app.core.config import settings
 from app.core.database import async_session_factory, engine
 from app.core.redis import redis_client
@@ -71,10 +74,13 @@ app.add_middleware(
     allow_headers=["*"],
     expose_headers=["X-Server-Time", "X-Server-Processing-Ms"],
 )
+app.add_middleware(AdminBoundaryMiddleware)
 
 # ─── REST API Routes ───
 app.include_router(api_router, prefix="/api/v1")
 app.include_router(public_router)
+app.include_router(admin_router)
+app.include_router(media_router)
 app.mount("/public", StaticFiles(directory=PAGE_DIR), name="public")
 
 # ─── WebSocket Routes ───

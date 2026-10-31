@@ -953,7 +953,9 @@ async def persist(rows: list[SeedRestaurant], clear_existing: bool) -> tuple[int
             if not clear_existing:
                 existing = (
                     await session.execute(
-                        select(Restaurant).where(Restaurant.place_id == row.place_id)
+                        select(Restaurant)
+                        .where(Restaurant.place_id == row.place_id)
+                        .with_for_update()
                     )
                 ).scalar_one_or_none()
 
@@ -987,6 +989,10 @@ async def persist(rows: list[SeedRestaurant], clear_existing: bool) -> tuple[int
                 )
                 inserted += 1
             else:
+                # Admin edits are authoritative, including explicit unknown values.
+                # Never restore older CSV values over a manually curated row.
+                if (existing.admin_version or 1) > 1:
+                    continue
                 existing.source = row.source
                 existing.source_place_id = row.source_place_id
                 existing.name = row.name

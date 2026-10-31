@@ -105,6 +105,14 @@ class Settings(BaseSettings):
     # Opening hours are local time, so "open now" is evaluated here, not in UTC.
     APP_TIMEZONE: str = "Asia/Bangkok"
 
+    # Admin stays closed until explicitly enabled. AWS credentials come from
+    # the EC2 instance role / standard SDK chain, never the browser or Git.
+    ADMIN_ENABLED: bool = False
+    ADMIN_SESSION_HOURS: int = 4
+    RESTAURANT_PHOTO_BUCKET: str = ""
+    RESTAURANT_PHOTO_REGION: str = "ap-southeast-2"
+    RESTAURANT_PHOTO_MAX_BYTES: int = 5 * 1024 * 1024
+
     @model_validator(mode="after")
     def validate_production_safety(self) -> "Settings":
         """Refuse to boot production with development defaults or open origins."""
@@ -112,6 +120,10 @@ class Settings(BaseSettings):
             return self
 
         errors: list[str] = []
+        if not 1 <= self.ADMIN_SESSION_HOURS <= 24:
+            errors.append("ADMIN_SESSION_HOURS must be between 1 and 24")
+        if not 1 <= self.RESTAURANT_PHOTO_MAX_BYTES <= 5 * 1024 * 1024:
+            errors.append("RESTAURANT_PHOTO_MAX_BYTES must be between 1 and 5 MiB")
         if self.DEBUG:
             errors.append("DEBUG must be false")
         if self.EXPOSE_API_DOCS:

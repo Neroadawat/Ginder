@@ -1,5 +1,7 @@
 /** English default copy, keyed by the original Thai UI text. */
 export const english: Record<string, string> = {
+  'เมื่อกรองราคา คะแนน หรือเวลาเปิด ร้านที่ไม่มีข้อมูลนั้นจะไม่แสดง':
+    'Price, rating and open-now filters exclude restaurants without that information.',
   คุณได้รับคำเชิญเข้าห้องใหม่: 'You have a new session invitation.',
   ดูคำเชิญ: 'View invitations',
   โหลดร้านอาหารไม่สำเร็จ: 'Could not load restaurants',
