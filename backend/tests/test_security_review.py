@@ -1,6 +1,8 @@
 """Regression checks for the October 2026 security review. No live services."""
 
+import asyncio
 import uuid
+from datetime import UTC, datetime
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock
 
@@ -18,6 +20,48 @@ from app.services.auth_service import AuthService
 from app.services.rate_limit_service import allow_password_reset, enforce_request_limit
 from app.services.session_service import SessionService
 from app.websocket.connection_manager import ConnectionManager
+
+
+@pytest.mark.asyncio
+async def test_responses_include_a_precise_server_clock():
+    before = datetime.now(UTC)
+    async with httpx.AsyncClient(
+        transport=httpx.ASGITransport(app=app), base_url="http://testserver"
+    ) as client:
+        response = await client.get("/health/live")
+    after = datetime.now(UTC)
+    assert response.status_code == 200
+    assert before <= datetime.fromisoformat(response.headers["x-server-time"]) <= after
+
+
+@pytest.mark.asyncio
+async def test_slow_participant_does_not_delay_match_for_other_participants():
+    manager = ConnectionManager()
+    session_id = uuid.uuid4()
+    release_slow = asyncio.Event()
+    fast_received = asyncio.Event()
+
+    async def slow_authorize():
+        await release_slow.wait()
+        return True
+
+    slow = MagicMock(accept=AsyncMock(), close=AsyncMock(), send_text=AsyncMock())
+    fast = MagicMock(
+        accept=AsyncMock(),
+        close=AsyncMock(),
+        send_text=AsyncMock(side_effect=lambda *_: fast_received.set()),
+    )
+    await manager.connect(slow, session_id, uuid.uuid4(), slow_authorize)
+    await manager.connect(fast, session_id, uuid.uuid4(), AsyncMock(return_value=True))
+    delivery = asyncio.create_task(manager.deliver_local(session_id, "result", {}))
+    try:
+        await asyncio.wait_for(fast_received.wait(), timeout=1)
+        slow.send_text.assert_not_awaited()
+    finally:
+        release_slow.set()
+        await delivery
+    fast.send_text.assert_awaited_once()
+    slow.send_text.assert_awaited_once()
 
 
 @pytest.mark.asyncio

@@ -7,6 +7,7 @@
   },
   "scripts": {
     "android": "react-native run-android",
+    "android:sync": "\"%SystemRoot%\\System32\\WindowsPowerShell\\v1.0\\powershell.exe\" -NoProfile -File scripts/sync-emulators.ps1",
     "android:appetize": "node scripts/build-appetize.cjs",
     "start": "react-native start --host 127.0.0.1",
     "start:reset": "react-native start --host 127.0.0.1 --reset-cache",

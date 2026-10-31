@@ -19,7 +19,7 @@ const SessionTimer = ({sessionId, initialEndsAt, onExpire}: Props) => {
   expireCallback.current = onExpire;
   const expiredSession = useRef<string | null>(null);
   const {data: lobby} = useSession(sessionId);
-  const endsAt = initialEndsAt ?? lobby?.session.ends_at;
+  const endsAt = lobby?.session.ends_at ?? initialEndsAt;
   const duration = lobby?.session.duration_seconds;
   const [remaining, setRemaining] = useState<number | null>(() =>
     endsAt && duration !== undefined

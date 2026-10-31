@@ -95,6 +95,19 @@ npm install
    Repeat the port forwarding after restarting a device. A second emulator
    uses the same project and Metro server; no second source checkout is needed.
 
+   To update all running emulators to the same Debug build, run from `frontend`
+   (or `G:\` when using the short drive mapping):
+
+   ```powershell
+   npm run android:sync
+   ```
+
+   This builds only the connected emulators' CPU architectures, installs one
+   APK on each, removes the old `com.tamsoot.ginder.appetize`, `com.ginder`, and `com.neroadawat.ginder`
+   variants, forwards Metro, and opens the main app. It preserves the main
+   app's data and stops if installation fails. Keep `npm start` running in a
+   separate terminal. Ordinary JavaScript edits only require Fast Refresh.
+
 7. Set a location around Thammasat Rangsit if needed:
 
    ```powershell

@@ -50,7 +50,7 @@ const CreateSessionScreen = () => {
   const {data: categories} = useCategories();
 
   const [radiusKm, setRadiusKm] = useState<number>(DEFAULT_RADIUS_KM);
-  const [durationSeconds, setDurationSeconds] = useState(300);
+  const [durationSeconds, setDurationSeconds] = useState(60);
   const [category, setCategory] = useState<string | null>(null);
   // Same filter set as Solo Mode (requirement 5.5): price tier, minimum
   // rating and "open now", on top of category and radius above.

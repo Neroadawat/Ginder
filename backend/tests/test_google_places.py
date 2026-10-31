@@ -130,6 +130,7 @@ async def test_nearby_search_uses_minimal_mask_and_parses_ephemeral_card(monkeyp
                 {
                     "id": "ChIJ-test",
                     "displayName": {"text": "ร้านทดสอบ"},
+                    "formattedAddress": "Thammasat Rangsit, Pathum Thani",
                     "primaryType": "thai_restaurant",
                     "location": {"latitude": TU_LAT + 0.001, "longitude": TU_LNG},
                     "photos": [
@@ -162,76 +163,38 @@ async def test_nearby_search_uses_minimal_mask_and_parses_ephemeral_card(monkeyp
     assert result.status == "available"
     assert len(result.cards) == 1
     card = result.cards[0]
+    assert card.address == "Thammasat Rangsit, Pathum Thani"
     assert card.source == "google_live"
     assert card.can_like is False
-    assert card.google_photo_name == "places/ChIJ-test/photos/photo-1"
-    assert card.google_photo_maps_uri == "https://maps.google.com/photo/test"
-    assert card.photo_attribution == "เจ้าของภาพ"
+    assert card.google_photo_name is None
+    assert card.google_photo_maps_uri is None
+    assert card.photo_attribution is None
     assert card.rating is None and card.price_level is None
     _, request = client.calls[0]
     assert request["headers"]["X-Goog-Api-Key"] == "server-secret"
     assert request["headers"]["X-Goog-FieldMask"] == (
-        "places.id,places.displayName,places.primaryType,places.location,places.photos"
+        "places.id,places.displayName,places.primaryType,places.location,places.formattedAddress"
     )
     assert request["json"]["maxResultCount"] == 20
 
 
 @pytest.mark.asyncio
-async def test_photo_is_resolved_lazily_with_quota_and_no_api_key_in_url(
-    monkeypatch,
+@pytest.mark.parametrize("hard_limit", [0, 1000])
+async def test_photo_compatibility_endpoint_never_reserves_or_calls_google(
+    monkeypatch, hard_limit
 ) -> None:
-    quota = SimpleNamespace(
-        reserve=AsyncMock(return_value=QuotaDecision(True, 1, False, "allowed"))
-    )
-    client = FakeClient(FakeResponse({"photoUri": "//lh3.googleusercontent.com/photo"}))
-    monkeypatch.setattr(
-        "app.services.google_places_service.httpx.AsyncClient",
-        lambda **_kwargs: client,
-    )
-    monkeypatch.setattr(settings, "GOOGLE_PLACES_ENABLED", True)
-    monkeypatch.setattr(settings, "GOOGLE_PLACES_API_KEY", "server-secret")
-    photo_name = "places/ChIJ-test/photos/photo-1"
-
-    result = await GooglePlacesService(quota=quota).get_photo_uri(
-        photo_name=photo_name,
-        actor_key="hashed-actor",
-    )
-
-    assert result.status == "available"
-    assert result.photo_uri == "https://lh3.googleusercontent.com/photo"
-    quota.reserve.assert_awaited_once_with(
-        "place_photo", "hashed-actor", request_key=photo_name
-    )
-    url, request = client.calls[0]
-    assert url.endswith(f"/{photo_name}/media")
-    assert "server-secret" not in url
-    assert request["headers"]["X-Goog-Api-Key"] == "server-secret"
-    assert request["params"] == {
-        "maxWidthPx": 1200,
-        "maxHeightPx": 1600,
-        "skipHttpRedirect": "true",
-    }
-
-
-@pytest.mark.asyncio
-async def test_photo_hard_limit_uses_placeholder_without_google_call(monkeypatch) -> None:
-    quota = SimpleNamespace(
-        reserve=AsyncMock(return_value=QuotaDecision(False, 1000, True, "hard_limit"))
-    )
+    quota = SimpleNamespace(reserve=AsyncMock())
     client_factory = AsyncMock()
-    monkeypatch.setattr(
-        "app.services.google_places_service.httpx.AsyncClient", client_factory
-    )
+    monkeypatch.setattr("app.services.google_places_service.httpx.AsyncClient", client_factory)
     monkeypatch.setattr(settings, "GOOGLE_PLACES_ENABLED", True)
     monkeypatch.setattr(settings, "GOOGLE_PLACES_API_KEY", "server-secret")
-
+    monkeypatch.setattr(settings, "GOOGLE_PHOTO_HARD_LIMIT", hard_limit)
     result = await GooglePlacesService(quota=quota).get_photo_uri(
-        photo_name="places/ChIJ-test/photos/photo-1",
-        actor_key="hashed-actor",
+        photo_name="places/ChIJ-test/photos/photo-1", actor_key="actor"
     )
-
-    assert result.status == "quota_exhausted"
+    assert result.status == "disabled"
     assert result.photo_uri is None
+    quota.reserve.assert_not_awaited()
     client_factory.assert_not_called()
 
 
@@ -276,6 +239,21 @@ async def test_google_error_degrades_to_empty_result(monkeypatch) -> None:
 
     assert result.cards == []
     assert result.status == "failed"
+
+
+@pytest.mark.asyncio
+async def test_unavailable_accounting_never_calls_google(monkeypatch) -> None:
+    quota = SimpleNamespace(
+        reserve=AsyncMock(return_value=QuotaDecision(False, 0, False, "unavailable"))
+    )
+    client_factory = AsyncMock()
+    monkeypatch.setattr("app.services.google_places_service.httpx.AsyncClient", client_factory)
+    result = await GooglePlacesService(quota=quota).search_nearby(
+        latitude=TU_LAT, longitude=TU_LNG, radius_km=3.0, actor_key="actor"
+    )
+    assert result.status == "failed"
+    assert result.cards == []
+    client_factory.assert_not_called()
 
 
 @pytest.mark.asyncio

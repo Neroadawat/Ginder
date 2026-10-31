@@ -59,13 +59,13 @@ const SessionSwipeScreen = () => {
     useVoteProgress(sessionId);
   const swipeMutation = useSwipe(sessionId);
   const reportFinished = useReportDeckFinished();
-  const {lastEvent} = useSessionWebSocket(sessionId);
 
   const [matched, setMatched] = useState<RestaurantCard | null>(null);
   const [isWaiting, setIsWaiting] = useState(false);
   const [hasExpired, setHasExpired] = useState(false);
   const {data: lobby} = useSession(sessionId);
-  const isResolving = hasExpired || lobby?.session.status === 'finished';
+  const isResolving =
+    !!matched || hasExpired || lobby?.session.status === 'finished';
   const resultQuery = useLiveSessionResult(sessionId, isResolving && !matched);
   const hasReportedEmpty = useRef(false);
 
@@ -77,6 +77,19 @@ const SessionSwipeScreen = () => {
     (resolution: ResolutionResponse) => {
       if (hasNavigated.current) {
         return;
+      }
+      if (resolution.resolution_type === 'unanimous') {
+        if (!deck) {
+          setHasExpired(true);
+          return;
+        }
+        const restaurant = deck?.restaurants.find(
+          item => item.id === resolution.restaurant_id,
+        );
+        if (restaurant) {
+          setMatched(restaurant);
+          return;
+        }
       }
       hasNavigated.current = true;
 
@@ -93,7 +106,7 @@ const SessionSwipeScreen = () => {
         navigation.replace('SessionResult', {sessionId});
       }
     },
-    [navigation, sessionId],
+    [deck, navigation, sessionId],
   );
 
   const goToResult = useCallback(() => {
@@ -114,33 +127,17 @@ const SessionSwipeScreen = () => {
     setHasExpired(true);
   }, []);
 
-  // Server-driven session events.
-  useEffect(() => {
-    if (!lastEvent) {
+  // Process every terminal message, including consecutive match/result events.
+  useSessionWebSocket(sessionId, event => {
+    if (event.event === 'spin_wheel' || event.event === 'result') {
+      goToResolution(event.data as unknown as ResolutionResponse);
       return;
     }
-
-    if (lastEvent.event === 'unanimous_match') {
-      const restaurant = deck?.restaurants.find(
-        r => r.id === lastEvent.data.restaurant_id,
-      );
-      if (restaurant) {
-        setMatched(restaurant);
-      } else {
-        goToResult();
-      }
-      return;
+    if (event.event === 'unanimous_match' || event.event === 'timer_end') {
+      // The canonical result (with resolution type) drives presentation.
+      setHasExpired(true);
     }
-
-    if (lastEvent.event === 'spin_wheel') {
-      goToResolution(lastEvent.data as unknown as ResolutionResponse);
-      return;
-    }
-
-    if (lastEvent.event === 'result' || lastEvent.event === 'timer_end') {
-      goToResult();
-    }
-  }, [lastEvent, deck, goToResolution, goToResult]);
+  });
 
   const handleSwipe = useCallback(
     (restaurant: RestaurantCard, liked: boolean) => {
@@ -153,7 +150,7 @@ const SessionSwipeScreen = () => {
           {
             onSuccess: response => {
               if (response.unanimous_match && response.matched_restaurant_id) {
-                setMatched(restaurant);
+                setHasExpired(true);
               }
               resolve(true);
             },

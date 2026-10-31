@@ -71,6 +71,12 @@ export const useSoloDeck = (filters: SoloDeckFilters) => {
         open_now: filters.openNow ?? false,
       }),
     enabled: hasCoords && !needsFreshGps,
+    // A transport retry or background refetch can trigger another paid search
+    // even if the previous server request completed. Retry explicitly instead.
+    retry: false,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+    refetchOnMount: false,
     // Google live content must not survive the active screen/session cache.
     gcTime: 0,
     // "Open now" is time-sensitive, so don't serve a stale cached deck.

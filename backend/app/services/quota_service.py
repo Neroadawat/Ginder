@@ -1,11 +1,11 @@
-"""Atomic monthly quotas for paid provider calls, with PostgreSQL backup."""
+"""Durable monthly reservations with Redis request throttling."""
 
 import hashlib
 import logging
-from collections.abc import Awaitable
 from dataclasses import dataclass
 from datetime import UTC, datetime
-from typing import Any, Literal, cast
+from typing import Literal
+from zoneinfo import ZoneInfo
 
 from redis.asyncio import Redis
 from sqlalchemy import select
@@ -20,22 +20,7 @@ from app.schemas.usage import GoogleUsageResponse, OperationUsageResponse
 logger = logging.getLogger(__name__)
 
 QuotaOperation = Literal["nearby_search", "place_photo"]
-_USAGE_PREFIX = "ginder:google-usage"
 _COOLDOWN_PREFIX = "ginder:google-cooldown"
-_COUNTER_TTL_SECONDS = 40 * 24 * 60 * 60
-
-_RESERVE_SCRIPT = """
-local current = tonumber(redis.call('GET', KEYS[1]) or '0')
-local hard_limit = tonumber(ARGV[1])
-if current >= hard_limit then
-  return -1
-end
-current = redis.call('INCR', KEYS[1])
-if current == 1 then
-  redis.call('EXPIRE', KEYS[1], tonumber(ARGV[2]))
-end
-return current
-"""
 
 
 @dataclass(frozen=True)
@@ -62,11 +47,9 @@ class GoogleQuotaService:
         if hard_limit <= 0:
             return QuotaDecision(False, 0, True, "hard_limit")
 
-        period = self._period()
         try:
-            # Nearby Search is throttled per actor. Photos use the resource as
-            # an additional discriminator so the visible three-card stack can
-            # load, while repeat requests for the same photo remain blocked.
+            # Search cooldowns apply across all filters for one account.
+            # The resource discriminator remains for legacy quota callers.
             cooldown_subject = actor_key
             if request_key:
                 request_hash = hashlib.sha256(request_key.encode()).hexdigest()[:16]
@@ -86,44 +69,16 @@ class GoogleQuotaService:
                     "rate_limited",
                 )
 
-            counter_key = self._redis_key(period, operation)
-            if await self.redis.get(counter_key) is None:
-                backup_count = await self._read_db_count(operation)
-                await self.redis.set(
-                    counter_key,
-                    backup_count,
-                    ex=_COUNTER_TTL_SECONDS,
-                    nx=True,
-                )
-
-            count = int(
-                await cast(
-                    Awaitable[Any],
-                    self.redis.eval(
-                        _RESERVE_SCRIPT,
-                        1,
-                        counter_key,
-                        str(hard_limit),
-                        str(_COUNTER_TTL_SECONDS),
-                    ),
-                )
-            )
-            if count < 0:
+            # PostgreSQL is the durable authority for every reservation. A lost
+            # Redis key must never reset the monthly allowance.
+            count = await self._reserve_monthly(operation, hard_limit)
+            if count is None:
                 return QuotaDecision(False, hard_limit, True, "hard_limit")
-
-            await self._increment_backup(operation, hard_limit, enforce_limit=False)
             return QuotaDecision(True, count, count >= soft_limit, "allowed")
         except Exception:
-            logger.warning("Redis quota counter unavailable; using PostgreSQL", exc_info=True)
-
-        fallback_count = await self._increment_backup(
-            operation, hard_limit, enforce_limit=True
-        )
-        if fallback_count is None:
-            return QuotaDecision(False, hard_limit, True, "hard_limit")
-        return QuotaDecision(
-            True, fallback_count, fallback_count >= soft_limit, "allowed"
-        )
+            # Without both throttling and durable accounting, use local data.
+            logger.warning("Google quota unavailable; external call blocked", exc_info=True)
+            return QuotaDecision(False, 0, False, "unavailable")
 
     async def get_google_usage(self) -> GoogleUsageResponse:
         period = self._period()
@@ -137,14 +92,6 @@ class GoogleQuotaService:
         )
 
     async def _read_count(self, operation: QuotaOperation) -> int:
-        period = self._period()
-        try:
-            value = await self.redis.get(self._redis_key(period, operation))
-            if value is not None:
-                return int(value)
-        except Exception:
-            logger.warning("Redis quota read unavailable; using PostgreSQL", exc_info=True)
-
         return await self._read_db_count(operation)
 
     async def _read_db_count(self, operation: QuotaOperation) -> int:
@@ -163,9 +110,7 @@ class GoogleQuotaService:
             logger.exception("PostgreSQL quota read failed")
             return 0
 
-    async def _increment_backup(
-        self, operation: QuotaOperation, hard_limit: int, *, enforce_limit: bool
-    ) -> int | None:
+    async def _reserve_monthly(self, operation: QuotaOperation, hard_limit: int) -> int | None:
         now = datetime.now(UTC)
         update = {
             "count": ExternalApiUsage.count + 1,
@@ -174,7 +119,7 @@ class GoogleQuotaService:
         statement = (
             insert(ExternalApiUsage)
             .values(
-                period=self._period(),
+                period=self._period(now),
                 provider="google",
                 operation=operation,
                 count=1,
@@ -183,35 +128,29 @@ class GoogleQuotaService:
             .on_conflict_do_update(
                 constraint="uq_external_api_usage_period_operation",
                 set_=update,
-                where=(ExternalApiUsage.count < hard_limit) if enforce_limit else None,
+                where=ExternalApiUsage.count < hard_limit,
             )
             .returning(ExternalApiUsage.count)
         )
 
-        try:
-            async with self.db_factory() as db:
-                count = await db.scalar(statement)
-                await db.commit()
-                return int(count) if count is not None else None
-        except Exception:
-            logger.exception("PostgreSQL quota backup update failed")
-            if enforce_limit:
-                return None
-            return 0
+        async with self.db_factory() as db:
+            count = await db.scalar(statement)
+            await db.commit()
+            return int(count) if count is not None else None
 
     @staticmethod
-    def _period() -> str:
-        return datetime.now(UTC).strftime("%Y-%m")
-
-    @staticmethod
-    def _redis_key(period: str, operation: QuotaOperation) -> str:
-        return f"{_USAGE_PREFIX}:{period}:{operation}"
+    def _period(moment: datetime | None = None) -> str:
+        # Google resets monthly free usage at midnight Pacific US time,
+        # including daylight saving changes, rather than at midnight UTC.
+        pacific = (moment or datetime.now(UTC)).astimezone(ZoneInfo("America/Los_Angeles"))
+        return pacific.strftime("%Y-%m")
 
     @staticmethod
     def _limits(operation: QuotaOperation) -> tuple[int, int]:
         if operation == "nearby_search":
             return settings.GOOGLE_NEARBY_SOFT_LIMIT, settings.GOOGLE_NEARBY_HARD_LIMIT
-        return settings.GOOGLE_PHOTO_SOFT_LIMIT, settings.GOOGLE_PHOTO_HARD_LIMIT
+        # Old environment values must not re-enable photo reservations.
+        return 0, 0
 
     @classmethod
     def _usage_response(

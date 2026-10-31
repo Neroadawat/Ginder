@@ -3,7 +3,11 @@
  */
 
 import apiClient, {DISCOVERY_TIMEOUT_MS} from './client';
-import {syncSessionClock} from '@/utils/sessionClock';
+import {
+  sessionClockTick,
+  syncPreciseSessionClock,
+  syncSessionClock,
+} from '@/utils/sessionClock';
 import {
   CreateSessionRequest,
   DeckFinishedResponse,
@@ -34,18 +38,38 @@ export const sessionApi = {
   },
 
   getSession: async (sessionId: string): Promise<LobbyResponse> => {
+    const sentAt = sessionClockTick();
     const response = await apiClient.get(`/sessions/${sessionId}`);
-    syncSessionClock(response.headers.date);
+    if (
+      !syncPreciseSessionClock(
+        response.headers['x-server-time'],
+        sentAt,
+        sessionClockTick(),
+        Number(response.headers['x-server-processing-ms'] ?? 0),
+      )
+    ) {
+      syncSessionClock(response.headers.date);
+    }
     return response.data;
   },
 
   start: async (sessionId: string): Promise<StartSessionResponse> => {
+    const sentAt = sessionClockTick();
     const response = await apiClient.post(
       `/sessions/${sessionId}/start`,
       undefined,
       {timeout: DISCOVERY_TIMEOUT_MS},
     );
-    syncSessionClock(response.headers.date);
+    if (
+      !syncPreciseSessionClock(
+        response.headers['x-server-time'],
+        sentAt,
+        sessionClockTick(),
+        Number(response.headers['x-server-processing-ms'] ?? 0),
+      )
+    ) {
+      syncSessionClock(response.headers.date);
+    }
     return response.data;
   },
 

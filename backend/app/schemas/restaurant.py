@@ -38,8 +38,8 @@ class RestaurantCardResponse(BaseModel):
     photo_url: str | None
     photo_source: str | None
     photo_attribution: str | None
-    # Present only for an ephemeral Google result. It is never persisted and
-    # will be resolved lazily by the backend photo endpoint in phase 9.
+    # Legacy fields retained for old clients; metadata-only Google results
+    # always return null and the photo endpoint never calls the provider.
     google_photo_name: str | None = None
     google_photo_maps_uri: str | None = None
     latitude: float

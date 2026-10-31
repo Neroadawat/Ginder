@@ -1,7 +1,6 @@
 """Ephemeral Google Places (New) fallback for Solo discovery only."""
 
 import logging
-import re
 from dataclasses import dataclass
 from typing import Any, Literal
 from urllib.parse import quote_plus
@@ -26,10 +25,9 @@ _FIELD_MASK = ",".join(
         "places.displayName",
         "places.primaryType",
         "places.location",
-        "places.photos",
+        "places.formattedAddress",
     )
 )
-_PHOTO_NAME_PATTERN = re.compile(r"^places/[A-Za-z0-9_-]+/photos/[A-Za-z0-9_-]+$")
 
 
 @dataclass(frozen=True)
@@ -55,9 +53,11 @@ class GooglePlacesService:
         """Return live cards without writing any Google content to the database."""
         decision = await self.quota.reserve("nearby_search", actor_key)
         if not decision.allowed:
-            status: ExternalStatus = (
-                "quota_exhausted" if decision.reason == "hard_limit" else "rate_limited"
-            )
+            status: ExternalStatus = "failed"
+            if decision.reason == "hard_limit":
+                status = "quota_exhausted"
+            elif decision.reason == "rate_limited":
+                status = "rate_limited"
             return GoogleSearchResult([], status)
 
         logger.info(
@@ -121,58 +121,8 @@ class GooglePlacesService:
     async def get_photo_uri(
         self, *, photo_name: str, actor_key: str
     ) -> GooglePhotoResponse:
-        """Resolve one recent photo resource without persisting or proxy-caching it."""
-        if not settings.GOOGLE_PLACES_ENABLED or not settings.GOOGLE_PLACES_API_KEY:
-            return GooglePhotoResponse(status="disabled")
-        if not _PHOTO_NAME_PATTERN.fullmatch(photo_name):
-            return GooglePhotoResponse(status="failed")
-
-        decision = await self.quota.reserve(
-            "place_photo", actor_key, request_key=photo_name
-        )
-        if not decision.allowed:
-            status: ExternalStatus = (
-                "quota_exhausted" if decision.reason == "hard_limit" else "rate_limited"
-            )
-            return GooglePhotoResponse(status=status)
-
-        logger.info(
-            "Google Places place_photo reserved for actor=%s count=%s",
-            actor_key,
-            decision.count,
-        )
-        try:
-            async with httpx.AsyncClient(
-                timeout=settings.GOOGLE_PLACES_TIMEOUT_SECONDS
-            ) as client:
-                response = await client.get(
-                    f"{settings.GOOGLE_PLACES_BASE_URL}/{photo_name}/media",
-                    params={
-                        "maxWidthPx": 1200,
-                        "maxHeightPx": 1600,
-                        "skipHttpRedirect": "true",
-                    },
-                    headers={"X-Goog-Api-Key": settings.GOOGLE_PLACES_API_KEY},
-                )
-                response.raise_for_status()
-                photo_uri = response.json().get("photoUri")
-        except (httpx.HTTPError, ValueError, AttributeError):
-            logger.warning("Google Places place_photo failed", exc_info=True)
-            return GooglePhotoResponse(
-                status="failed", quota_warning=decision.soft_limit_reached
-            )
-
-        if isinstance(photo_uri, str) and photo_uri.startswith("//"):
-            photo_uri = f"https:{photo_uri}"
-        if not isinstance(photo_uri, str) or not photo_uri.startswith("https://"):
-            return GooglePhotoResponse(
-                status="failed", quota_warning=decision.soft_limit_reached
-            )
-        return GooglePhotoResponse(
-            photo_uri=photo_uri,
-            status="available",
-            quota_warning=decision.soft_limit_reached,
-        )
+        """Compatibility response for old clients: photo billing is disabled."""
+        return GooglePhotoResponse(status="disabled")
 
     @classmethod
     def _to_card(
@@ -196,23 +146,6 @@ class GooglePlacesService:
         if category and primary_category != category:
             return None
 
-        photos = place.get("photos") or []
-        photo = photos[0] if photos and isinstance(photos[0], dict) else {}
-        attributions = photo.get("authorAttributions") or []
-        author_names = [
-            str(item["displayName"])
-            for item in attributions
-            if isinstance(item, dict) and isinstance(item.get("displayName"), str)
-        ]
-        author_uri = next(
-            (
-                item.get("uri")
-                for item in attributions
-                if isinstance(item, dict) and item.get("uri")
-            ),
-            None,
-        )
-
         return RestaurantCardResponse(
             id=uuid5(NAMESPACE_URL, f"google:{place_id}"),
             place_id=f"google:{place_id}",
@@ -221,10 +154,10 @@ class GooglePlacesService:
             primary_category=primary_category,
             types=[primary_type],
             photo_url=None,
-            photo_source=author_uri,
-            photo_attribution=", ".join(author_names) or None,
-            google_photo_name=photo.get("name"),
-            google_photo_maps_uri=photo.get("googleMapsUri"),
+            photo_source=None,
+            photo_attribution=None,
+            google_photo_name=None,
+            google_photo_maps_uri=None,
             latitude=float(place_lat),
             longitude=float(place_lng),
             distance_km=round(
@@ -240,7 +173,7 @@ class GooglePlacesService:
             price_symbol=None,
             rating=None,
             user_ratings_total=None,
-            address=None,
+            address=place.get("formattedAddress"),
             google_maps_url=(
                 "https://www.google.com/maps/search/?api=1"
                 f"&query={quote_plus(name)}&query_place_id={quote_plus(place_id)}"

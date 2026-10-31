@@ -7,12 +7,18 @@ import {t, useTranslation} from '@/i18n';
  */
 
 import React from 'react';
-import {Image, StyleSheet, Text, View} from 'react-native';
+import {
+  Image,
+  Linking,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 
 import {RestaurantCard} from '@/types/restaurant';
 import {getRestaurantImageUri} from '@/constants/restaurantImages';
 import {formatDistance} from '@/utils/distance';
-import {useGooglePhoto} from '@/hooks/useGooglePhoto';
 import PhotoAttribution from './PhotoAttribution';
 import DataAttribution from './DataAttribution';
 import {categoryLabel} from '@/utils/category';
@@ -23,14 +29,14 @@ interface Props {
 
 const RestaurantCardContent = ({restaurant}: Props) => {
   useTranslation();
-  const {data: googlePhoto} = useGooglePhoto(restaurant);
-  // Requirement 8.7: fall back to a category-specific placeholder.
-  const imageUri =
-    googlePhoto?.status === 'available' && googlePhoto.photo_uri
-      ? googlePhoto.photo_uri
-      : getRestaurantImageUri(restaurant);
-  const isGooglePhotoVisible =
-    restaurant.source === 'google_live' && googlePhoto?.status === 'available';
+  const imageUri = getRestaurantImageUri(restaurant);
+  const hasRestaurantPhoto =
+    restaurant.source !== 'google_live' &&
+    Boolean(
+      restaurant.photo_url &&
+        restaurant.photo_source &&
+        restaurant.photo_attribution,
+    );
 
   return (
     <View style={styles.image}>
@@ -38,7 +44,7 @@ const RestaurantCardContent = ({restaurant}: Props) => {
         key={imageUri}
         source={{
           uri: imageUri,
-          cache: isGooglePhotoVisible ? 'reload' : 'default',
+          cache: 'default',
         }}
         fadeDuration={0}
         style={StyleSheet.absoluteFill}
@@ -75,14 +81,33 @@ const RestaurantCardContent = ({restaurant}: Props) => {
             {formatDistance(restaurant.distance_km)}
           </Text>
         )}
+        {restaurant.address && (
+          <Text style={styles.distance} numberOfLines={2}>
+            {restaurant.address}
+          </Text>
+        )}
+        {!hasRestaurantPhoto && (
+          <Text style={styles.illustration}>{t('Illustrative image')}</Text>
+        )}
         <PhotoAttribution
           restaurant={restaurant}
           light
-          photoVisible={isGooglePhotoVisible}
+          photoVisible={hasRestaurantPhoto}
         />
         <DataAttribution source={restaurant.source} light />
         {restaurant.source === 'google_live' && (
-          <Text style={styles.googleAttribution}>Google Maps</Text>
+          <TouchableOpacity
+            style={styles.mapsLink}
+            disabled={!restaurant.google_maps_url}
+            accessibilityRole="link"
+            accessibilityLabel={t('Open in Google Maps')}
+            onPress={() => {
+              if (restaurant.google_maps_url) {
+                Linking.openURL(restaurant.google_maps_url);
+              }
+            }}>
+            <Text style={styles.googleAttribution}>Google Maps</Text>
+          </TouchableOpacity>
         )}
       </View>
     </View>
@@ -125,11 +150,13 @@ const styles = StyleSheet.create({
   },
   metaRow: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     alignItems: 'center',
     gap: 12,
     marginTop: 4,
   },
   category: {
+    flexShrink: 1,
     fontSize: 14,
     color: '#FFF',
   },
@@ -167,6 +194,8 @@ const styles = StyleSheet.create({
     fontWeight: '400',
     marginTop: 6,
   },
+  illustration: {color: '#E6E1E1', fontSize: 11, marginTop: 6},
+  mapsLink: {minHeight: 44, justifyContent: 'center', alignSelf: 'flex-start'},
 });
 
 export default RestaurantCardContent;

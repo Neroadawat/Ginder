@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import {RouteProp, useNavigation, useRoute} from '@react-navigation/native';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
+import {SafeAreaProvider, SafeAreaView} from 'react-native-safe-area-context';
 
 import LobbyPlayerItem from '@/components/LobbyPlayerItem';
 import {COLORS} from '@/constants/theme';
@@ -305,66 +306,68 @@ const LobbyScreen = () => {
         transparent
         animationType="slide"
         onRequestClose={() => setInviteOpen(false)}>
-        <TouchableOpacity
-          style={styles.scrim}
-          activeOpacity={1}
-          onPress={() => setInviteOpen(false)}
-        />
-        <View style={styles.sheet}>
-          <View style={styles.sheetHandle} />
-          <Text style={styles.sheetTitle}>{t('ชวนเพื่อน')}</Text>
-          <Text style={styles.sheetSubtitle}>
-            {t('เพื่อนจะได้รับคำเชิญในแอปและกดตอบรับได้')}
-          </Text>
-          {friendsLoading ? (
-            <ActivityIndicator
-              style={styles.sheetLoader}
-              color={COLORS.accent}
-            />
-          ) : (
-            <FlatList
-              data={availableFriends}
-              keyExtractor={item => item.id}
-              style={styles.friendList}
-              renderItem={({item}) => {
-                const sent = invitedIds.includes(item.id);
-                return (
-                  <View style={styles.friendRow}>
-                    <View style={styles.avatar}>
-                      <Text style={styles.avatarText}>
-                        {item.display_name.slice(0, 1).toUpperCase()}
-                      </Text>
-                    </View>
-                    <View style={styles.friendCopy}>
-                      <Text style={styles.friendName}>{item.display_name}</Text>
-                      <Text style={styles.friendEmail}>{item.email}</Text>
-                    </View>
-                    <TouchableOpacity
-                      style={[styles.sendButton, sent && styles.sentButton]}
-                      disabled={sent || inviteMutation.isPending}
-                      onPress={() => invite(item.id, item.display_name)}>
-                      <Text style={styles.sendText}>
-                        {sent ? t('ส่งแล้ว') : t('ชวน')}
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
-                );
-              }}
-              ListEmptyComponent={
-                <Text style={styles.emptyFriends}>
-                  {t(
-                    'ยังไม่มีเพื่อนให้ชวน ลองแชร์ลิงก์ เมื่อเข้าห้องจะ เพิ่มเป็นเพื่อนกันอัตโนมัติ',
-                  )}
-                </Text>
-              }
-            />
-          )}
+        <SafeAreaProvider>
           <TouchableOpacity
-            style={styles.doneButton}
-            onPress={() => setInviteOpen(false)}>
-            <Text style={styles.doneText}>{t('เสร็จ')}</Text>
-          </TouchableOpacity>
-        </View>
+            style={styles.scrim}
+            activeOpacity={1}
+            onPress={() => setInviteOpen(false)}
+          />
+          <SafeAreaView style={styles.sheet} edges={['left', 'right', 'bottom']}>
+            <View style={styles.sheetHandle} />
+            <Text style={styles.sheetTitle}>{t('ชวนเพื่อน')}</Text>
+            <Text style={styles.sheetSubtitle}>
+              {t('เพื่อนจะได้รับคำเชิญในแอปและกดตอบรับได้')}
+            </Text>
+            {friendsLoading ? (
+              <ActivityIndicator
+                style={styles.sheetLoader}
+                color={COLORS.accent}
+              />
+            ) : (
+              <FlatList
+                data={availableFriends}
+                keyExtractor={item => item.id}
+                style={styles.friendList}
+                renderItem={({item}) => {
+                  const sent = invitedIds.includes(item.id);
+                  return (
+                    <View style={styles.friendRow}>
+                      <View style={styles.avatar}>
+                        <Text style={styles.avatarText}>
+                          {item.display_name.slice(0, 1).toUpperCase()}
+                        </Text>
+                      </View>
+                      <View style={styles.friendCopy}>
+                        <Text style={styles.friendName}>{item.display_name}</Text>
+                        <Text style={styles.friendEmail}>{item.email}</Text>
+                      </View>
+                      <TouchableOpacity
+                        style={[styles.sendButton, sent && styles.sentButton]}
+                        disabled={sent || inviteMutation.isPending}
+                        onPress={() => invite(item.id, item.display_name)}>
+                        <Text style={styles.sendText}>
+                          {sent ? t('ส่งแล้ว') : t('ชวน')}
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+                  );
+                }}
+                ListEmptyComponent={
+                  <Text style={styles.emptyFriends}>
+                    {t(
+                      'ยังไม่มีเพื่อนให้ชวน ลองแชร์ลิงก์ เมื่อเข้าห้องจะ เพิ่มเป็นเพื่อนกันอัตโนมัติ',
+                    )}
+                  </Text>
+                }
+              />
+            )}
+            <TouchableOpacity
+              style={styles.doneButton}
+              onPress={() => setInviteOpen(false)}>
+              <Text style={styles.doneText}>{t('เสร็จ')}</Text>
+            </TouchableOpacity>
+          </SafeAreaView>
+        </SafeAreaProvider>
       </Modal>
     </View>
   );

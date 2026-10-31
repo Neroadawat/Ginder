@@ -11,6 +11,7 @@ import {
   StyleSheet,
   ActivityIndicator,
   Alert,
+  ScrollView,
 } from 'react-native';
 import {useNavigation} from '@react-navigation/native';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
@@ -247,31 +248,52 @@ const SoloSwipeScreen = () => {
             onDeckEmpty={handleDeckEmpty}
           />
         ) : (
-          <View style={styles.emptyState}>
-            <Text style={styles.emptyTitle}>
-              {deck?.coverage_status === 'unsupported'
-                ? t('ยังไม่พบร้านใหม่ใกล้คุณ')
-                : t('ดูร้านในสำรับนี้ครบแล้ว')}
-            </Text>
-            <Text style={styles.emptySubtitle}>
-              {externalMessage(deck?.external_status)}
-            </Text>
-            <TouchableOpacity
-              style={styles.retryButton}
-              onPress={() => navigation.navigate('ExpandRadius')}
-              accessibilityRole="button">
-              <Text style={styles.retryText}>{t('ขยายรัศมีค้นหา')}</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.retryButton}
-              disabled={isFetching}
-              onPress={() => refetch()}
-              accessibilityRole="button">
-              <Text style={styles.retryText}>
-                {isFetching ? t('กำลังค้นหาร้าน...') : t('ลองอีกครั้ง')}
+          <ScrollView
+            style={styles.emptyScroll}
+            contentContainerStyle={styles.emptyState}>
+            <View style={styles.emptyContent}>
+              <View style={styles.emptyIcon}>
+                <AppIcon name="location" size={32} color={COLORS.textMuted} />
+              </View>
+              <Text style={styles.emptyTitle}>{t('No restaurants found')}</Text>
+              <Text style={styles.emptySubtitle}>
+                {externalMessage(deck?.external_status)}
               </Text>
-            </TouchableOpacity>
-          </View>
+              <View style={styles.emptyActions}>
+                <TouchableOpacity
+                  style={[styles.emptyAction, styles.primaryAction]}
+                  onPress={() => navigation.navigate('ExpandRadius')}
+                  accessibilityRole="button">
+                  <Text style={styles.actionLabel}>{t('ขยายรัศมีค้นหา')}</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.emptyAction,
+                    styles.secondaryAction,
+                    isFetching && styles.disabledAction,
+                  ]}
+                  disabled={isFetching}
+                  accessibilityState={{disabled: isFetching, busy: isFetching}}
+                  onPress={() => refetch()}
+                  accessibilityRole="button">
+                  {isFetching && (
+                    <ActivityIndicator color={COLORS.text} size="small" />
+                  )}
+                  <Text style={styles.actionLabel}>
+                    {isFetching ? t('กำลังค้นหาร้าน...') : t('ลองอีกครั้ง')}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+              <TouchableOpacity
+                style={styles.filterAction}
+                onPress={() => navigation.navigate('FilterSettings')}
+                accessibilityRole="button">
+                <Text style={styles.filterActionLabel}>
+                  {t('Adjust filters')}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </ScrollView>
         )}
       </View>
     </View>
@@ -385,20 +407,89 @@ const styles = StyleSheet.create({
     color: COLORS.textMuted,
   },
   emptyState: {
+    flexGrow: 1,
+    justifyContent: 'center',
     alignItems: 'center',
-    padding: 32,
+    paddingHorizontal: 24,
+    paddingTop: 120,
+    paddingBottom: 112,
+  },
+  emptyScroll: {
+    flex: 1,
+    width: '100%',
+  },
+  emptyContent: {
+    width: '100%',
+    maxWidth: 360,
+    alignItems: 'center',
+  },
+  emptyIcon: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: COLORS.surfaceElevated,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 20,
+  },
+  emptyActions: {
+    width: '100%',
+    gap: 12,
+  },
+  emptyAction: {
+    minHeight: 52,
+    borderRadius: 16,
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  primaryAction: {
+    backgroundColor: COLORS.accent,
+  },
+  secondaryAction: {
+    backgroundColor: COLORS.surface,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  disabledAction: {
+    opacity: 0.6,
+  },
+  actionLabel: {
+    color: COLORS.text,
+    fontSize: 16,
+    lineHeight: 24,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  filterAction: {
+    minHeight: 48,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  filterActionLabel: {
+    color: COLORS.textMuted,
+    fontSize: 14,
+    lineHeight: 22,
+    fontWeight: '600',
+    textAlign: 'center',
+    textDecorationLine: 'underline',
   },
   emptyTitle: {
     fontSize: 20,
     fontWeight: '600',
     color: COLORS.text,
     marginBottom: 8,
+    textAlign: 'center',
   },
   emptySubtitle: {
     fontSize: 14,
     color: COLORS.textMuted,
     textAlign: 'center',
     marginBottom: 24,
+    lineHeight: 22,
   },
   retryButton: {
     backgroundColor: COLORS.accent,

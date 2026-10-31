@@ -22,6 +22,7 @@ dependencies = [
     "celery[redis]==5.4.0",
     "firebase-admin==6.6.0",
     "httpx==0.28.1",
+    "tzdata==2025.2; sys_platform == 'win32'",
 ]
 
 [project.optional-dependencies]

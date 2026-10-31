@@ -11,7 +11,7 @@ import {
   View,
   Text,
   StyleSheet,
-  Dimensions,
+  useWindowDimensions,
   TouchableOpacity,
 } from 'react-native';
 import {GestureDetector, Gesture} from 'react-native-gesture-handler';
@@ -29,8 +29,6 @@ import {RestaurantCard as RestaurantCardType} from '@/types/restaurant';
 import RestaurantCardContent from './RestaurantCardContent';
 import AppIcon from './AppIcon';
 
-const {width: SCREEN_WIDTH} = Dimensions.get('window');
-const SWIPE_THRESHOLD = SCREEN_WIDTH * 0.3;
 interface SwipeCardProps {
   restaurants: RestaurantCardType[];
   /** Return false to restore the card when the server rejects a vote. */
@@ -53,6 +51,8 @@ interface CardLayerProps {
 
 const CardLayer = forwardRef<CardHandle, CardLayerProps>(
   ({restaurant, active, disabled, allowLike, onComplete}, ref) => {
+    const {width: screenWidth} = useWindowDimensions();
+    const swipeThreshold = screenWidth * 0.3;
     const translateX = useSharedValue(0);
     const exiting = useSharedValue(false);
     const animateOut = (liked: boolean) => {
@@ -62,7 +62,7 @@ const CardLayer = forwardRef<CardHandle, CardLayerProps>(
       }
       exiting.value = true;
       translateX.value = withTiming(
-        liked ? SCREEN_WIDTH * 1.5 : -SCREEN_WIDTH * 1.5,
+        liked ? screenWidth * 1.5 : -screenWidth * 1.5,
         {duration: 200, easing: Easing.out(Easing.cubic)},
         finished => {
           if (finished) {
@@ -93,7 +93,7 @@ const CardLayer = forwardRef<CardHandle, CardLayerProps>(
         if (exiting.value) {
           return;
         }
-        if (Math.abs(event.translationX) > SWIPE_THRESHOLD) {
+        if (Math.abs(event.translationX) > swipeThreshold) {
           const liked = event.translationX > 0;
           if (liked && !allowLike) {
             translateX.value = withSpring(0);
@@ -110,7 +110,7 @@ const CardLayer = forwardRef<CardHandle, CardLayerProps>(
         {
           rotate: `${interpolate(
             translateX.value,
-            [-SCREEN_WIDTH, 0, SCREEN_WIDTH],
+            [-screenWidth, 0, screenWidth],
             [-15, 0, 15],
             Extrapolation.CLAMP,
           )}deg`,
@@ -120,7 +120,7 @@ const CardLayer = forwardRef<CardHandle, CardLayerProps>(
     const likeOpacity = useAnimatedStyle(() => ({
       opacity: interpolate(
         translateX.value,
-        [0, SWIPE_THRESHOLD],
+        [0, swipeThreshold],
         [0, 1],
         Extrapolation.CLAMP,
       ),
@@ -128,7 +128,7 @@ const CardLayer = forwardRef<CardHandle, CardLayerProps>(
     const skipOpacity = useAnimatedStyle(() => ({
       opacity: interpolate(
         translateX.value,
-        [-SWIPE_THRESHOLD, 0],
+        [-swipeThreshold, 0],
         [1, 0],
         Extrapolation.CLAMP,
       ),
@@ -289,6 +289,7 @@ const styles = StyleSheet.create({
   counter: {
     fontSize: 12,
     color: '#D8D2D2',
+    textAlign: 'center',
   },
   actions: {
     position: 'absolute',
@@ -314,11 +315,13 @@ const styles = StyleSheet.create({
   likeButton: {backgroundColor: '#E52B2F'},
   actionDisabled: {opacity: 0.35},
   counterPill: {
+    flexShrink: 1,
+    marginHorizontal: 8,
     backgroundColor: 'rgba(5,5,5,0.78)',
     borderWidth: 1,
     borderColor: '#3A3636',
     borderRadius: 22,
-    paddingHorizontal: 24,
+    paddingHorizontal: 12,
     paddingVertical: 12,
   },
 });

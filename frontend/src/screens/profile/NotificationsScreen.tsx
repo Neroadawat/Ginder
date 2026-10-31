@@ -135,9 +135,7 @@ const NotificationsScreen = () => {
         />
       )}
       {data && data.unread_count > 0 && (
-        <View style={styles.badge}>
-          <Text style={styles.badgeText}>{data.unread_count}</Text>
-        </View>
+        <View style={styles.badge} />
       )}
     </View>
   );
@@ -233,7 +231,6 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     backgroundColor: '#E31C25',
   },
-  badgeText: {fontSize: 0},
 });
 
 export default NotificationsScreen;

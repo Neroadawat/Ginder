@@ -3,7 +3,7 @@
 import hashlib
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Query, Request, Response
+from fastapi import APIRouter, Depends, Query, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.dependencies import get_current_user, get_db
@@ -20,9 +20,9 @@ from app.services.restaurant_service import RestaurantService
 router = APIRouter()
 
 
-def _actor_key(request: Request, user: User) -> str:
-    client_ip = request.client.host if request.client else "unknown"
-    return hashlib.sha256(f"{user.id}:{client_ip}".encode()).hexdigest()[:24]
+def _actor_key(user: User) -> str:
+    # Keep cooldowns stable across network changes and devices of one account.
+    return hashlib.sha256(f"user:{user.id}".encode()).hexdigest()[:24]
 
 
 @router.get("/categories", response_model=list[str])
@@ -35,24 +35,22 @@ async def get_categories(db: AsyncSession = Depends(get_db)):
 @router.post("/deck", response_model=DeckResponse)
 async def get_solo_deck(
     body: SoloFilterRequest,
-    request: Request,
     response: Response,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     """Get a deck of restaurants for solo mode based on filters."""
-    # Live Google cards can contain expiring photo resource names.
+    # Live Google metadata stays out of shared HTTP caches.
     response.headers["Cache-Control"] = "no-store, max-age=0"
     response.headers["Pragma"] = "no-cache"
     service = RestaurantService(db)
     return await service.get_solo_deck(
-        body, current_user, actor_key=_actor_key(request, current_user)
+        body, current_user, actor_key=_actor_key(current_user)
     )
 
 
 @router.get("/google-photo", response_model=GooglePhotoResponse)
 async def get_google_photo(
-    request: Request,
     response: Response,
     photo_name: str = Query(
         min_length=10,
@@ -61,12 +59,12 @@ async def get_google_photo(
     ),
     current_user: User = Depends(get_current_user),
 ):
-    """Resolve a Google photo URL for the active card without storing it."""
+    """Compatibility endpoint: photos are disabled, including for older apps."""
     response.headers["Cache-Control"] = "no-store, max-age=0"
     response.headers["Pragma"] = "no-cache"
     return await GooglePlacesService().get_photo_uri(
         photo_name=photo_name,
-        actor_key=_actor_key(request, current_user),
+        actor_key=_actor_key(current_user),
     )
 
 

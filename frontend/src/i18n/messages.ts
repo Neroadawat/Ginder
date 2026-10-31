@@ -345,7 +345,15 @@ export const english: Record<string, string> = {
 
 /** Originally English UI and accessibility copy. Brand names stay unchanged. */
 export const thai: Record<string, string> = {
+  'Illustrative image': 'ภาพประกอบ',
+  'Open in Google Maps': 'เปิดใน Google Maps',
+  'Top-voted': 'คะแนนโหวตสูงสุด',
+  restaurant: 'ได้ร้านแล้ว!',
+  'The wheel picked': 'วงล้อเลือกให้แล้ว',
+  'your restaurant!': 'ได้ร้านแล้ว!',
   ...Object.fromEntries(Object.entries(english).map(([th, en]) => [en, th])),
+  'Adjust filters': 'ปรับตัวกรอง',
+  'No restaurants found': 'ยังไม่พบร้านอาหาร',
   Language: 'ภาษา',
   ' (You)': ' (คุณ)',
   Kick: 'นำออก',

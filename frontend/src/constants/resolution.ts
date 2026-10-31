@@ -8,6 +8,13 @@
 
 import {ResolutionType} from '@/types/api';
 
+export const RESULT_HEADINGS: Record<ResolutionType, {kicker: string; title: string}> = {
+  unanimous: {kicker: 'You picked', title: 'the same place!'},
+  majority: {kicker: 'Top-voted', title: 'restaurant'},
+  spin_wheel_tie: {kicker: 'The wheel picked', title: 'your restaurant!'},
+  spin_wheel_no_match: {kicker: 'The wheel picked', title: 'your restaurant!'},
+};
+
 export const RESOLUTION_LABELS: Record<ResolutionType, string> = {
   unanimous: 'ทุกคนเลือกตรงกัน',
   majority: 'คะแนนโหวตสูงสุด',

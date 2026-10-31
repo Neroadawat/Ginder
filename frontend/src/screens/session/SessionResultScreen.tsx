@@ -18,7 +18,7 @@ import {RouteProp, useNavigation, useRoute} from '@react-navigation/native';
 
 import {useSessionResult} from '@/hooks/useSessions';
 import {useSessionStore} from '@/stores/sessionStore';
-import {RESOLUTION_LABELS} from '@/constants/resolution';
+import {RESOLUTION_LABELS, RESULT_HEADINGS} from '@/constants/resolution';
 import {SessionStackParamList} from '@/navigation/types';
 import {COLORS} from '@/constants/theme';
 
@@ -78,13 +78,14 @@ const SessionResultScreen = () => {
   }
 
   const hasWinner = result.restaurant_id !== null;
+  const heading = RESULT_HEADINGS[result.resolution_type];
 
   return (
     <View style={styles.container}>
       <Text style={styles.kicker}>
-        {hasWinner ? t('เลือกร้าน') : t('ห้อง')}
+        {hasWinner ? t(heading.kicker) : t('ห้อง')}
       </Text>
-      <Text style={styles.title}>{hasWinner ? t('ตรงกัน!') : t('จบแล้ว')}</Text>
+      <Text style={styles.title}>{hasWinner ? t(heading.title) : t('จบแล้ว')}</Text>
       <Text style={styles.subtitle}>
         {t(RESOLUTION_LABELS[result.resolution_type] ?? result.resolution_type)}
       </Text>

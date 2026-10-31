@@ -1,7 +1,7 @@
 import React from 'react';
 import {QueryClientProvider} from '@tanstack/react-query';
 import {DarkTheme, NavigationContainer} from '@react-navigation/native';
-import {SafeAreaProvider} from 'react-native-safe-area-context';
+import {SafeAreaProvider, SafeAreaView} from 'react-native-safe-area-context';
 import {GestureHandlerRootView} from 'react-native-gesture-handler';
 import {StyleSheet} from 'react-native';
 
@@ -36,9 +36,13 @@ const App = () => {
           {!isReady ? (
             <SplashScreen />
           ) : (
-            <NavigationContainer linking={linking} theme={navigationTheme}>
-              <RootNavigator onRequestLocation={requestLocation} />
-            </NavigationContainer>
+            <SafeAreaView
+              style={styles.safeContent}
+              edges={['left', 'right', 'bottom']}>
+              <NavigationContainer linking={linking} theme={navigationTheme}>
+                <RootNavigator onRequestLocation={requestLocation} />
+              </NavigationContainer>
+            </SafeAreaView>
           )}
         </QueryClientProvider>
       </SafeAreaProvider>
@@ -49,6 +53,10 @@ const App = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  safeContent: {
+    flex: 1,
+    backgroundColor: COLORS.background,
   },
 });
 

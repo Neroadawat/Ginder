@@ -11,7 +11,9 @@ import {
   StyleSheet,
   Modal,
   Image,
+  ScrollView,
 } from 'react-native';
+import {SafeAreaProvider, SafeAreaView} from 'react-native-safe-area-context';
 
 import {RestaurantCard} from '@/types/restaurant';
 import {getRestaurantImageUri} from '@/constants/restaurantImages';
@@ -28,39 +30,41 @@ const MatchPopup = ({restaurant, onDismiss}: Props) => {
   useTranslation();
   return (
     <Modal transparent animationType="fade" visible onRequestClose={onDismiss}>
-      <View style={styles.overlay}>
-        <TouchableOpacity style={styles.close} onPress={onDismiss}>
-          <AppIcon name="close" size={28} />
-        </TouchableOpacity>
-        <View style={styles.content}>
-          <Text style={styles.title}>{t('เลือกร้าน')}</Text>
-          <View style={styles.photos}>
-            <Image
-              source={{uri: getRestaurantImageUri(restaurant)}}
-              style={[styles.photo, styles.photoLeft]}
-            />
-            <Image
-              source={{uri: getRestaurantImageUri(restaurant)}}
-              style={[styles.photo, styles.photoRight]}
-            />
-          </View>
-          <PhotoAttribution restaurant={restaurant} light />
-          <DataAttribution source={restaurant.source} light />
-          <Text style={styles.match}>{t('ตรงกัน!')}</Text>
-          <Text style={styles.subtitle}>
-            {t('ทุกคนเลือกร้าน ')}
-            {restaurant.name}
-          </Text>
-
-          <TouchableOpacity
-            style={styles.button}
-            onPress={onDismiss}
-            accessibilityRole="button"
-            accessibilityLabel={t('Continue to results')}>
-            <Text style={styles.buttonText}>{t('ดูผลและตำแหน่งร้าน')}</Text>
+      <SafeAreaProvider>
+        <SafeAreaView style={styles.overlay}>
+          <TouchableOpacity style={styles.close} onPress={onDismiss}>
+            <AppIcon name="close" size={28} />
           </TouchableOpacity>
-        </View>
-      </View>
+          <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
+            <Text style={styles.title}>{t('เลือกร้าน')}</Text>
+            <View style={styles.photos}>
+              <Image
+                source={{uri: getRestaurantImageUri(restaurant)}}
+                style={[styles.photo, styles.photoLeft]}
+              />
+              <Image
+                source={{uri: getRestaurantImageUri(restaurant)}}
+                style={[styles.photo, styles.photoRight]}
+              />
+            </View>
+            <PhotoAttribution restaurant={restaurant} light />
+            <DataAttribution source={restaurant.source} light />
+            <Text style={styles.match}>{t('ตรงกัน!')}</Text>
+            <Text style={styles.subtitle}>
+              {t('ทุกคนเลือกร้าน ')}
+              {restaurant.name}
+            </Text>
+
+            <TouchableOpacity
+              style={styles.button}
+              onPress={onDismiss}
+              accessibilityRole="button"
+              accessibilityLabel={t('Continue to results')}>
+              <Text style={styles.buttonText}>{t('ดูผลและตำแหน่งร้าน')}</Text>
+            </TouchableOpacity>
+          </ScrollView>
+        </SafeAreaView>
+      </SafeAreaProvider>
     </Modal>
   );
 };
@@ -73,12 +77,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   content: {
-    flex: 1,
+    flexGrow: 1,
     width: '100%',
     paddingHorizontal: 24,
+    paddingTop: 72,
+    paddingBottom: 24,
     alignItems: 'center',
     justifyContent: 'center',
   },
+  scroll: {flex: 1, width: '100%'},
   title: {
     fontSize: 42,
     fontWeight: '800',
@@ -100,13 +107,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 30,
   },
   buttonText: {
+    textAlign: 'center',
     color: '#FFF',
     fontSize: 12,
     fontWeight: '700',
   },
   close: {
     position: 'absolute',
-    top: 55,
+    top: 16,
     left: 14,
     zIndex: 2,
     width: 42,
@@ -117,11 +125,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  photos: {width: 290, height: 245, marginTop: 2},
+  photos: {width: '100%', maxWidth: 290, height: 245, marginTop: 2},
   photo: {
     position: 'absolute',
-    width: 170,
-    height: 220,
+    width: '58%',
+    aspectRatio: 170 / 220,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.35)',
   },
