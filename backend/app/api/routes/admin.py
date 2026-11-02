@@ -47,6 +47,7 @@ EDIT_FIELDS = (
     "price_level",
     "opening_hours",
     "admin_notes",
+    "is_hidden",
 )
 
 
@@ -177,7 +178,10 @@ def _serialize(row: Restaurant) -> dict:
 async def restaurants(
     q: str = "",
     category: str = "",
-    issue: Literal["", "missing_photo", "other", "duplicates", "unreviewed", "missing_hours"] = "",
+    issue: Literal[
+        "", "missing_photo", "other", "duplicates", "unreviewed", "missing_hours",
+        "hidden", "visible"
+    ] = "",
     page: int = 1,
     user: User = Depends(get_admin),
     db: AsyncSession = Depends(get_db),
@@ -193,6 +197,8 @@ async def restaurants(
     if category:
         query = query.where(Restaurant.primary_category == category)
     issue_filters = {
+        "hidden": Restaurant.is_hidden.is_(True),
+        "visible": Restaurant.is_hidden.is_(False),
         "missing_photo": Restaurant.photo_url.is_(None),
         "other": Restaurant.primary_category == "Other",
         "duplicates": normalized.in_(_duplicate_names()),
@@ -290,6 +296,8 @@ async def edit(
     changes = {}
     values = body.model_dump()
     for field in EDIT_FIELDS:
+        if field == "is_hidden" and values[field] is None:
+            continue
         old, new = getattr(row, field), values[field]
         if old != new:
             changes[field] = {"before": old, "after": new}

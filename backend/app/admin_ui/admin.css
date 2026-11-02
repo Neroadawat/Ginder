@@ -457,6 +457,9 @@ td:first-child {
   background: #eaf4ed;
   color: #4f8962;
 }
+.badge + .badge {
+  margin-inline-start: 6px;
+}
 .badge.pending {
   background: #fff5e6;
   color: #af8843;

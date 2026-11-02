@@ -130,6 +130,8 @@
               <option value="">ทุกหมวดอาหาร</option></select
             ><select id="issue-filter" aria-label="กรองสิ่งที่ต้องตรวจ">
               <option value="">ทุกสถานะ</option>
+              <option value="hidden">ซ่อนจากแอป</option>
+              <option value="visible">แสดงในแอป</option>
               <option value="missing_photo">ยังไม่มีรูป</option>
               <option value="other">ยังไม่จัดหมวด</option>
               <option value="duplicates">ชื่อซ้ำ</option>
@@ -156,7 +158,7 @@
                   <th>ร้านอาหาร</th>
                   <th>หมวด</th>
                   <th>ข้อมูลที่ยังไม่มี</th>
-                  <th>การตรวจสอบ</th>
+                  <th>สถานะ</th>
                   <th><span class="sr-only">จัดการ</span></th>
                 </tr>
               </thead>
@@ -397,6 +399,16 @@
               </p>
             </div>
             <h3><span class="section-number">03</span> ผลการตรวจสอบ</h3>
+            <label class="checkbox-row"
+              ><input name="is_hidden" type="checkbox" aria-describedby="visibility-help" /><span
+                >ซ่อนร้านจากแอป</span
+              ></label
+            >
+            <p class="fine" id="visibility-help">
+              มีผลเมื่อกดบันทึกทั้งหมด ร้านจะไม่ปรากฏในการค้นหาและชุดร้านใหม่
+              ห้องที่เริ่มแล้ว รายการถูกใจ และประวัติเดิมยังคงอยู่
+              เอาเครื่องหมายออกแล้วบันทึกเพื่อแสดงร้านอีกครั้ง
+            </p>
             <label
               >บันทึกแหล่งข้อมูล / หมายเหตุ<textarea
                 name="admin_notes"

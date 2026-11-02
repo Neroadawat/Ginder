@@ -307,6 +307,32 @@ async def test_solo_does_not_call_google_when_local_coverage_is_enough(monkeypat
     search.assert_not_awaited()
 
 
+@pytest.mark.asyncio
+async def test_hidden_local_restaurant_cannot_reappear_as_obvious_google_duplicate(monkeypatch):
+    monkeypatch.setattr(settings, "GOOGLE_PLACES_ENABLED", True)
+    monkeypatch.setattr(settings, "GOOGLE_PLACES_API_KEY", "server-secret")
+    hidden = local_restaurant(1)
+    card = google_card(name=hidden.name)
+    card.latitude, card.longitude = hidden.latitude, hidden.longitude
+
+    class HiddenDb(FakeDb):
+        async def execute(self, statement):
+            self.executed.append(statement)
+            return ListResult([] if len(self.executed) == 1 else [hidden])
+
+    service = RestaurantService(HiddenDb())
+    monkeypatch.setattr(service, "_search", AsyncMock(return_value=[]))
+    monkeypatch.setattr(
+        GooglePlacesService, "search_nearby",
+        AsyncMock(return_value=GoogleSearchResult([card], "available")),
+    )
+    deck = await service.get_solo_deck(
+        SoloFilterRequest(latitude=TU_LAT, longitude=TU_LNG, radius_km=3.0),
+        SimpleNamespace(id=uuid.uuid4()),
+    )
+    assert deck.restaurants == []
+
+
 def test_google_api_key_is_not_present_in_mobile_source() -> None:
     frontend_src = Path(__file__).resolve().parents[2] / "frontend" / "src"
     contents = "\n".join(

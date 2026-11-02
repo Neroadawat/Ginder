@@ -90,6 +90,7 @@ class Restaurant(Base):
     admin_version: Mapped[int] = mapped_column(Integer, default=1, server_default="1")
     admin_reviewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     admin_notes: Mapped[str | None] = mapped_column(Text)
+    is_hidden: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
     google_maps_url: Mapped[str | None] = mapped_column(Text, nullable=True)
     verified_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 

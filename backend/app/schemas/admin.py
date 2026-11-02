@@ -65,6 +65,8 @@ class RestaurantEdit(StrictInput):
     opening_hours: OpeningHours | None = None
     admin_notes: str | None = Field(default=None, max_length=4000)
     reviewed: bool = False
+    # Older open tabs omit this field; omission must not unhide a restaurant.
+    is_hidden: bool | None = None
 
     @model_validator(mode="after")
     def known_category(self):

@@ -706,7 +706,11 @@
       )
     );
     const status = element("td");
-    status.dataset.label = "การตรวจสอบ";
+    status.dataset.label = "สถานะ";
+    status.append(
+      element("span", row.is_hidden ? "badge pending" : "badge good",
+        row.is_hidden ? "ซ่อนจากแอป" : "แสดงในแอป")
+    );
     status.append(
       element(
         "span",
@@ -1100,11 +1104,13 @@
     opening_hours: "เวลาเปิด–ปิด",
     admin_notes: "หมายเหตุ",
     reviewed: "สถานะตรวจสอบ",
+    is_hidden: "การแสดงในแอป",
     photo_attribution: "เครดิตภาพ",
     photo_source: "แหล่งภาพ",
     photo_url: "รูปประจำร้าน",
   };
   function readableHistoryValue(key, value) {
+    if (key === "is_hidden") return value ? "ซ่อนจากแอป" : "แสดงในแอป";
     if (key === "reviewed") return value ? "ตรวจแล้ว" : "รอตรวจสอบ";
     if (value == null || value === "") return "ยังไม่มีข้อมูล";
     if (key === "primary_category") return labels[value] || String(value);
@@ -1206,6 +1212,7 @@
       ])
         field(name).value = row[name] ?? "";
       field("reviewed").checked = row.reviewed;
+      field("is_hidden").checked = Boolean(row.is_hidden);
       $("hours-rows").replaceChildren();
       const periods = row.opening_hours?.periods;
       const always = periods?.length === 1 && !periods[0].close;
@@ -1383,6 +1390,7 @@
       opening_hours: readHours(),
       admin_notes: values.get("admin_notes") || null,
       reviewed: field("reviewed").checked,
+      is_hidden: field("is_hidden").checked,
     };
   }
   async function goNext() {

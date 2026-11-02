@@ -100,7 +100,19 @@ class RestaurantService:
                 )
                 external_status = result.status
                 quota_warning = result.quota_warning
-                google_cards = self._deduplicate_google_cards(result.cards, restaurants)
+                duplicates = list(restaurants)
+                if result.cards:
+                    # A hidden local place must not reappear as an obvious live
+                    # duplicate. Use the same name/location rule as local dedupe.
+                    hidden_query = self._apply_bounding_box(
+                        select(Restaurant).where(Restaurant.is_hidden.is_(True)),
+                        filters.latitude,
+                        filters.longitude,
+                        filters.radius_km + 0.1,
+                    )
+                    hidden_result = await self.db.execute(hidden_query)
+                    duplicates.extend(hidden_result.scalars().all())
+                google_cards = self._deduplicate_google_cards(result.cards, duplicates)
 
         google_cards = google_cards[: settings.MAX_DECK_SIZE - len(deck)]
         cards = [self.to_card(r, filters.latitude, filters.longitude) for r in deck]
@@ -315,13 +327,14 @@ class RestaurantService:
 
     @staticmethod
     def _apply_data_mode(query: Select) -> Select:
-        """Hide synthetic rows from new discovery in production.
+        """Exclude hidden places from new discovery, plus production data rules.
 
         Direct lookups and persisted session decks deliberately remain
         unfiltered so historical votes and sessions never break.
         """
         now = datetime.now(UTC)
         query = query.where(
+            Restaurant.is_hidden.is_(False),
             or_(
                 Restaurant.is_permanent.is_(True),
                 Restaurant.expires_at.is_(None),

@@ -16,15 +16,23 @@ from sqlalchemy import select
 
 from app.api.routes import admin
 from app.core.config import settings
+from app.core.database import Base
 from app.core.dependencies import get_db
 from app.core.redis import get_redis
 from app.core.security import hash_password
 from app.main import app
 from app.models.admin import AdminSession, RestaurantAudit
+from app.models.match_result import MatchResult, ResolutionType
 from app.models.restaurant import Restaurant
+from app.models.session import Session, SessionParticipant, SessionStatus
+from app.models.session_deck import SessionDeck
 from app.models.user import User
+from app.models.vote import Vote
 from app.schemas.admin import RestaurantEdit
+from app.services.history_service import HistoryService
 from app.services.restaurant_media import prepare_photo
+from app.services.restaurant_service import RestaurantService
+from app.services.vote_service import VoteService
 from tests.admin_support import test_database
 
 ORIGIN = "http://testserver"
@@ -245,6 +253,86 @@ async def test_list_search_duplicates_and_quality_counts(context):
     assert data["total"] == 2 and data["stats"]["missing_photo"] == 2
     assert data["stats"]["missing_hours"] == 2
     assert (await context.client.get("/admin/api/restaurants?q=no-such-name")).json()["total"] == 0
+
+
+@pytest.mark.asyncio
+async def test_visibility_is_reversible_audited_and_omission_preserves_hidden(context, monkeypatch):
+    # Use real SQL so this checks discovery filtering rather than a mocked query.
+    monkeypatch.setattr(settings, "GOOGLE_PLACES_ENABLED", True)
+    monkeypatch.setattr(settings, "GOOGLE_PLACES_API_KEY", "test-only-no-http-call")
+    headers = await sign_in(context)
+    path = f"/admin/api/restaurants/{context.ids.restaurant}"
+    body = edit_body()
+    body["is_hidden"] = True
+    response = await context.client.patch(path, headers=headers, json=body)
+    assert response.status_code == 200
+    assert response.json()["is_hidden"] is True
+    assert (await context.client.get("/admin/api/restaurants?issue=hidden")).json()["total"] == 1
+    assert (await context.client.get("/admin/api/restaurants?issue=visible")).json()["total"] == 0
+    async with context.db() as db:
+        service = RestaurantService(db)
+        assert await service._search(14.071, 100.601, 1.5) == []
+        assert await service.get_categories() == []
+        assert await service.create_session_deck(SimpleNamespace(
+            latitude=14.071, longitude=100.601, radius_km=1.5,
+            category_filter=None, price_filter=None, rating_filter=None, open_now_filter=False,
+        )) == []
+        assert (await service.get_restaurant(context.ids.restaurant)).id == context.ids.restaurant
+    # An older open Admin tab cannot accidentally publish a hidden restaurant.
+    response = await context.client.patch(path, headers=headers, json=edit_body(version=2))
+    assert response.status_code == 200 and response.json()["is_hidden"] is True
+    detail = (await context.client.get(path)).json()
+    assert detail["history"][0]["changes"]["is_hidden"] == {"before": False, "after": True}
+    restored = {**edit_body(version=response.json()["version"]), "is_hidden": False}
+    response = await context.client.patch(path, headers=headers, json=restored)
+    assert response.status_code == 200 and response.json()["is_hidden"] is False
+    async with context.db() as db:
+        assert len(await RestaurantService(db)._search(14.071, 100.601, 1.5)) == 1
+    assert (await context.client.get("/admin/api/restaurants?issue=hidden")).json()["total"] == 0
+
+
+@pytest.mark.asyncio
+async def test_hiding_keeps_existing_session_deck_likes_and_match_history(context):
+    async with context.db() as db:
+        connection = await db.connection()
+        await connection.run_sync(
+            lambda sync: Base.metadata.create_all(sync, tables=[
+                Session.__table__, SessionParticipant.__table__, SessionDeck.__table__,
+                Vote.__table__, MatchResult.__table__,
+            ])
+        )
+        session = Session(
+            host_id=context.ids.owner, status=SessionStatus.FINISHED,
+            latitude=14.07, longitude=100.60, radius_km=1.5, duration_seconds=120,
+            invite_code="visibility-history-check",
+        )
+        db.add(session)
+        await db.flush()
+        session_id = session.id
+        db.add_all([
+            SessionParticipant(session_id=session_id, user_id=context.ids.owner),
+            SessionDeck(session_id=session_id, restaurant_id=context.ids.restaurant, position=0),
+            Vote(user_id=context.ids.owner, restaurant_id=context.ids.restaurant, liked=True),
+            MatchResult(session_id=session_id, restaurant_id=context.ids.restaurant,
+                        restaurant_name="Recorded result",
+                        resolution_type=ResolutionType.UNANIMOUS),
+        ])
+        await db.commit()
+    headers = await sign_in(context)
+    response = await context.client.patch(
+        f"/admin/api/restaurants/{context.ids.restaurant}", headers=headers,
+        json={**edit_body(), "is_hidden": True},
+    )
+    assert response.status_code == 200
+    async with context.db() as db:
+        session = await db.get(Session, session_id)
+        owner = await db.get(User, context.ids.owner)
+        deck = await RestaurantService(db).get_session_deck(session)
+        assert [card.id for card in deck.restaurants] == [context.ids.restaurant]
+        likes = await VoteService(db).get_solo_likes(owner)
+        assert [like.restaurant.id for like in likes] == [context.ids.restaurant]
+        history = await HistoryService(db).get_history(owner)
+        assert history.total == 1 and history.history[0].restaurant_name == "Recorded result"
 
 
 @pytest.mark.asyncio
