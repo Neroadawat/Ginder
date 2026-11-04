@@ -374,6 +374,37 @@ def test_google_api_key_is_not_present_in_mobile_source() -> None:
 
 
 @pytest.mark.asyncio
+async def test_solo_followup_excludes_seen_cards_before_resolving_photos(monkeypatch):
+    monkeypatch.setattr(settings, "GOOGLE_PLACES_ENABLED", True)
+    monkeypatch.setattr(settings, "GOOGLE_PLACES_API_KEY", "test-key")
+    service = RestaurantService(FakeDb())
+    monkeypatch.setattr(service, "_search", AsyncMock(return_value=[]))
+    seen = google_card("Seen")
+    fresh = google_card("Fresh").model_copy(update={"place_id": "google:fresh"})
+    search = AsyncMock(return_value=GoogleSearchResult([seen, fresh], "available"))
+    photos = AsyncMock(return_value=False)
+    monkeypatch.setattr(GooglePlacesService, "search_nearby", search)
+    monkeypatch.setattr(GooglePlacesService, "add_preview_photos", photos)
+    filters = SoloFilterRequest(
+        latitude=TU_LAT, longitude=TU_LNG, radius_km=1.5,
+        google_fallback=True, seen_google_ids=[seen.id],
+    )
+    user = SimpleNamespace(id=uuid.uuid4())
+    deck = await service.get_solo_deck(filters, user)
+    search.assert_awaited_once()
+    assert search.await_args.kwargs["rank_by_popularity"] is True
+    assert deck.restaurants == [fresh]
+    photos.assert_awaited_once_with([fresh], actor_key=str(user.id))
+
+    search.return_value = GoogleSearchResult([seen], "available")
+    photos.reset_mock()
+    deck = await service.get_solo_deck(filters, user)
+    assert deck.external_status == "no_new_results"
+    assert deck.restaurants == []
+    photos.assert_not_awaited()
+
+
+@pytest.mark.asyncio
 async def test_party_recovery_resolves_names_without_nearby_or_photo_requests(monkeypatch):
     monkeypatch.setattr(settings, "GOOGLE_PLACES_ENABLED", True)
     monkeypatch.setattr(settings, "GOOGLE_PLACES_API_KEY", "server-secret")

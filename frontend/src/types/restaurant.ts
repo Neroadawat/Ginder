@@ -70,6 +70,7 @@ export interface DeckResponse {
   external_status:
     | 'not_needed'
     | 'search_available'
+    | 'no_new_results'
     | 'available'
     | 'disabled'
     | 'filters_unsupported'
@@ -89,4 +90,5 @@ export interface SoloFilterParams {
   min_rating?: number | null;
   open_now?: boolean;
   google_fallback?: boolean;
+  seen_google_ids?: string[];
 }

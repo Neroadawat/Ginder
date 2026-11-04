@@ -14,6 +14,7 @@ CoverageStatus = Literal["full", "partial", "unsupported"]
 ExternalStatus = Literal[
     "not_needed",
     "search_available",
+    "no_new_results",
     "available",
     "disabled",
     "filters_unsupported",
@@ -125,3 +126,4 @@ class SoloFilterRequest(BaseModel):
     # Requirement 5.3: keep only places open at the current local time.
     open_now: bool = False
     google_fallback: bool = False
+    seen_google_ids: list[uuid.UUID] = Field(default_factory=list, max_length=1000)

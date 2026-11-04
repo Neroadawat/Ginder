@@ -7,10 +7,13 @@ price, rating and open-now filter restrictions still apply. Each search requests
 up to 20 restaurants; Google can return fewer, and category filtering and
 deduplication can further reduce that number. Solo live cards stay transient
 and are unavailable for Solo Likes.
-When a deck with Google cards runs out, the app waits for the user to tap
-**Find more restaurants** and choose a wider radius or adjust the filters.
-Nearby Search has no next-page token. A new search can include previously shown
-Google results, especially when the new search area overlaps the previous one.
+When a Google deck runs out, the app waits for the user to tap
+**Find more restaurants**. The follow-up requests popularity ranking instead
+of distance ranking and excludes up to 1,000 Google card IDs swiped on the
+current Solo screen before requesting any photos. Nearby Search has no
+next-page token. When it offers no unseen matches, the app asks the user to
+expand the radius or adjust the filters. Google cards are shuffled once per
+deck, before the first five photo slots are selected.
 
 ## Requested data
 

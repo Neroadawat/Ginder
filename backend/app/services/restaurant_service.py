@@ -101,6 +101,7 @@ class RestaurantService:
                     radius_km=filters.radius_km,
                     actor_key=actor_key or str(user.id),
                     category=filters.category,
+                    rank_by_popularity=bool(filters.seen_google_ids),
                 )
                 external_status = result.status
                 quota_warning = result.quota_warning
@@ -117,7 +118,12 @@ class RestaurantService:
                     hidden_result = await self.db.execute(hidden_query)
                     duplicates.extend(hidden_result.scalars().all())
                 google_cards = self._deduplicate_google_cards(result.cards, duplicates)
+                seen_google_ids = set(filters.seen_google_ids)
+                google_cards = [card for card in google_cards if card.id not in seen_google_ids]
+                if not google_cards and external_status == "available":
+                    external_status = "no_new_results"
 
+        random.shuffle(google_cards)
         google_cards = google_cards[: settings.MAX_DECK_SIZE - len(deck)]
         if google_cards:
             photo_warning = await GooglePlacesService().add_preview_photos(
@@ -211,6 +217,7 @@ class RestaurantService:
         cards = self._deduplicate_google_cards(result.cards, list(hidden))[:settings.MAX_DECK_SIZE]
         if len(cards) < settings.MIN_LOCAL_RESTAURANTS:
             return []
+        random.shuffle(cards)
         await google.add_preview_photos(cards, actor_key=actor_key)
         # Preserve existing vote foreign keys without persisting provider content.
         await self.db.execute(

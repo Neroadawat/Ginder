@@ -174,6 +174,8 @@ export const english: Record<string, string> = {
   ดูร้านในสำรับนี้ครบแล้ว: 'You have seen every restaurant in this deck',
   ขยายรัศมีค้นหา: 'Expand search radius',
   ค้นหาร้านเพิ่ม: 'Find more restaurants',
+  'Google Maps ไม่พบร้านใหม่ ลองขยายรัศมีหรือเปลี่ยนตัวกรอง':
+    'Google Maps found no new restaurants. Expand the radius or adjust filters.',
   'ค้นหาร้านใกล้เคียงเพิ่มเติมจาก Google Maps ได้':
     'Search Google Maps for more nearby restaurants.',
   'ข้อมูลสดจาก Google Maps · ยังบันทึกถูกใจในโหมดคนเดียวไม่ได้':

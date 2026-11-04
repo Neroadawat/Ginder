@@ -51,6 +51,7 @@ class GooglePlacesService:
         radius_km: float,
         actor_key: str,
         category: str | None = None,
+        rank_by_popularity: bool = False,
     ) -> GoogleSearchResult:
         """Return live cards without writing any Google content to the database."""
         decision = await self.quota.reserve("nearby_search", actor_key)
@@ -75,7 +76,7 @@ class GooglePlacesService:
                 "food_court",
             ],
             "maxResultCount": 20,
-            "rankPreference": "DISTANCE",
+            "rankPreference": "POPULARITY" if rank_by_popularity else "DISTANCE",
             "languageCode": "th",
             "locationRestriction": {
                 "circle": {

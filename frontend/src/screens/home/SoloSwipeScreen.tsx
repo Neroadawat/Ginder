@@ -3,7 +3,7 @@ import {t, useTranslation} from '@/i18n';
  * Solo Swipe Screen — Default app screen. Swipe restaurants solo.
  */
 
-import React, {useCallback, useState} from 'react';
+import React, {useCallback, useRef, useState} from 'react';
 import {
   View,
   Text,
@@ -24,7 +24,6 @@ import {HomeStackParamList, RootStackParamList} from '@/navigation/types';
 import {RestaurantCard} from '@/types/restaurant';
 import AppIcon from '@/components/AppIcon';
 import {COLORS} from '@/constants/theme';
-import {MAX_RADIUS_KM} from '@/constants/filters';
 import {getCurrentLocation} from '@/services/location';
 import {useLocationStore} from '@/stores/locationStore';
 import {isLocationFresh} from '@/utils/location';
@@ -38,6 +37,8 @@ const externalMessage = (status: string | undefined): string => {
   switch (status) {
     case 'search_available':
       return t('ค้นหาร้านใกล้เคียงเพิ่มเติมจาก Google Maps ได้');
+    case 'no_new_results':
+      return t('Google Maps ไม่พบร้านใหม่ ลองขยายรัศมีหรือเปลี่ยนตัวกรอง');
     case 'quota_exhausted':
       return t(
         'โควตาค้นหาร้านภายนอกของเดือนนี้หมดแล้ว กรุณาใช้ข้อมูลร้านในระบบ',
@@ -93,6 +94,7 @@ const SoloSwipeScreen = () => {
     restaurant => restaurant.source === 'google_live',
   );
   const [finishedAt, setFinishedAt] = useState<number>();
+  const seenGoogleIds = useRef(new Set<string>());
   const googleDeckFinished = hasGoogleLive && dataUpdatedAt === finishedAt;
   const canSearchGoogle =
     deck?.external_status === 'search_available' ||
@@ -100,6 +102,7 @@ const SoloSwipeScreen = () => {
     deck?.external_status === 'rate_limited' ||
     deck?.external_status === 'failed';
   const isSearching = isFetching || isSearchingGoogle;
+  const searchMore = () => searchGoogle(Array.from(seenGoogleIds.current).slice(-1000));
 
   const openPartyMenu = () => {
     const rootNavigation = navigation.getParent()?.getParent() as
@@ -130,6 +133,9 @@ const SoloSwipeScreen = () => {
   const handleSwipe = useCallback(
     (restaurant: RestaurantCard, liked: boolean) => {
       if (restaurant.source === 'google_live') {
+        if (!liked) {
+          seenGoogleIds.current.add(restaurant.id);
+        }
         return !liked;
       }
       soloSwipeMutation.mutate({restaurant_id: restaurant.id, liked});
@@ -255,19 +261,18 @@ const SoloSwipeScreen = () => {
           <View style={styles.emptyState}>
             <Text style={styles.emptyTitle}>{t('ดูร้านในสำรับครบแล้ว')}</Text>
             <Text style={styles.emptySubtitle}>
-              {t('ลองขยายรัศมีหรือปรับตัวกรองเพื่อค้นหาร้านเพิ่มเติม')}
+              {googleSearchError
+                ? t(googleSearchError.message)
+                : t('ค้นหาร้านใกล้เคียงเพิ่มเติมจาก Google Maps ได้')}
             </Text>
             <TouchableOpacity
               style={[styles.emptyAction, styles.primaryAction]}
               accessibilityRole="button"
-              onPress={() => {
-                if (radiusKm < MAX_RADIUS_KM) {
-                  navigation.navigate('ExpandRadius');
-                } else {
-                  navigation.navigate('FilterSettings');
-                }
-              }}>
-              <Text style={styles.actionLabel}>{t('ค้นหาร้านเพิ่ม')}</Text>
+              disabled={isSearching}
+              onPress={searchMore}>
+              <Text style={styles.actionLabel}>
+                {isSearching ? t('กำลังค้นหาร้าน...') : t('ค้นหาร้านเพิ่ม')}
+              </Text>
             </TouchableOpacity>
           </View>
         ) : deck && deck.restaurants.length > 0 ? (
@@ -298,33 +303,35 @@ const SoloSwipeScreen = () => {
                   accessibilityRole="button">
                   <Text style={styles.actionLabel}>{t('ขยายรัศมีค้นหา')}</Text>
                 </TouchableOpacity>
-                <TouchableOpacity
-                  style={[
-                    styles.emptyAction,
-                    styles.secondaryAction,
-                    isSearching && styles.disabledAction,
-                  ]}
-                  disabled={isSearching}
-                  accessibilityState={{disabled: isSearching, busy: isSearching}}
-                  onPress={() => {
-                    if (canSearchGoogle) {
-                      searchGoogle();
-                    } else {
-                      refetch();
-                    }
-                  }}
-                  accessibilityRole="button">
-                  {isSearching && (
-                    <ActivityIndicator color={COLORS.text} size="small" />
-                  )}
-                  <Text style={styles.actionLabel}>
-                    {isSearching
-                      ? t('กำลังค้นหาร้าน...')
-                      : canSearchGoogle
-                        ? t('ค้นหาร้านเพิ่ม')
-                        : t('ลองอีกครั้ง')}
-                  </Text>
-                </TouchableOpacity>
+                {deck?.external_status !== 'no_new_results' && (
+                  <TouchableOpacity
+                    style={[
+                      styles.emptyAction,
+                      styles.secondaryAction,
+                      isSearching && styles.disabledAction,
+                    ]}
+                    disabled={isSearching}
+                    accessibilityState={{disabled: isSearching, busy: isSearching}}
+                    onPress={() => {
+                      if (canSearchGoogle) {
+                        searchMore();
+                      } else {
+                        refetch();
+                      }
+                    }}
+                    accessibilityRole="button">
+                    {isSearching && (
+                      <ActivityIndicator color={COLORS.text} size="small" />
+                    )}
+                    <Text style={styles.actionLabel}>
+                      {isSearching
+                        ? t('กำลังค้นหาร้าน...')
+                        : canSearchGoogle
+                          ? t('ค้นหาร้านเพิ่ม')
+                          : t('ลองอีกครั้ง')}
+                    </Text>
+                  </TouchableOpacity>
+                )}
               </View>
               <TouchableOpacity
                 style={styles.filterAction}

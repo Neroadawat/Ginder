@@ -56,16 +56,20 @@ test('empty local results wait for the explicit Google search tap', () => {
   act(() => tree.unmount());
 });
 
-test('finishing a Google deck waits for a tap before offering a wider search', () => {
+test('finishing a Google deck waits for a tap and excludes swiped IDs', () => {
   mockQuery.data = {
-    restaurants: [{source: 'google_live'}],
+    restaurants: [{id: 'seen-restaurant', source: 'google_live'}],
     total: 1,
   };
   let tree;
   act(() => {
     tree = create(<SoloSwipeScreen />);
   });
-  act(() => tree.root.findByType(SwipeCard).props.onDeckEmpty());
+  act(() => {
+    const swipe = tree.root.findByType(SwipeCard);
+    swipe.props.onSwipe(mockQuery.data.restaurants[0], false);
+    swipe.props.onDeckEmpty();
+  });
   expect(mockRefetch).not.toHaveBeenCalled();
   expect(mockNavigate).not.toHaveBeenCalled();
   expect(tree.root.findAllByType(SwipeCard)).toHaveLength(0);
@@ -75,7 +79,8 @@ test('finishing a Google deck waits for a tap before offering a wider search', (
     ),
   );
   act(() => findMore.props.onPress());
-  expect(mockNavigate).toHaveBeenCalledWith('ExpandRadius');
+  expect(mockSearchGoogle).toHaveBeenCalledWith(['seen-restaurant']);
+  expect(mockNavigate).not.toHaveBeenCalled();
   expect(mockRefetch).not.toHaveBeenCalled();
   act(() => {
     mockQuery.dataUpdatedAt = 2;

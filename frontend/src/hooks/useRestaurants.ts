@@ -94,7 +94,11 @@ export const useSoloDeck = (filters: SoloDeckFilters) => {
   });
   return {
     ...query,
-    searchGoogle: () => googleSearch.mutate({filters: params, key: queryKey}),
+    searchGoogle: (seenGoogleIds: string[]) =>
+      googleSearch.mutate({
+        filters: {...params, seen_google_ids: seenGoogleIds},
+        key: queryKey,
+      }),
     isSearchingGoogle: googleSearch.isPending,
     googleSearchError: googleSearch.error,
   };
