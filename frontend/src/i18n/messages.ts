@@ -173,6 +173,7 @@ export const english: Record<string, string> = {
   ยังไม่พบร้านใหม่ใกล้คุณ: 'No new restaurants nearby',
   ดูร้านในสำรับนี้ครบแล้ว: 'You have seen every restaurant in this deck',
   ขยายรัศมีค้นหา: 'Expand search radius',
+  ค้นหาร้านเพิ่ม: 'Find more restaurants',
   ร้านที่ถูกใจ: 'Liked restaurants',
   ร้านที่เพื่อนในห้องอยากกิน: 'Restaurants your room members want to try',
   ร้านที่คุณบันทึกไว้: 'Restaurants you have saved',

@@ -115,6 +115,11 @@ class RestaurantService:
                 google_cards = self._deduplicate_google_cards(result.cards, duplicates)
 
         google_cards = google_cards[: settings.MAX_DECK_SIZE - len(deck)]
+        if google_cards:
+            photo_warning = await GooglePlacesService().add_preview_photos(
+                google_cards, actor_key=actor_key or str(user.id)
+            )
+            quota_warning = quota_warning or photo_warning
         cards = [self.to_card(r, filters.latitude, filters.longitude) for r in deck]
         cards.extend(google_cards)
         data_source: DataSource
@@ -422,8 +427,10 @@ class RestaurantService:
 
     @staticmethod
     def _should_request_google(local_count: int, radius_km: float) -> bool:
-        """Google is a last-resort Solo supplement at the maximum radius."""
-        return local_count < settings.MIN_LOCAL_RESTAURANTS and radius_km >= settings.MAX_RADIUS_KM
+        """Empty areas use Google at any radius; partial areas expand locally first."""
+        return local_count == 0 or (
+            local_count < settings.MIN_LOCAL_RESTAURANTS and radius_km >= settings.MAX_RADIUS_KM
+        )
 
     @staticmethod
     def _deduplicate_google_cards(

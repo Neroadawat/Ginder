@@ -2,9 +2,10 @@ const React = require('react');
 const {Text, TouchableOpacity} = require('react-native');
 const {act, create} = require('react-test-renderer');
 const mockRefetch = jest.fn();
+const mockNavigate = jest.fn();
 let mockQuery;
 jest.mock('@react-navigation/native', () => ({
-  useNavigation: () => ({navigate: jest.fn()}),
+  useNavigation: () => ({navigate: mockNavigate}),
 }));
 jest.mock('../../../hooks/useRestaurants', () => ({
   useSoloDeck: () => mockQuery,
@@ -18,17 +19,49 @@ jest.mock('../../../services/location', () => ({
 jest.mock('../../../components/SwipeCard', () => () => null);
 jest.mock('../../../components/AppIcon', () => () => null);
 const {useLocationStore} = require('../../../stores/locationStore');
+const SwipeCard = require('../../../components/SwipeCard');
 const SoloSwipeScreen = require('../SoloSwipeScreen').default;
 
 beforeEach(() => {
   mockRefetch.mockClear();
+  mockNavigate.mockClear();
   useLocationStore.getState().setLocation(14.0708, 100.6065);
   mockQuery = {
     isLoading: false,
     isFetching: false,
     isError: false,
+    dataUpdatedAt: 1,
     refetch: mockRefetch,
   };
+});
+
+test('finishing a Google deck waits for a tap before offering a wider search', () => {
+  mockQuery.data = {
+    restaurants: [{source: 'google_live'}],
+    total: 1,
+  };
+  let tree;
+  act(() => {
+    tree = create(<SoloSwipeScreen />);
+  });
+  act(() => tree.root.findByType(SwipeCard).props.onDeckEmpty());
+  expect(mockRefetch).not.toHaveBeenCalled();
+  expect(mockNavigate).not.toHaveBeenCalled();
+  expect(tree.root.findAllByType(SwipeCard)).toHaveLength(0);
+  const findMore = tree.root.findAllByType(TouchableOpacity).find(node =>
+    node.findAllByType(Text).some(
+      label => label.props.children === 'Find more restaurants',
+    ),
+  );
+  act(() => findMore.props.onPress());
+  expect(mockNavigate).toHaveBeenCalledWith('ExpandRadius');
+  expect(mockRefetch).not.toHaveBeenCalled();
+  act(() => {
+    mockQuery.dataUpdatedAt = 2;
+    tree.update(<SoloSwipeScreen />);
+  });
+  expect(tree.root.findAllByType(SwipeCard)).toHaveLength(1);
+  act(() => tree.unmount());
 });
 
 test('failed loading shows the error and retry, not an exhausted deck', () => {

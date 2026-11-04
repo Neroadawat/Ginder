@@ -22,11 +22,10 @@ const liveRestaurant = {
   address: 'Pathum Thani',
   google_maps_url:
     'https://www.google.com/maps/search/?api=1&query_place_id=test',
-  // An old response must not cause a Google image download in the new client.
-  photo_url: 'https://google.example/old-photo',
-  photo_source: 'https://google.example',
-  photo_attribution: 'Old credit',
-  google_photo_name: 'places/test/photos/old',
+  photo_url: null,
+  photo_source: null,
+  photo_attribution: null,
+  google_photo_name: null,
 };
 let tree;
 afterEach(() => {
@@ -35,7 +34,7 @@ afterEach(() => {
   jest.restoreAllMocks();
 });
 
-it('uses a labelled illustration for Google metadata even with old photo fields', () => {
+it('uses a labelled illustration when Google has no resolved photo', () => {
   act(() => {
     tree = create(<RestaurantCardContent restaurant={liveRestaurant} />);
   });
@@ -48,6 +47,36 @@ it('uses a labelled illustration for Google metadata even with old photo fields'
   const texts = tree.root.findAllByType(Text).map(node => node.props.children);
   expect(texts).toContain('Pathum Thani');
   expect(texts).toContain('Illustrative image');
+});
+
+it('shows a credited Google preview and falls back if its short-lived URL fails', () => {
+  const restaurant = {
+    ...liveRestaurant,
+    photo_url: 'https://lh3.googleusercontent.com/live-photo',
+    photo_source: 'https://maps.google.com/photo/source',
+    photo_attribution: 'Photo author',
+  };
+  act(() => {
+    tree = create(<RestaurantCardContent restaurant={restaurant} />);
+  });
+  expect(tree.root.findByType(Image).props.source.uri).toBe(
+    restaurant.photo_url,
+  );
+  expect(
+    tree.root.findByProps({testID: 'photo-attribution'}).props.photoVisible,
+  ).toBe(true);
+  expect(
+    tree.root
+      .findAllByType(Text)
+      .some(node => node.props.children === 'Illustrative image'),
+  ).toBe(false);
+  act(() => tree.root.findByType(Image).props.onError());
+  expect(tree.root.findByType(Image).props.source.uri).toBe(
+    'placeholder-image',
+  );
+  expect(
+    tree.root.findByProps({testID: 'photo-attribution'}).props.photoVisible,
+  ).toBe(false);
 });
 
 it('opens the Google Maps URL without fetching place details or photos', () => {

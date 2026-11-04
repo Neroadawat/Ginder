@@ -78,7 +78,8 @@ class Settings(BaseSettings):
     GOOGLE_PLACES_TIMEOUT_SECONDS: float = 8.0
     GOOGLE_NEARBY_SOFT_LIMIT: int = 800
     GOOGLE_NEARBY_HARD_LIMIT: int = 1000
-    # Metadata-only discovery: photos are disabled even for older clients.
+    # Explicit opt-in so old environments cannot accidentally enable photo billing.
+    GOOGLE_PLACES_PHOTOS_ENABLED: bool = False
     GOOGLE_PHOTO_SOFT_LIMIT: int = 0
     GOOGLE_PHOTO_HARD_LIMIT: int = 0
     GOOGLE_USER_COOLDOWN_SECONDS: int = 30

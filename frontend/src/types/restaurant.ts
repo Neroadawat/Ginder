@@ -24,6 +24,7 @@ export interface RestaurantCard {
   photo_attribution: string | null;
   google_photo_name: string | null;
   google_photo_maps_uri?: string | null;
+  google_photo_authors?: Array<{display_name: string; uri: string | null}>;
   latitude: number;
   longitude: number;
   distance_km: number | null;

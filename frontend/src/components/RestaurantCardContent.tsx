@@ -6,7 +6,7 @@ import {t, useTranslation} from '@/i18n';
  * price range and rating. Nothing else, to keep the card readable at a glance.
  */
 
-import React from 'react';
+import React, {useState} from 'react';
 import {
   Image,
   Linking,
@@ -18,6 +18,7 @@ import {
 
 import {RestaurantCard} from '@/types/restaurant';
 import {getRestaurantImageUri} from '@/constants/restaurantImages';
+import {getPlaceholderImage} from '@/constants/placeholders';
 import {formatDistance} from '@/utils/distance';
 import PhotoAttribution from './PhotoAttribution';
 import DataAttribution from './DataAttribution';
@@ -29,9 +30,14 @@ interface Props {
 
 const RestaurantCardContent = ({restaurant}: Props) => {
   useTranslation();
-  const imageUri = getRestaurantImageUri(restaurant);
+  const requestedImageUri = getRestaurantImageUri(restaurant);
+  const [failedImageUri, setFailedImageUri] = useState<string | null>(null);
+  const imageFailed = failedImageUri === requestedImageUri;
+  const imageUri = imageFailed
+    ? getPlaceholderImage(restaurant.primary_category)
+    : requestedImageUri;
   const hasRestaurantPhoto =
-    restaurant.source !== 'google_live' &&
+    !imageFailed &&
     Boolean(
       restaurant.photo_url &&
         restaurant.photo_source &&
@@ -44,11 +50,12 @@ const RestaurantCardContent = ({restaurant}: Props) => {
         key={imageUri}
         source={{
           uri: imageUri,
-          cache: 'default',
+          cache: restaurant.source === 'google_live' ? 'reload' : 'default',
         }}
         fadeDuration={0}
         style={StyleSheet.absoluteFill}
         resizeMode="cover"
+        onError={() => setFailedImageUri(requestedImageUri)}
         accessibilityLabel={t('ภาพประกอบร้าน {p0}', {p0: restaurant.name})}
       />
       <View style={styles.scrim} />

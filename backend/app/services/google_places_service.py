@@ -1,15 +1,17 @@
 """Ephemeral Google Places (New) fallback for Solo discovery only."""
 
+import asyncio
 import logging
+import re
 from dataclasses import dataclass
 from typing import Any, Literal
-from urllib.parse import quote_plus
+from urllib.parse import quote_plus, urlparse
 from uuid import NAMESPACE_URL, uuid5
 
 import httpx
 
 from app.core.config import settings
-from app.schemas.restaurant import GooglePhotoResponse, RestaurantCardResponse
+from app.schemas.restaurant import GooglePhotoAuthor, GooglePhotoResponse, RestaurantCardResponse
 from app.services.quota_service import GoogleQuotaService
 from app.utils.geo import calculate_distance_km
 
@@ -85,7 +87,9 @@ class GooglePlacesService:
         headers = {
             "Content-Type": "application/json",
             "X-Goog-Api-Key": settings.GOOGLE_PLACES_API_KEY,
-            "X-Goog-FieldMask": _FIELD_MASK,
+            "X-Goog-FieldMask": (
+                f"{_FIELD_MASK},places.photos" if self._photos_enabled() else _FIELD_MASK
+            ),
         }
 
         try:
@@ -97,6 +101,8 @@ class GooglePlacesService:
                 )
                 response.raise_for_status()
                 raw_places = response.json().get("places", [])
+                if not isinstance(raw_places, list):
+                    raise ValueError("Unexpected places response")
         except (httpx.HTTPError, ValueError, AttributeError):
             # Never include the request headers or coordinates in logs.
             logger.warning("Google Places nearby_search failed", exc_info=True)
@@ -104,7 +110,7 @@ class GooglePlacesService:
 
         cards = [
             card
-            for place in raw_places
+            for place in raw_places[:20]
             if isinstance(place, dict)
             and (
                 card := self._to_card(
@@ -116,7 +122,115 @@ class GooglePlacesService:
             )
             is not None
         ]
+        # Keep transient metadata until the final deck is selected. Media is
+        # resolved only for its first five cards, never on client demand.
+        if self._photos_enabled():
+            by_id = {place.get("id"): place for place in raw_places if isinstance(place, dict)}
+            for card in cards:
+                place = by_id.get(card.place_id.removeprefix("google:"), {})
+                photos = place.get("photos") or []
+                if not isinstance(photos, list) or not photos or not isinstance(photos[0], dict):
+                    continue
+                photo = photos[0]
+                photo_name = photo.get("name", "")
+                if not isinstance(photo_name, str) or not re.fullmatch(
+                    r"places/[A-Za-z0-9_-]+/photos/[A-Za-z0-9_-]+", photo_name
+                ):
+                    continue
+                card.google_photo_name = photo_name
+                card.google_photo_maps_uri = self._https_url(photo.get("googleMapsUri"))
+                authors = photo.get("authorAttributions") or []
+                if isinstance(authors, list):
+                    card.google_photo_authors = [
+                        GooglePhotoAuthor(
+                            display_name=author["displayName"],
+                            uri=self._https_url(author.get("uri")),
+                        )
+                        for author in authors
+                        if isinstance(author, dict)
+                        and isinstance(author.get("displayName"), str)
+                        and author["displayName"].strip()
+                    ]
         return GoogleSearchResult(cards, "available", decision.soft_limit_reached)
+
+    @staticmethod
+    def _photos_enabled() -> bool:
+        return (
+            settings.GOOGLE_PLACES_ENABLED
+            and bool(settings.GOOGLE_PLACES_API_KEY)
+            and settings.GOOGLE_PLACES_PHOTOS_ENABLED
+            and settings.GOOGLE_PHOTO_HARD_LIMIT > 0
+        )
+
+    @staticmethod
+    def _https_url(value: Any) -> str | None:
+        if not isinstance(value, str):
+            return None
+        try:
+            parsed = urlparse(value)
+        except ValueError:
+            return None
+        if parsed.scheme == "https" and parsed.hostname and not parsed.username:
+            return value
+        return None
+
+    async def add_preview_photos(
+        self, cards: list[RestaurantCardResponse], *, actor_key: str
+    ) -> bool:
+        """Resolve at most five photos with durable reservations; retain cards on failure."""
+        if not self._photos_enabled():
+            return False
+        for card in cards[5:]:
+            card.google_photo_name = None
+            card.google_photo_maps_uri = None
+            card.google_photo_authors = []
+        async with httpx.AsyncClient(timeout=settings.GOOGLE_PLACES_TIMEOUT_SECONDS) as client:
+            warnings = await asyncio.gather(
+                *(self._load_preview_photo(client, card, actor_key) for card in cards[:5])
+            )
+        return any(warnings)
+
+    async def _load_preview_photo(
+        self, client: httpx.AsyncClient, card: RestaurantCardResponse, actor_key: str
+    ) -> bool:
+        photo_name = card.google_photo_name
+        if card.source != "google_live" or not photo_name or not re.fullmatch(
+            r"places/[A-Za-z0-9_-]+/photos/[A-Za-z0-9_-]+", photo_name
+        ):
+            return False
+        decision = await self.quota.reserve("place_photo", actor_key, request_key=photo_name)
+        if not decision.allowed:
+            return decision.soft_limit_reached
+        try:
+            response = await client.get(
+                f"{settings.GOOGLE_PLACES_BASE_URL}/{photo_name}/media",
+                headers={"X-Goog-Api-Key": settings.GOOGLE_PLACES_API_KEY},
+                params={"maxWidthPx": 800, "maxHeightPx": 800, "skipHttpRedirect": "true"},
+            )
+            response.raise_for_status()
+            uri = self._https_url(response.json().get("photoUri"))
+            if uri is None:
+                raise ValueError("Invalid photo URI")
+            host = urlparse(uri).hostname
+            # Never expose a key-bearing API endpoint as the mobile image URL.
+            if (
+                not host
+                or not any(
+                    host == domain or host.endswith(f".{domain}")
+                    for domain in ("googleusercontent.com", "ggpht.com")
+                )
+                or settings.GOOGLE_PLACES_API_KEY in uri
+            ):
+                raise ValueError("Invalid photo URI")
+            card.photo_url = uri
+            card.photo_source = card.google_photo_maps_uri or card.google_maps_url
+            card.photo_attribution = "; ".join(
+                author.display_name for author in card.google_photo_authors
+            ) or "Google Maps"
+        except (httpx.HTTPError, ValueError, AttributeError):
+            # No retry: a failed attempt still consumed its reservation.
+            logger.warning("Google Places preview photo failed")
+        return decision.soft_limit_reached
 
     async def get_photo_uri(
         self, *, photo_name: str, actor_key: str

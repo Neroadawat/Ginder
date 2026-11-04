@@ -149,8 +149,9 @@ class GoogleQuotaService:
     def _limits(operation: QuotaOperation) -> tuple[int, int]:
         if operation == "nearby_search":
             return settings.GOOGLE_NEARBY_SOFT_LIMIT, settings.GOOGLE_NEARBY_HARD_LIMIT
-        # Old environment values must not re-enable photo reservations.
-        return 0, 0
+        if not settings.GOOGLE_PLACES_PHOTOS_ENABLED:
+            return 0, 0
+        return settings.GOOGLE_PHOTO_SOFT_LIMIT, settings.GOOGLE_PHOTO_HARD_LIMIT
 
     @classmethod
     def _usage_response(

@@ -71,6 +71,7 @@ async def test_same_actor_is_rate_limited_without_incrementing_again(monkeypatch
 
 @pytest.mark.asyncio
 async def test_photo_reservations_disabled_even_with_old_environment(monkeypatch) -> None:
+    monkeypatch.setattr(settings, "GOOGLE_PLACES_PHOTOS_ENABLED", False)
     monkeypatch.setattr(settings, "GOOGLE_PHOTO_SOFT_LIMIT", 800)
     monkeypatch.setattr(settings, "GOOGLE_PHOTO_HARD_LIMIT", 1000)
     service = GoogleQuotaService(redis=FakeRedis())
@@ -80,6 +81,21 @@ async def test_photo_reservations_disabled_even_with_old_environment(monkeypatch
     assert result.reason == "hard_limit"
     assert service._limits("place_photo") == (0, 0)
     service._reserve_monthly.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_photo_previews_have_separate_durable_limit_and_per_resource_cooldown(monkeypatch):
+    monkeypatch.setattr(settings, "GOOGLE_PLACES_PHOTOS_ENABLED", True)
+    monkeypatch.setattr(settings, "GOOGLE_PHOTO_SOFT_LIMIT", 1)
+    monkeypatch.setattr(settings, "GOOGLE_PHOTO_HARD_LIMIT", 2)
+    service = GoogleQuotaService(redis=FakeRedis())
+    service._read_db_count = AsyncMock(return_value=1)
+    service._reserve_monthly = AsyncMock(side_effect=[1, 2, None])
+    assert (await service.reserve("place_photo", "actor", "photo-1")).allowed
+    assert (await service.reserve("place_photo", "actor", "photo-1")).reason == "rate_limited"
+    assert (await service.reserve("place_photo", "actor", "photo-2")).allowed
+    assert (await service.reserve("place_photo", "actor", "photo-3")).reason == "hard_limit"
+    service._reserve_monthly.assert_awaited_with("place_photo", 2)
 
 
 @pytest.mark.asyncio

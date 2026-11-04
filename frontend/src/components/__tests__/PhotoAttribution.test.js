@@ -1,8 +1,34 @@
 const React = require('react');
-const {Linking, Text} = require('react-native');
+const {Linking, Text, TouchableOpacity} = require('react-native');
 const {act, create} = require('react-test-renderer');
 
 const PhotoAttribution = require('../PhotoAttribution').default;
+
+it('shows every Google photo author with their own attribution link', async () => {
+  const open = jest.spyOn(Linking, 'openURL').mockResolvedValue();
+  let tree;
+  act(() => {
+    tree = create(
+      <PhotoAttribution
+        restaurant={{
+          source: 'google_live',
+          photo_url: 'https://lh3.googleusercontent.com/photo',
+          photo_attribution: 'Alice; Bob',
+          google_photo_authors: [
+            {display_name: 'Alice', uri: 'https://maps.google.com/a'},
+            {display_name: 'Bob', uri: 'https://maps.google.com/b'},
+          ],
+        }}
+      />,
+    );
+  });
+  const links = tree.root.findAllByType(TouchableOpacity);
+  expect(links).toHaveLength(2);
+  await act(async () => links[1].props.onPress());
+  expect(open).toHaveBeenCalledWith('https://maps.google.com/b');
+  act(() => tree.unmount());
+  open.mockRestore();
+});
 
 it('renders nothing for placeholders or uncredited photos', () => {
   let tree;

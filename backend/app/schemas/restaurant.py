@@ -22,6 +22,11 @@ ExternalStatus = Literal[
 ]
 
 
+class GooglePhotoAuthor(BaseModel):
+    display_name: str
+    uri: str | None = None
+
+
 class RestaurantCardResponse(BaseModel):
     """Restaurant data rendered on a swipe card (requirement 8.5)."""
 
@@ -38,10 +43,11 @@ class RestaurantCardResponse(BaseModel):
     photo_url: str | None
     photo_source: str | None
     photo_attribution: str | None
-    # Legacy fields retained for old clients; metadata-only Google results
-    # always return null and the photo endpoint never calls the provider.
+    # Transient references for the first five Google cards. The legacy photo
+    # endpoint remains disabled; only deck construction may resolve media.
     google_photo_name: str | None = None
     google_photo_maps_uri: str | None = None
+    google_photo_authors: list[GooglePhotoAuthor] = Field(default_factory=list)
     latitude: float
     longitude: float
     distance_km: float | None = None

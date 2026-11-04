@@ -7,6 +7,7 @@ import {
   Text,
   TextStyle,
   TouchableOpacity,
+  View,
 } from 'react-native';
 
 import {RestaurantCard} from '@/types/restaurant';
@@ -40,6 +41,39 @@ const PhotoAttribution = ({
     : null;
   const credit = t('Photo: {credit}', {credit: restaurant.photo_attribution});
   const textStyle = [styles.text, light && styles.light, style];
+
+  if (
+    restaurant.source === 'google_live' &&
+    restaurant.google_photo_authors?.length
+  ) {
+    return (
+      <View>
+        {restaurant.google_photo_authors.map((author, index) => {
+          const authorCredit = t('Photo: {credit}', {
+            credit: author.display_name,
+          });
+          if (!author.uri?.startsWith('https://')) {
+            return (
+              <Text key={index} style={textStyle}>
+                {authorCredit}
+              </Text>
+            );
+          }
+          return (
+            <TouchableOpacity
+              key={index}
+              accessibilityRole="link"
+              accessibilityLabel={t('{credit}. Open photo source', {
+                credit: authorCredit,
+              })}
+              onPress={() => Linking.openURL(author.uri!)}>
+              <Text style={textStyle}>{authorCredit}</Text>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+    );
+  }
 
   if (!sourceUrl) {
     return <Text style={textStyle}>{credit}</Text>;

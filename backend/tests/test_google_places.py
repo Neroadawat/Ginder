@@ -257,7 +257,10 @@ async def test_unavailable_accounting_never_calls_google(monkeypatch) -> None:
 
 
 @pytest.mark.asyncio
-async def test_solo_fallback_calls_google_once_and_never_writes_restaurant(monkeypatch) -> None:
+@pytest.mark.parametrize("radius", [0.5, 1.5, 3.0])
+async def test_solo_fallback_calls_google_once_and_never_writes_restaurant(
+    monkeypatch, radius
+) -> None:
     monkeypatch.setattr(settings, "GOOGLE_PLACES_ENABLED", True)
     monkeypatch.setattr(settings, "GOOGLE_PLACES_API_KEY", "server-secret")
     db = FakeDb()
@@ -267,7 +270,7 @@ async def test_solo_fallback_calls_google_once_and_never_writes_restaurant(monke
     monkeypatch.setattr(GooglePlacesService, "search_nearby", search)
 
     deck = await service.get_solo_deck(
-        SoloFilterRequest(latitude=TU_LAT, longitude=TU_LNG, radius_km=3.0),
+        SoloFilterRequest(latitude=TU_LAT, longitude=TU_LNG, radius_km=radius),
         SimpleNamespace(id=uuid.uuid4()),
         actor_key="hashed-actor",
     )
@@ -276,6 +279,22 @@ async def test_solo_fallback_calls_google_once_and_never_writes_restaurant(monke
     assert deck.data_source == "google_live"
     assert deck.restaurants[0].can_like is False
     assert db.added == []
+
+
+@pytest.mark.asyncio
+async def test_unsupported_filters_still_block_google_at_small_radius(monkeypatch):
+    monkeypatch.setattr(settings, "GOOGLE_PLACES_ENABLED", True)
+    monkeypatch.setattr(settings, "GOOGLE_PLACES_API_KEY", "test-key")
+    service = RestaurantService(FakeDb())
+    monkeypatch.setattr(service, "_search", AsyncMock(return_value=[]))
+    search = AsyncMock()
+    monkeypatch.setattr(GooglePlacesService, "search_nearby", search)
+    deck = await service.get_solo_deck(
+        SoloFilterRequest(latitude=TU_LAT, longitude=TU_LNG, radius_km=0.5, open_now=True),
+        SimpleNamespace(id=uuid.uuid4()),
+    )
+    assert deck.external_status == "filters_unsupported"
+    search.assert_not_awaited()
 
 
 @pytest.mark.asyncio

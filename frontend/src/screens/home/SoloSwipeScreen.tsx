@@ -3,7 +3,7 @@ import {t, useTranslation} from '@/i18n';
  * Solo Swipe Screen — Default app screen. Swipe restaurants solo.
  */
 
-import React, {useCallback} from 'react';
+import React, {useCallback, useState} from 'react';
 import {
   View,
   Text,
@@ -24,6 +24,7 @@ import {HomeStackParamList, RootStackParamList} from '@/navigation/types';
 import {RestaurantCard} from '@/types/restaurant';
 import AppIcon from '@/components/AppIcon';
 import {COLORS} from '@/constants/theme';
+import {MAX_RADIUS_KM} from '@/constants/filters';
 import {getCurrentLocation} from '@/services/location';
 import {useLocationStore} from '@/stores/locationStore';
 import {isLocationFresh} from '@/utils/location';
@@ -69,6 +70,7 @@ const SoloSwipeScreen = () => {
 
   const {
     data: deck,
+    dataUpdatedAt,
     isLoading,
     isError,
     error,
@@ -85,6 +87,8 @@ const SoloSwipeScreen = () => {
   const hasGoogleLive = deck?.restaurants.some(
     restaurant => restaurant.source === 'google_live',
   );
+  const [finishedAt, setFinishedAt] = useState<number>();
+  const googleDeckFinished = hasGoogleLive && dataUpdatedAt === finishedAt;
 
   const openPartyMenu = () => {
     if (hasGoogleLive) {
@@ -133,8 +137,12 @@ const SoloSwipeScreen = () => {
   );
 
   const handleDeckEmpty = useCallback(() => {
+    if (hasGoogleLive) {
+      setFinishedAt(dataUpdatedAt);
+      return;
+    }
     navigation.navigate('ExpandRadius');
-  }, [navigation]);
+  }, [dataUpdatedAt, hasGoogleLive, navigation]);
 
   if (needsFreshGps && locationError && !isLocating) {
     return (
@@ -241,8 +249,28 @@ const SoloSwipeScreen = () => {
       )}
 
       <View style={styles.cardContainer}>
-        {deck && deck.restaurants.length > 0 ? (
+        {googleDeckFinished ? (
+          <View style={styles.emptyState}>
+            <Text style={styles.emptyTitle}>{t('ดูร้านในสำรับครบแล้ว')}</Text>
+            <Text style={styles.emptySubtitle}>
+              {t('ลองขยายรัศมีหรือปรับตัวกรองเพื่อค้นหาร้านเพิ่มเติม')}
+            </Text>
+            <TouchableOpacity
+              style={[styles.emptyAction, styles.primaryAction]}
+              accessibilityRole="button"
+              onPress={() => {
+                if (radiusKm < MAX_RADIUS_KM) {
+                  navigation.navigate('ExpandRadius');
+                } else {
+                  navigation.navigate('FilterSettings');
+                }
+              }}>
+              <Text style={styles.actionLabel}>{t('ค้นหาร้านเพิ่ม')}</Text>
+            </TouchableOpacity>
+          </View>
+        ) : deck && deck.restaurants.length > 0 ? (
           <SwipeCard
+            key={dataUpdatedAt}
             restaurants={deck.restaurants}
             onSwipe={handleSwipe}
             onDeckEmpty={handleDeckEmpty}
