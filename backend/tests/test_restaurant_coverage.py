@@ -27,18 +27,10 @@ def test_external_fallback_waits_until_the_maximum_radius() -> None:
 
 
 def test_data_source_distinguishes_local_and_ttl_cache() -> None:
-    local = SimpleNamespace(is_permanent=True)
-    cached = SimpleNamespace(is_permanent=False)
+    local = SimpleNamespace(is_permanent=True, source="manual")
+    cached = SimpleNamespace(is_permanent=False, source="osm")
 
     assert RestaurantService._data_source([]) == "none"
     assert RestaurantService._data_source([local]) == "local"
     assert RestaurantService._data_source([cached]) == "osm_cache"
     assert RestaurantService._data_source([local, cached]) == "mixed"
-
-
-def test_google_searches_empty_area_at_every_supported_radius():
-    for radius in (0.5, 1.0, 1.5, 2.0, 3.0):
-        assert RestaurantService._should_request_google(0, radius)
-    assert not RestaurantService._should_request_google(1, 1.5)
-    assert RestaurantService._should_request_google(1, settings.MAX_RADIUS_KM)
-    assert not RestaurantService._should_request_google(settings.MIN_LOCAL_RESTAURANTS, 3.0)

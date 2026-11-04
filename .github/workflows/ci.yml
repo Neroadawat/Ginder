@@ -76,6 +76,7 @@ jobs:
       - run: python -m pytest tests/test_restaurant_admin.py -q
       - run: python -m alembic downgrade 0006
       - run: python -m alembic upgrade head
+      - run: python -m pytest tests/test_google_party.py -q
 
   android-release-build:
     runs-on: ubuntu-latest

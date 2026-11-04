@@ -238,6 +238,46 @@ class GooglePlacesService:
         """Compatibility response for old clients: photo billing is disabled."""
         return GooglePhotoResponse(status="disabled")
 
+    async def recover_session_cards(
+        self, references: list[RestaurantCardResponse], *, actor_key: str,
+        latitude: float, longitude: float,
+    ) -> list[RestaurantCardResponse]:
+        """Resolve identities on recovery without repeating discovery or photo calls."""
+        if not settings.GOOGLE_PLACES_ENABLED or not settings.GOOGLE_PLACES_API_KEY:
+            return references
+        async with httpx.AsyncClient(timeout=settings.GOOGLE_PLACES_TIMEOUT_SECONDS) as client:
+            async def load(reference: RestaurantCardResponse) -> RestaurantCardResponse:
+                place_id = reference.place_id.removeprefix("google:")
+                if not re.fullmatch(r"[A-Za-z0-9_-]+", place_id):
+                    return reference
+                decision = await self.quota.reserve(
+                    "place_details", actor_key, request_key=place_id
+                )
+                if not decision.allowed:
+                    return reference
+                try:
+                    response = await client.get(
+                        f"{settings.GOOGLE_PLACES_BASE_URL}/places/{place_id}",
+                        headers={
+                            "X-Goog-Api-Key": settings.GOOGLE_PLACES_API_KEY,
+                            "X-Goog-FieldMask": (
+                                "id,displayName,primaryType,location,formattedAddress"
+                            ),
+                        },
+                    )
+                    response.raise_for_status()
+                    card = self._to_card(
+                        response.json(), latitude=latitude, longitude=longitude, category=None
+                    )
+                    if card and card.id == reference.id:
+                        card.can_like = True
+                        return card
+                except (httpx.HTTPError, ValueError, AttributeError, TypeError):
+                    logger.warning("Google party card details unavailable")
+                return reference
+
+            return list(await asyncio.gather(*(load(reference) for reference in references)))
+
     @classmethod
     def _to_card(
         cls,

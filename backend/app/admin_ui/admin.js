@@ -505,7 +505,7 @@
     $("login-view").hidden = true;
     $("workspace").hidden = false;
     $("initial-loading").hidden = true;
-    await loadList();
+    await Promise.all([loadList(), loadGoogleUsage()]);
   }
   $("login-form").addEventListener("submit", async (event) => {
     event.preventDefault();
@@ -583,6 +583,31 @@
       notify(error.message, true);
     }
   });
+  async function loadGoogleUsage() {
+    const period = $("google-usage-period");
+    const metrics = {
+      nearby: "nearby_search",
+      details: "place_details",
+      photo: "place_photo",
+    };
+    period.textContent = "กำลังโหลดโควตา…";
+    for (const id of Object.keys(metrics)) {
+      $("google-usage-" + id).textContent = "—";
+    }
+    try {
+      const usage = await api("/google-usage");
+      period.textContent =
+        "เดือน " + usage.period + " · เวลาแปซิฟิกสหรัฐฯ · " +
+        (usage.enabled ? "เปิดใช้งาน" : "ปิดใช้งาน");
+      for (const [id, key] of Object.entries(metrics)) {
+        const metric = usage[key];
+        $("google-usage-" + id).textContent =
+          metric.count + " / " + metric.hard_limit + " ครั้ง";
+      }
+    } catch {
+      period.textContent = "โหลดโควตาไม่ได้ กดโหลดข้อมูลล่าสุดเพื่อลองอีกครั้ง";
+    }
+  }
   async function loadList() {
     const requestId = ++state.listRequest;
     $("list-error").hidden = true;
@@ -751,7 +776,10 @@
       resetPage();
     })
   );
-  $("refresh").addEventListener("click", loadList);
+  $("refresh").addEventListener("click", () => {
+    loadList();
+    loadGoogleUsage();
+  });
   $("previous").addEventListener("click", () => {
     state.page--;
     loadList();

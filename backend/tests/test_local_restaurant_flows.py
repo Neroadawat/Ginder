@@ -228,7 +228,7 @@ async def test_group_persists_one_shared_deck_capped_at_twenty(monkeypatch) -> N
 
     deck = await service.create_session_deck(session)
 
-    assert deck == venues[: settings.MAX_DECK_SIZE]
+    assert [card.id for card in deck] == [venue.id for venue in venues[: settings.MAX_DECK_SIZE]]
     assert [entry.restaurant_id for entry in db.added] == [item.id for item in deck]
     assert [entry.position for entry in db.added] == list(range(settings.MAX_DECK_SIZE))
 

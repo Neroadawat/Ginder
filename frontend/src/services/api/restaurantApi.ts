@@ -23,7 +23,9 @@ export const restaurantApi = {
   },
 
   getSessionDeck: async (sessionId: string): Promise<DeckResponse> => {
-    const response = await apiClient.get(`/sessions/${sessionId}/deck`);
+    const response = await apiClient.get(`/sessions/${sessionId}/deck`, {
+      timeout: DISCOVERY_TIMEOUT_MS,
+    });
     return response.data;
   },
 

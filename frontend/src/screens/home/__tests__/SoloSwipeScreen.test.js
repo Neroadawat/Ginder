@@ -2,6 +2,7 @@ const React = require('react');
 const {Text, TouchableOpacity} = require('react-native');
 const {act, create} = require('react-test-renderer');
 const mockRefetch = jest.fn();
+const mockSearchGoogle = jest.fn();
 const mockNavigate = jest.fn();
 let mockQuery;
 jest.mock('@react-navigation/native', () => ({
@@ -24,6 +25,7 @@ const SoloSwipeScreen = require('../SoloSwipeScreen').default;
 
 beforeEach(() => {
   mockRefetch.mockClear();
+  mockSearchGoogle.mockClear();
   mockNavigate.mockClear();
   useLocationStore.getState().setLocation(14.0708, 100.6065);
   mockQuery = {
@@ -32,7 +34,26 @@ beforeEach(() => {
     isError: false,
     dataUpdatedAt: 1,
     refetch: mockRefetch,
+    searchGoogle: mockSearchGoogle,
   };
+});
+
+test('empty local results wait for the explicit Google search tap', () => {
+  mockQuery.data = {restaurants: [], total: 0, external_status: 'search_available'};
+  let tree;
+  act(() => {
+    tree = create(<SoloSwipeScreen />);
+  });
+  expect(mockSearchGoogle).not.toHaveBeenCalled();
+  const button = tree.root.findAllByType(TouchableOpacity).find(node =>
+    node.findAllByType(Text).some(
+      label => label.props.children === 'Find more restaurants',
+    ),
+  );
+  act(() => button.props.onPress());
+  expect(mockSearchGoogle).toHaveBeenCalledTimes(1);
+  expect(mockRefetch).not.toHaveBeenCalled();
+  act(() => tree.unmount());
 });
 
 test('finishing a Google deck waits for a tap before offering a wider search', () => {

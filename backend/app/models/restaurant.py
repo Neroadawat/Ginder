@@ -3,6 +3,7 @@
 import uuid
 from datetime import UTC, datetime
 from typing import Any
+from urllib.parse import quote_plus
 
 from sqlalchemy import (
     Boolean,
@@ -32,7 +33,7 @@ class Restaurant(Base):
         Index("ix_restaurants_source", "source"),
         UniqueConstraint("source", "source_place_id", name="uq_restaurants_source_place_id"),
         CheckConstraint(
-            "source IN ('osm', 'manual', 'synthetic')",
+            "source IN ('osm', 'manual', 'synthetic', 'google_live')",
             name="ck_restaurants_source",
         ),
     )
@@ -92,6 +93,16 @@ class Restaurant(Base):
     admin_notes: Mapped[str | None] = mapped_column(Text)
     is_hidden: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
     google_maps_url: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    @property
+    def maps_link(self) -> str | None:
+        if self.source == "google_live":
+            return (
+                "https://www.google.com/maps/search/?api=1&query=Restaurant"
+                f"&query_place_id={quote_plus(self.source_place_id)}"
+            )
+        return self.google_maps_url
+
     verified_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     # ─── Data lifecycle (requirement 14.7, 14.8) ───

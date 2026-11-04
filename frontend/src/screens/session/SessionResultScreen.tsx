@@ -17,6 +17,8 @@ import {
 import {RouteProp, useNavigation, useRoute} from '@react-navigation/native';
 
 import {useSessionResult} from '@/hooks/useSessions';
+import {useQueryClient} from '@tanstack/react-query';
+import {DeckResponse} from '@/types/restaurant';
 import {useSessionStore} from '@/stores/sessionStore';
 import {RESOLUTION_LABELS, RESULT_HEADINGS} from '@/constants/resolution';
 import {SessionStackParamList} from '@/navigation/types';
@@ -29,6 +31,7 @@ const SessionResultScreen = () => {
   const route = useRoute<RouteProps>();
   const navigation = useNavigation();
   const clearSession = useSessionStore(state => state.clearSession);
+  const queryClient = useQueryClient();
 
   const {
     data: result,
@@ -78,6 +81,10 @@ const SessionResultScreen = () => {
   }
 
   const hasWinner = result.restaurant_id !== null;
+  const winner = queryClient
+    .getQueryData<DeckResponse>(['deck', 'session', route.params.sessionId])
+    ?.restaurants.find(card => card.id === result.restaurant_id);
+  const winnerName = winner?.name ?? result.restaurant_name;
   const heading = RESULT_HEADINGS[result.resolution_type];
 
   return (
@@ -91,7 +98,7 @@ const SessionResultScreen = () => {
       </Text>
 
       <View style={styles.resultCard}>
-        <Text style={styles.restaurantName}>{result.restaurant_name}</Text>
+        <Text style={styles.restaurantName}>{winnerName}</Text>
       </View>
 
       {result.google_maps_url && (
@@ -100,7 +107,7 @@ const SessionResultScreen = () => {
           onPress={openMaps}
           accessibilityRole="button"
           accessibilityLabel={t('Navigate to {name}', {
-            name: result.restaurant_name,
+            name: winnerName,
           })}>
           <Text style={styles.mapsText}>{t('เปิดใน Google Maps')}</Text>
         </TouchableOpacity>

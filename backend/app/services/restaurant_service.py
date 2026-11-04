@@ -1,11 +1,13 @@
 """Restaurant business logic — search, deck generation, deck persistence."""
 
+import hashlib
 import logging
 import random
 from datetime import UTC, datetime
 from uuid import UUID
 
 from sqlalchemy import Select, distinct, or_, select
+from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -79,7 +81,7 @@ class RestaurantService:
         external_status: ExternalStatus = "not_needed"
         quota_warning = False
         google_cards: list[RestaurantCardResponse] = []
-        if self._should_request_google(len(restaurants), filters.radius_km):
+        if not deck:
             if (
                 filters.price_level is not None
                 or filters.min_rating is not None
@@ -90,6 +92,8 @@ class RestaurantService:
                 external_status = "filters_unsupported"
             elif not settings.GOOGLE_PLACES_ENABLED or not settings.GOOGLE_PLACES_API_KEY:
                 external_status = "disabled"
+            elif not filters.google_fallback:
+                external_status = "search_available"
             else:
                 result = await GooglePlacesService().search_nearby(
                     latitude=filters.latitude,
@@ -139,7 +143,7 @@ class RestaurantService:
             quota_warning=quota_warning,
         )
 
-    async def create_session_deck(self, session: Session) -> list[Restaurant]:
+    async def create_session_deck(self, session: Session) -> list[RestaurantCardResponse]:
         """Shuffle once and persist the result as the session's deck.
 
         Called when the host presses Start. After this the order is fixed for
@@ -157,11 +161,16 @@ class RestaurantService:
 
         # A shared session needs enough choices for voting to be meaningful.
         # Solo mode still returns a smaller, explicitly partial deck.
-        if len(restaurants) < settings.MIN_LOCAL_RESTAURANTS:
-            return []
-
-        random.shuffle(restaurants)
-        deck = restaurants[: settings.MAX_DECK_SIZE]
+        if restaurants:
+            if len(restaurants) < settings.MIN_LOCAL_RESTAURANTS:
+                return []
+            random.shuffle(restaurants)
+            deck = [
+                self.to_card(row, session.latitude, session.longitude)
+                for row in restaurants[: settings.MAX_DECK_SIZE]
+            ]
+        else:
+            deck = await self._create_google_session_cards(session)
 
         for position, restaurant in enumerate(deck):
             self.db.add(
@@ -175,7 +184,60 @@ class RestaurantService:
         await self.db.flush()
         return deck
 
-    async def get_session_deck(self, session: Session) -> DeckResponse:
+    async def _create_google_session_cards(self, session: Session) -> list[RestaurantCardResponse]:
+        if (
+            not settings.GOOGLE_PLACES_ENABLED
+            or not settings.GOOGLE_PLACES_API_KEY
+            or session.price_filter is not None
+            or session.rating_filter is not None
+            or session.open_now_filter
+        ):
+            return []
+        actor_key = hashlib.sha256(f"user:{session.host_id}".encode()).hexdigest()[:24]
+        google = GooglePlacesService()
+        result = await google.search_nearby(
+            latitude=session.latitude,
+            longitude=session.longitude,
+            radius_km=session.radius_km,
+            actor_key=actor_key,
+            category=session.category_filter,
+        )
+        if not result.cards:
+            return []
+        hidden = await self.db.scalars(self._apply_bounding_box(
+            select(Restaurant).where(Restaurant.is_hidden.is_(True)),
+            session.latitude, session.longitude, session.radius_km + 0.1,
+        ))
+        cards = self._deduplicate_google_cards(result.cards, list(hidden))[:settings.MAX_DECK_SIZE]
+        if len(cards) < settings.MIN_LOCAL_RESTAURANTS:
+            return []
+        await google.add_preview_photos(cards, actor_key=actor_key)
+        # Preserve existing vote foreign keys without persisting provider content.
+        await self.db.execute(
+            insert(Restaurant).values([
+                {
+                    "id": card.id,
+                    "place_id": card.place_id,
+                    "source": "google_live",
+                    "source_place_id": card.place_id.removeprefix("google:"),
+                    "name": "Google Maps restaurant",
+                    "primary_category": "Other",
+                    "latitude": 0.0,
+                    "longitude": 0.0,
+                    "types": [],
+                    "is_permanent": False,
+                }
+                for card in sorted(cards, key=lambda item: item.id)
+            ]).on_conflict_do_nothing(index_elements=[Restaurant.id])
+        )
+        for card in cards:
+            card.can_like = True
+            card.google_photo_name = None
+        return cards
+
+    async def get_session_deck(
+        self, session: Session, *, actor_key: str | None = None
+    ) -> DeckResponse:
         """Read back the persisted deck, in its stored order.
 
         Distances are measured from the host's location because that is the
@@ -194,6 +256,10 @@ class RestaurantService:
             for entry in entries
             if entry.restaurant is not None
         ]
+        if actor_key and cards and cards[0].source == "google_live":
+            cards = await GooglePlacesService().recover_session_cards(
+                cards, actor_key=actor_key, latitude=session.latitude, longitude=session.longitude
+            )
 
         return DeckResponse(
             session_id=session.id,
@@ -340,6 +406,7 @@ class RestaurantService:
         now = datetime.now(UTC)
         query = query.where(
             Restaurant.is_hidden.is_(False),
+            Restaurant.source != "google_live",
             or_(
                 Restaurant.is_permanent.is_(True),
                 Restaurant.expires_at.is_(None),
@@ -377,7 +444,7 @@ class RestaurantService:
         Public because the Likes tab needs the same shape (requirement 11.3).
         """
         distance = None
-        if ref_lat is not None and ref_lng is not None:
+        if restaurant.source != "google_live" and ref_lat is not None and ref_lng is not None:
             distance = round(
                 calculate_distance_km(ref_lat, ref_lng, restaurant.latitude, restaurant.longitude),
                 2,
@@ -401,7 +468,10 @@ class RestaurantService:
             rating=restaurant.rating,
             user_ratings_total=restaurant.user_ratings_total,
             address=restaurant.address,
-            google_maps_url=restaurant.google_maps_url,
+            google_maps_url=(
+                restaurant.maps_link if restaurant.source == "google_live"
+                else restaurant.google_maps_url
+            ),
         )
 
     @staticmethod
@@ -424,13 +494,6 @@ class RestaurantService:
     def _should_request_fallback(local_count: int, radius_km: float) -> bool:
         """Use external discovery only after local radius expansion is exhausted."""
         return local_count == 0 and radius_km >= settings.MAX_RADIUS_KM
-
-    @staticmethod
-    def _should_request_google(local_count: int, radius_km: float) -> bool:
-        """Empty areas use Google at any radius; partial areas expand locally first."""
-        return local_count == 0 or (
-            local_count < settings.MIN_LOCAL_RESTAURANTS and radius_km >= settings.MAX_RADIUS_KM
-        )
 
     @staticmethod
     def _deduplicate_google_cards(
@@ -459,6 +522,8 @@ class RestaurantService:
         """Summarise whether cards came from durable local data or OSM TTL cache."""
         if not restaurants:
             return "none"
+        if all(restaurant.source == "google_live" for restaurant in restaurants):
+            return "google_live"
         has_local = any(restaurant.is_permanent for restaurant in restaurants)
         has_cache = any(not restaurant.is_permanent for restaurant in restaurants)
         if has_local and has_cache:

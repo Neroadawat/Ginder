@@ -160,7 +160,9 @@ class SessionService:
             raise ForbiddenException("The session has not started yet")
 
         restaurant_service = RestaurantService(self.db)
-        return await restaurant_service.get_session_deck(session)
+        return await restaurant_service.get_session_deck(
+            session, actor_key=f"party:{session.id}:{user.id}"
+        )
 
     async def start_session(self, session_id: UUID, host: User) -> StartSessionResponse:
         """Start the session. Host only.
@@ -199,6 +201,12 @@ class SessionService:
         # Commit first so their deck/timer requests cannot race this transaction.
         await self.db.commit()
 
+        live_deck = None
+        if deck[0].source == "google_live":
+            live_deck = DeckResponse(
+                session_id=session.id, restaurants=deck, total=len(deck),
+                data_source="google_live", coverage_status="full", external_status="available",
+            )
         await manager.broadcast_to_session(
             session.id,
             EVENT_SESSION_STARTED,
@@ -206,6 +214,7 @@ class SessionService:
                 "started_at": session.started_at.isoformat(),
                 "ends_at": session.ends_at.isoformat(),
                 "deck_size": len(deck),
+                **({"deck": live_deck.model_dump(mode="json")} if live_deck else {}),
             },
         )
 
@@ -215,6 +224,7 @@ class SessionService:
             started_at=session.started_at,
             ends_at=session.ends_at,
             deck_size=len(deck),
+            deck=live_deck,
         )
 
     async def kick_participant(
@@ -365,7 +375,7 @@ class SessionService:
             restaurant_name=match_result.restaurant_name,
             resolution_type=match_result.resolution_type.value,
             google_maps_url=(
-                match_result.restaurant.google_maps_url if match_result.restaurant else None
+                match_result.restaurant.maps_link if match_result.restaurant else None
             ),
             wheel_candidate_ids=resolution.wheel_candidates,
         )

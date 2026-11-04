@@ -174,6 +174,10 @@ export const english: Record<string, string> = {
   ดูร้านในสำรับนี้ครบแล้ว: 'You have seen every restaurant in this deck',
   ขยายรัศมีค้นหา: 'Expand search radius',
   ค้นหาร้านเพิ่ม: 'Find more restaurants',
+  'ค้นหาร้านใกล้เคียงเพิ่มเติมจาก Google Maps ได้':
+    'Search Google Maps for more nearby restaurants.',
+  'ข้อมูลสดจาก Google Maps · ยังบันทึกถูกใจในโหมดคนเดียวไม่ได้':
+    'Live Google Maps data · Solo Likes are unavailable for these cards',
   ร้านที่ถูกใจ: 'Liked restaurants',
   ร้านที่เพื่อนในห้องอยากกิน: 'Restaurants your room members want to try',
   ร้านที่คุณบันทึกไว้: 'Restaurants you have saved',

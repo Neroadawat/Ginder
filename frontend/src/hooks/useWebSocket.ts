@@ -4,6 +4,7 @@ import {useQueryClient} from '@tanstack/react-query';
 import {useAuthStore} from '@/stores/authStore';
 import {WS_BASE_URL} from '@/services/config';
 import {SessionEvent, subscribeSessionSocket} from '@/services/sessionSocket';
+import {DeckResponse} from '@/types/restaurant';
 
 export const useSessionWebSocket = (
   sessionId: string,
@@ -34,6 +35,12 @@ export const useSessionWebSocket = (
           }
         },
         onEvent: event => {
+          if (event.event === 'session_started' && event.data.deck) {
+            queryClient.setQueryData(
+              ['deck', 'session', sessionId],
+              event.data.deck as DeckResponse,
+            );
+          }
           handler.current?.(event);
           setLastEvent(event);
           if (

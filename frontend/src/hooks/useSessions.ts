@@ -74,7 +74,10 @@ export const useStartSession = () => {
 
   return useMutation({
     mutationFn: (sessionId: string) => sessionApi.start(sessionId),
-    onSuccess: (_, sessionId) => {
+    onSuccess: (response, sessionId) => {
+      if (response.deck) {
+        queryClient.setQueryData(['deck', 'session', sessionId], response.deck);
+      }
       queryClient.invalidateQueries({queryKey: ['session', sessionId]});
     },
   });

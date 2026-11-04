@@ -143,7 +143,9 @@ class VoteService:
     async def solo_like(self, user: User, body: SoloLikeRequest) -> SoloLikeResponse:
         """Save a restaurant liked in solo mode (requirement 10.4)."""
         result = await self.db.execute(
-            select(Restaurant).where(Restaurant.id == body.restaurant_id)
+            select(Restaurant).where(
+                Restaurant.id == body.restaurant_id, Restaurant.source != "google_live"
+            )
         )
         restaurant = result.scalar_one_or_none()
         if not restaurant:
@@ -187,7 +189,9 @@ class VoteService:
     async def record_solo_swipe(self, user: User, body: SwipeRequest) -> SwipeResponse:
         """Persist either direction of a solo swipe, idempotently."""
         restaurant_exists = await self.db.scalar(
-            select(Restaurant.id).where(Restaurant.id == body.restaurant_id)
+            select(Restaurant.id).where(
+                Restaurant.id == body.restaurant_id, Restaurant.source != "google_live"
+            )
         )
         if restaurant_exists is None:
             raise NotFoundException("Restaurant not found")

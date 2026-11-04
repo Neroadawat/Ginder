@@ -340,6 +340,9 @@ a {
   border-radius: 13px;
   overflow: hidden;
 }
+.google-usage-panel {
+  margin-bottom: 16px;
+}
 .panel-heading {
   padding: 25px 25px 13px;
   display: flex;

@@ -3,12 +3,13 @@
  */
 
 import {useEffect} from 'react';
-import {useQuery} from '@tanstack/react-query';
+import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 
 import {restaurantApi} from '@/services/api/restaurantApi';
 import {ensureFreshLocation} from '@/services/location';
 import {useLocationStore} from '@/stores/locationStore';
 import {isLocationFresh} from '@/utils/location';
+import {SoloFilterParams} from '@/types/restaurant';
 
 export const useCategories = () => {
   return useQuery({
@@ -48,28 +49,37 @@ export const useSoloDeck = (filters: SoloDeckFilters) => {
     }
   }, [needsFreshGps]);
 
-  return useQuery({
-    queryKey: [
-      'deck',
-      'solo',
-      latitude,
-      longitude,
-      filters.radiusKm,
-      filters.category ?? null,
-      filters.priceLevel ?? null,
-      filters.minRating ?? null,
-      filters.openNow ?? false,
-    ],
-    queryFn: () =>
-      restaurantApi.getSoloDeck({
-        latitude: latitude as number,
-        longitude: longitude as number,
-        radius_km: filters.radiusKm,
-        category: filters.category ?? undefined,
-        price_level: filters.priceLevel ?? undefined,
-        min_rating: filters.minRating ?? undefined,
-        open_now: filters.openNow ?? false,
-      }),
+  const queryClient = useQueryClient();
+  const queryKey = [
+    'deck',
+    'solo',
+    latitude,
+    longitude,
+    filters.radiusKm,
+    filters.category ?? null,
+    filters.priceLevel ?? null,
+    filters.minRating ?? null,
+    filters.openNow ?? false,
+  ] as const;
+  const params: SoloFilterParams = {
+    latitude: latitude as number,
+    longitude: longitude as number,
+    radius_km: filters.radiusKm,
+    category: filters.category ?? undefined,
+    price_level: filters.priceLevel ?? undefined,
+    min_rating: filters.minRating ?? undefined,
+    open_now: filters.openNow ?? false,
+  };
+  const googleSearch = useMutation({
+    mutationFn: (request: {filters: SoloFilterParams; key: typeof queryKey}) =>
+      restaurantApi.getSoloDeck({...request.filters, google_fallback: true}),
+    gcTime: 0,
+    retry: false,
+    onSuccess: (deck, request) => queryClient.setQueryData(request.key, deck),
+  });
+  const query = useQuery({
+    queryKey,
+    queryFn: () => restaurantApi.getSoloDeck(params),
     enabled: hasCoords && !needsFreshGps,
     // A transport retry or background refetch can trigger another paid search
     // even if the previous server request completed. Retry explicitly instead.
@@ -82,6 +92,12 @@ export const useSoloDeck = (filters: SoloDeckFilters) => {
     // "Open now" is time-sensitive, so don't serve a stale cached deck.
     staleTime: filters.openNow ? 0 : 1000 * 60 * 5,
   });
+  return {
+    ...query,
+    searchGoogle: () => googleSearch.mutate({filters: params, key: queryKey}),
+    isSearchingGoogle: googleSearch.isPending,
+    googleSearchError: googleSearch.error,
+  };
 };
 
 export const useSessionDeck = (sessionId: string) => {

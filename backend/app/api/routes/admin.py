@@ -30,6 +30,8 @@ from app.models.restaurant import Restaurant
 from app.models.user import User
 from app.schemas.admin import CATEGORIES, PhotoMetadata, RestaurantEdit, VersionInput
 from app.schemas.auth import LoginRequest
+from app.schemas.usage import GoogleUsageResponse
+from app.services.quota_service import GoogleQuotaService
 from app.services.rate_limit_service import enforce_request_limit
 from app.services.restaurant_media import RestaurantMedia, prepare_photo
 
@@ -146,6 +148,14 @@ async def logout(
         delete(AdminSession).where(AdminSession.token_hash == session_hash(request.cookies[COOKIE]))
     )
     response.delete_cookie(COOKIE, path="/admin")
+
+
+@router.get("/api/google-usage", response_model=GoogleUsageResponse)
+async def google_usage(
+    _user: User = Depends(get_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    return await GoogleQuotaService().get_google_usage(db)
 
 
 def _duplicate_names():

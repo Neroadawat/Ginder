@@ -6,6 +6,7 @@ from datetime import datetime
 from pydantic import BaseModel, Field
 
 from app.core.config import settings
+from app.schemas.restaurant import DeckResponse
 
 
 class CreateSessionRequest(BaseModel):
@@ -72,6 +73,7 @@ class StartSessionResponse(BaseModel):
     started_at: datetime
     ends_at: datetime
     deck_size: int
+    deck: DeckResponse | None = None
 
 
 class InviteFriendRequest(BaseModel):

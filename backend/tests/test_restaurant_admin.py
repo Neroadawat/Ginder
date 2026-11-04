@@ -22,6 +22,7 @@ from app.core.redis import get_redis
 from app.core.security import hash_password
 from app.main import app
 from app.models.admin import AdminSession, RestaurantAudit
+from app.models.external_api_usage import ExternalApiUsage
 from app.models.match_result import MatchResult, ResolutionType
 from app.models.restaurant import Restaurant
 from app.models.session import Session, SessionParticipant, SessionStatus
@@ -30,6 +31,7 @@ from app.models.user import User
 from app.models.vote import Vote
 from app.schemas.admin import RestaurantEdit
 from app.services.history_service import HistoryService
+from app.services.quota_service import GoogleQuotaService
 from app.services.restaurant_media import prepare_photo
 from app.services.restaurant_service import RestaurantService
 from app.services.vote_service import VoteService
@@ -129,6 +131,35 @@ async def sign_in(ctx, email="admin@example.com"):
     )
     assert response.status_code == 200, response.text
     return {"Origin": ORIGIN, "X-CSRF-Token": response.json()["csrf_token"]}
+
+
+@pytest.mark.asyncio
+async def test_google_usage_requires_admin_and_displays_current_month(context, monkeypatch):
+    monkeypatch.setattr(settings, "GOOGLE_PLACES_PHOTOS_ENABLED", True)
+    monkeypatch.setattr(settings, "GOOGLE_NEARBY_HARD_LIMIT", 150)
+    monkeypatch.setattr(settings, "GOOGLE_PHOTO_HARD_LIMIT", 750)
+    path = "/admin/api/google-usage"
+    assert (await context.client.get(path)).status_code == 401
+    await sign_in(context)
+    period = GoogleQuotaService._period()
+    counts = {"nearby_search": 4, "place_details": 2, "place_photo": 17}
+    async with context.db() as db:
+        db.add_all([
+            ExternalApiUsage(period=period, provider="google", operation=operation, count=count)
+            for operation, count in counts.items()
+        ])
+        db.add(ExternalApiUsage(
+            period="2000-01", provider="google", operation="place_photo", count=99
+        ))
+        await db.commit()
+    response = await context.client.get(path)
+    assert response.status_code == 200
+    assert "no-store" in response.headers["cache-control"]
+    usage = response.json()
+    assert usage["period"] == period
+    assert (usage["nearby_search"]["count"], usage["nearby_search"]["hard_limit"]) == (4, 150)
+    assert usage["place_details"]["count"] == 2
+    assert (usage["place_photo"]["count"], usage["place_photo"]["hard_limit"]) == (17, 750)
 
 
 def edit_body(version=1):
@@ -260,6 +291,10 @@ async def test_visibility_is_reversible_audited_and_omission_preserves_hidden(co
     # Use real SQL so this checks discovery filtering rather than a mocked query.
     monkeypatch.setattr(settings, "GOOGLE_PLACES_ENABLED", True)
     monkeypatch.setattr(settings, "GOOGLE_PLACES_API_KEY", "test-only-no-http-call")
+    monkeypatch.setattr(
+        "app.services.google_places_service.GooglePlacesService.search_nearby",
+        AsyncMock(return_value=SimpleNamespace(cards=[])),
+    )
     headers = await sign_in(context)
     path = f"/admin/api/restaurants/{context.ids.restaurant}"
     body = edit_body()
@@ -274,6 +309,7 @@ async def test_visibility_is_reversible_audited_and_omission_preserves_hidden(co
         assert await service._search(14.071, 100.601, 1.5) == []
         assert await service.get_categories() == []
         assert await service.create_session_deck(SimpleNamespace(
+            host_id=context.ids.owner,
             latitude=14.071, longitude=100.601, radius_km=1.5,
             category_filter=None, price_filter=None, rating_filter=None, open_now_filter=False,
         )) == []

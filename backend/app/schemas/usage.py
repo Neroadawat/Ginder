@@ -16,4 +16,5 @@ class GoogleUsageResponse(BaseModel):
     period: str
     enabled: bool
     nearby_search: OperationUsageResponse
+    place_details: OperationUsageResponse
     place_photo: OperationUsageResponse

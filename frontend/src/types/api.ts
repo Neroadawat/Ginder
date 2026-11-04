@@ -2,7 +2,7 @@
  * Shared API type definitions.
  */
 
-import {RestaurantCard} from './restaurant';
+import {DeckResponse, RestaurantCard} from './restaurant';
 
 // ─── Auth ───
 export interface TokenResponse {
@@ -106,6 +106,7 @@ export interface LobbyResponse {
 }
 
 export interface StartSessionResponse {
+  deck?: DeckResponse | null;
   session_id: string;
   status: string;
   started_at: string;

@@ -32,7 +32,7 @@ class HistoryService:
                 restaurant_name=match.restaurant_name,
                 photo_url=restaurant.photo_url if restaurant else None,
                 resolution_type=match.resolution_type.value,
-                google_maps_url=restaurant.google_maps_url if restaurant else None,
+                google_maps_url=restaurant.maps_link if restaurant else None,
                 created_at=match.created_at,
             )
             for match, restaurant in rows

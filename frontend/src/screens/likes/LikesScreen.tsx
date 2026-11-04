@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 
 import {useSessionLikes, useSoloLikes} from '@/hooks/useVotes';
+import {useSessionDeck} from '@/hooks/useRestaurants';
 import {useSessionStore} from '@/stores/sessionStore';
 import {RestaurantCard} from '@/types/restaurant';
 import {getRestaurantImageUri} from '@/constants/restaurantImages';
@@ -50,6 +51,7 @@ const SoloGrid = () => {
 const SessionGrid = ({sessionId}: {sessionId: string}) => {
   useTranslation();
   const {data, isLoading} = useSessionLikes(sessionId);
+  const {data: deck} = useSessionDeck(sessionId);
   const entries = useMemo(() => {
     const grouped = new Map<string, GridEntry>();
     for (const like of data?.likes ?? []) {
@@ -61,13 +63,15 @@ const SessionGrid = ({sessionId}: {sessionId: string}) => {
       } else {
         grouped.set(like.restaurant.id, {
           key: like.restaurant.id,
-          restaurant: like.restaurant,
+          restaurant:
+            deck?.restaurants.find(card => card.id === like.restaurant.id) ??
+            like.restaurant,
           people: [like.display_name],
         });
       }
     }
     return [...grouped.values()];
-  }, [data]);
+  }, [data, deck]);
   return <LikesGrid entries={entries} isLoading={isLoading} session />;
 };
 

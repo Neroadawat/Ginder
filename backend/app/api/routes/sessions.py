@@ -2,7 +2,7 @@
 
 from uuid import UUID
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.dependencies import get_current_user, get_db
@@ -36,7 +36,7 @@ def build_resolution_response(session_id: UUID, resolution: Resolution) -> Resol
         restaurant_id=result.restaurant_id,
         restaurant_name=result.restaurant_name,
         resolution_type=result.resolution_type.value,
-        google_maps_url=restaurant.google_maps_url if restaurant else None,
+        google_maps_url=restaurant.maps_link if restaurant else None,
         wheel_candidate_ids=resolution.wheel_candidates,
     )
 
@@ -87,10 +87,12 @@ async def get_session(
 @router.get("/{session_id}/deck", response_model=DeckResponse)
 async def get_session_deck(
     session_id: UUID,
+    response: Response,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     """Get the session's restaurant deck. Same order for everyone, reconnect-safe."""
+    response.headers["Cache-Control"] = "no-store"
     service = SessionService(db)
     return await service.get_deck(session_id, current_user)
 
@@ -98,10 +100,12 @@ async def get_session_deck(
 @router.post("/{session_id}/start", response_model=StartSessionResponse)
 async def start_session(
     session_id: UUID,
+    response: Response,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     """Start the session (host only). Generates the deck and starts the timer."""
+    response.headers["Cache-Control"] = "no-store"
     service = SessionService(db)
     return await service.start_session(session_id, current_user)
 

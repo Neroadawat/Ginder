@@ -76,12 +76,13 @@ class Settings(BaseSettings):
     GOOGLE_PLACES_API_KEY: str = ""
     GOOGLE_PLACES_BASE_URL: str = "https://places.googleapis.com/v1"
     GOOGLE_PLACES_TIMEOUT_SECONDS: float = 8.0
-    GOOGLE_NEARBY_SOFT_LIMIT: int = 800
-    GOOGLE_NEARBY_HARD_LIMIT: int = 1000
+    GOOGLE_NEARBY_SOFT_LIMIT: int = 120
+    GOOGLE_NEARBY_HARD_LIMIT: int = 150
     # Explicit opt-in so old environments cannot accidentally enable photo billing.
     GOOGLE_PLACES_PHOTOS_ENABLED: bool = False
-    GOOGLE_PHOTO_SOFT_LIMIT: int = 0
-    GOOGLE_PHOTO_HARD_LIMIT: int = 0
+    GOOGLE_PHOTO_SOFT_LIMIT: int = 600
+    GOOGLE_PHOTO_HARD_LIMIT: int = 750
+    GOOGLE_PARTY_DETAILS_HARD_LIMIT: int = 100
     GOOGLE_USER_COOLDOWN_SECONDS: int = 30
 
     # ─── CORS ───

@@ -69,6 +69,7 @@ export interface DeckResponse {
   suggested_radius_km: number | null;
   external_status:
     | 'not_needed'
+    | 'search_available'
     | 'available'
     | 'disabled'
     | 'filters_unsupported'
@@ -87,4 +88,5 @@ export interface SoloFilterParams {
   price_level?: number | null;
   min_rating?: number | null;
   open_now?: boolean;
+  google_fallback?: boolean;
 }

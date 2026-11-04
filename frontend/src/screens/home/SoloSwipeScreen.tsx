@@ -36,6 +36,8 @@ type NavigationProp = NativeStackNavigationProp<
 
 const externalMessage = (status: string | undefined): string => {
   switch (status) {
+    case 'search_available':
+      return t('ค้นหาร้านใกล้เคียงเพิ่มเติมจาก Google Maps ได้');
     case 'quota_exhausted':
       return t(
         'โควตาค้นหาร้านภายนอกของเดือนนี้หมดแล้ว กรุณาใช้ข้อมูลร้านในระบบ',
@@ -76,6 +78,9 @@ const SoloSwipeScreen = () => {
     error,
     isFetching,
     refetch,
+    searchGoogle,
+    isSearchingGoogle,
+    googleSearchError,
   } = useSoloDeck({
     category,
     priceLevel,
@@ -89,17 +94,14 @@ const SoloSwipeScreen = () => {
   );
   const [finishedAt, setFinishedAt] = useState<number>();
   const googleDeckFinished = hasGoogleLive && dataUpdatedAt === finishedAt;
+  const canSearchGoogle =
+    deck?.external_status === 'search_available' ||
+    deck?.external_status === 'available' ||
+    deck?.external_status === 'rate_limited' ||
+    deck?.external_status === 'failed';
+  const isSearching = isFetching || isSearchingGoogle;
 
   const openPartyMenu = () => {
-    if (hasGoogleLive) {
-      Alert.alert(
-        t('ร้านนี้ยังใช้กับห้องเพื่อนไม่ได้'),
-        t(
-          'ผลจาก Google Maps เป็นข้อมูลชั่วคราว ห้องเพื่อนใช้ร้านที่บันทึกในระบบเท่านั้น',
-        ),
-      );
-      return;
-    }
     const rootNavigation = navigation.getParent()?.getParent() as
       | NativeStackNavigationProp<RootStackParamList>
       | undefined;
@@ -241,7 +243,7 @@ const SoloSwipeScreen = () => {
         <View style={styles.liveNotice}>
           <Text style={styles.liveNoticeText}>
             {t(
-              'ข้อมูลสดจาก Google Maps · ยังบันทึกถูกใจหรือใช้กับห้องเพื่อนไม่ได้',
+              'ข้อมูลสดจาก Google Maps · ยังบันทึกถูกใจในโหมดคนเดียวไม่ได้',
             )}
             {deck?.quota_warning ? t(' · ใกล้ถึงขีดจำกัดเดือนนี้') : ''}
           </Text>
@@ -285,7 +287,9 @@ const SoloSwipeScreen = () => {
               </View>
               <Text style={styles.emptyTitle}>{t('No restaurants found')}</Text>
               <Text style={styles.emptySubtitle}>
-                {externalMessage(deck?.external_status)}
+                {googleSearchError
+                  ? t(googleSearchError.message)
+                  : externalMessage(deck?.external_status)}
               </Text>
               <View style={styles.emptyActions}>
                 <TouchableOpacity
@@ -298,17 +302,27 @@ const SoloSwipeScreen = () => {
                   style={[
                     styles.emptyAction,
                     styles.secondaryAction,
-                    isFetching && styles.disabledAction,
+                    isSearching && styles.disabledAction,
                   ]}
-                  disabled={isFetching}
-                  accessibilityState={{disabled: isFetching, busy: isFetching}}
-                  onPress={() => refetch()}
+                  disabled={isSearching}
+                  accessibilityState={{disabled: isSearching, busy: isSearching}}
+                  onPress={() => {
+                    if (canSearchGoogle) {
+                      searchGoogle();
+                    } else {
+                      refetch();
+                    }
+                  }}
                   accessibilityRole="button">
-                  {isFetching && (
+                  {isSearching && (
                     <ActivityIndicator color={COLORS.text} size="small" />
                   )}
                   <Text style={styles.actionLabel}>
-                    {isFetching ? t('กำลังค้นหาร้าน...') : t('ลองอีกครั้ง')}
+                    {isSearching
+                      ? t('กำลังค้นหาร้าน...')
+                      : canSearchGoogle
+                        ? t('ค้นหาร้านเพิ่ม')
+                        : t('ลองอีกครั้ง')}
                   </Text>
                 </TouchableOpacity>
               </View>

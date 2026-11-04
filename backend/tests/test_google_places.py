@@ -269,8 +269,18 @@ async def test_solo_fallback_calls_google_once_and_never_writes_restaurant(
     search = AsyncMock(return_value=GoogleSearchResult([google_card()], "available"))
     monkeypatch.setattr(GooglePlacesService, "search_nearby", search)
 
-    deck = await service.get_solo_deck(
+    local_only = await service.get_solo_deck(
         SoloFilterRequest(latitude=TU_LAT, longitude=TU_LNG, radius_km=radius),
+        SimpleNamespace(id=uuid.uuid4()),
+    )
+    assert local_only.external_status == "search_available"
+    search.assert_not_awaited()
+    db.executed.clear()
+
+    deck = await service.get_solo_deck(
+        SoloFilterRequest(
+            latitude=TU_LAT, longitude=TU_LNG, radius_km=radius, google_fallback=True
+        ),
         SimpleNamespace(id=uuid.uuid4()),
         actor_key="hashed-actor",
     )
@@ -316,7 +326,7 @@ async def test_solo_does_not_call_google_when_local_coverage_is_enough(monkeypat
     monkeypatch.setattr(GooglePlacesService, "search_nearby", search)
 
     deck = await service.get_solo_deck(
-        SoloFilterRequest(latitude=TU_LAT, longitude=TU_LNG, radius_km=3.0),
+        SoloFilterRequest(latitude=TU_LAT, longitude=TU_LNG, radius_km=3.0, google_fallback=True),
         SimpleNamespace(id=uuid.uuid4()),
         actor_key="hashed-actor",
     )
@@ -346,7 +356,7 @@ async def test_hidden_local_restaurant_cannot_reappear_as_obvious_google_duplica
         AsyncMock(return_value=GoogleSearchResult([card], "available")),
     )
     deck = await service.get_solo_deck(
-        SoloFilterRequest(latitude=TU_LAT, longitude=TU_LNG, radius_km=3.0),
+        SoloFilterRequest(latitude=TU_LAT, longitude=TU_LNG, radius_km=3.0, google_fallback=True),
         SimpleNamespace(id=uuid.uuid4()),
     )
     assert deck.restaurants == []
@@ -361,3 +371,47 @@ def test_google_api_key_is_not_present_in_mobile_source() -> None:
     )
     assert "GOOGLE_PLACES_API_KEY" not in contents
     assert "AIza" not in contents
+
+
+@pytest.mark.asyncio
+async def test_party_recovery_resolves_names_without_nearby_or_photo_requests(monkeypatch):
+    monkeypatch.setattr(settings, "GOOGLE_PLACES_ENABLED", True)
+    monkeypatch.setattr(settings, "GOOGLE_PLACES_API_KEY", "server-secret")
+    raw_place = {
+        "id": "test-place",
+        "displayName": {"text": "Live name"},
+        "location": {"latitude": TU_LAT, "longitude": TU_LNG},
+    }
+    live = GooglePlacesService._to_card(
+        raw_place, latitude=TU_LAT, longitude=TU_LNG, category=None
+    )
+    assert live is not None
+    reference = live.model_copy(update={"name": "Google Maps restaurant", "can_like": True})
+    quota = SimpleNamespace(
+        reserve=AsyncMock(return_value=QuotaDecision(True, 1, False, "allowed"))
+    )
+    client = FakeClient(FakeResponse(raw_place))
+    monkeypatch.setattr(
+        "app.services.google_places_service.httpx.AsyncClient", lambda **_: client
+    )
+    service = GooglePlacesService(quota=quota)
+
+    cards = await service.recover_session_cards(
+        [reference], actor_key="party-recovery", latitude=TU_LAT, longitude=TU_LNG
+    )
+
+    assert cards[0].id == reference.id and cards[0].can_like
+    assert cards[0].name == "Live name"
+    assert cards[0].photo_url is None
+    assert [url for url, _ in client.calls] == [
+        f"{settings.GOOGLE_PLACES_BASE_URL}/places/test-place"
+    ]
+    quota.reserve.assert_awaited_once_with(
+        "place_details", "party-recovery", request_key="test-place"
+    )
+
+    quota.reserve.return_value = QuotaDecision(False, 100, True, "hard_limit")
+    assert await service.recover_session_cards(
+        [reference], actor_key="party-recovery", latitude=TU_LAT, longitude=TU_LNG
+    ) == [reference]
+    assert len(client.calls) == 1

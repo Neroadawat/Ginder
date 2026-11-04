@@ -1,13 +1,12 @@
-# Google Places Solo discovery and limited photo previews
+# Google Places discovery and limited photo previews
 
-Ginder searches its restaurant database first. In Solo mode only, when fewer
-than `MIN_LOCAL_RESTAURANTS` match at `MAX_RADIUS_KM`, it can supplement the deck
-with live Google results. If zero restaurants match, it can call Google at any
-supported radius (0.5–3 km), without requiring radius expansion first. Existing
+Ginder searches its restaurant database first. In Solo, when there are no
+unseen local cards, the app offers **Find more restaurants**. Only tapping that
+button opts the request into Google fallback. Existing
 price, rating and open-now filter restrictions still apply. Each search requests
 up to 20 restaurants; Google can return fewer, and category filtering and
-deduplication can further reduce that number. Google results remain transient: they are not imported
-into the restaurant table, saved as likes, or used in party-session decks.
+deduplication can further reduce that number. Solo live cards stay transient
+and are unavailable for Solo Likes.
 When a deck with Google cards runs out, the app waits for the user to tap
 **Find more restaurants** and choose a wider radius or adjust the filters.
 Nearby Search has no next-page token. A new search can include previously shown
@@ -36,10 +35,11 @@ submit arbitrary photo names to spend the photo allowance.
 
 - Google remains disabled by default. Enabling it requires a server-side key,
   Places API (New), a billing account, restricted key access, and provider quotas.
-- Keep `GOOGLE_NEARBY_SOFT_LIMIT=800` and `GOOGLE_NEARBY_HARD_LIMIT=1000` as
-  conservative application limits. They are not Google's free allowance.
+- Nearby Search has a default cap of 150 requests per month. Each request
+  can return up to 20 cards and trigger at most five photo requests.
 - Photos require `GOOGLE_PLACES_PHOTOS_ENABLED=true` AND a positive
-  `GOOGLE_PHOTO_HARD_LIMIT`. Defaults remain disabled with zero photo limits.
+  `GOOGLE_PHOTO_HARD_LIMIT`. Photos are disabled by default and have a separate
+  cap of 750 requests when enabled.
 - For a small test rollout, keep Nearby limits at 10/20 and use photo soft/hard
   limits of 80/100. One search can reserve one Nearby request and up to five
   separate Photo requests. These are app limits, not Google's free allowances.
@@ -103,8 +103,21 @@ photos; set `GOOGLE_PLACES_ENABLED=false` to stop Google discovery entirely.
 
 If price, minimum-rating, or open-now filters are active, Google fallback remains
 unavailable: this metadata-only request cannot truthfully satisfy those filters.
-Party rooms continue to use database restaurants. Supporting live Google voting
-requires a separate Place-ID-based session design and result/likes handling.
+Party rooms search once from the host's saved GPS when the host starts and
+no local restaurants match. They still require the configured minimum deck
+size. The start response and session event carry the same ordered live cards
+and up to five resolved photo URLs. The database stores identity-only Google
+references and deck order for votes and results. If a member misses the
+start payload, a deck recovery can resolve names by Place ID without another
+Nearby Search or photo request. Recovery has a separate monthly
+`GOOGLE_PARTY_DETAILS_HARD_LIMIT`; when unavailable, the same card IDs remain
+votable with generic labels and Maps links. History retains the winning ID
+and Maps link without retaining a Google-provided name or photo.
+
+Migration `0009` is required before deploying Party fallback. A rollback to
+the prior application can retain this additive schema change and the stored
+votes. Downgrading the constraint to `0008` is only possible before Google
+identity rows have been created.
 
 References:
 - https://developers.google.com/maps/documentation/places/web-service/nearby-search

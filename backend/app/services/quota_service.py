@@ -10,6 +10,7 @@ from zoneinfo import ZoneInfo
 from redis.asyncio import Redis
 from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import insert
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.core.database import async_session_factory
@@ -19,7 +20,7 @@ from app.schemas.usage import GoogleUsageResponse, OperationUsageResponse
 
 logger = logging.getLogger(__name__)
 
-QuotaOperation = Literal["nearby_search", "place_photo"]
+QuotaOperation = Literal["nearby_search", "place_photo", "place_details"]
 _COOLDOWN_PREFIX = "ginder:google-cooldown"
 
 
@@ -80,15 +81,23 @@ class GoogleQuotaService:
             logger.warning("Google quota unavailable; external call blocked", exc_info=True)
             return QuotaDecision(False, 0, False, "unavailable")
 
-    async def get_google_usage(self) -> GoogleUsageResponse:
+    async def get_google_usage(self, db: AsyncSession | None = None) -> GoogleUsageResponse:
+        if db is None:
+            async with self.db_factory() as session:
+                return await self.get_google_usage(session)
         period = self._period()
-        nearby_count = await self._read_count("nearby_search")
-        photo_count = await self._read_count("place_photo")
+        rows = await db.execute(
+            select(ExternalApiUsage.operation, ExternalApiUsage.count).where(
+                ExternalApiUsage.period == period, ExternalApiUsage.provider == "google"
+            )
+        )
+        counts = dict(rows.tuples().all())
         return GoogleUsageResponse(
             period=period,
             enabled=settings.GOOGLE_PLACES_ENABLED and bool(settings.GOOGLE_PLACES_API_KEY),
-            nearby_search=self._usage_response("nearby_search", nearby_count),
-            place_photo=self._usage_response("place_photo", photo_count),
+            nearby_search=self._usage_response("nearby_search", counts.get("nearby_search", 0)),
+            place_details=self._usage_response("place_details", counts.get("place_details", 0)),
+            place_photo=self._usage_response("place_photo", counts.get("place_photo", 0)),
         )
 
     async def _read_count(self, operation: QuotaOperation) -> int:
@@ -149,6 +158,9 @@ class GoogleQuotaService:
     def _limits(operation: QuotaOperation) -> tuple[int, int]:
         if operation == "nearby_search":
             return settings.GOOGLE_NEARBY_SOFT_LIMIT, settings.GOOGLE_NEARBY_HARD_LIMIT
+        if operation == "place_details":
+            limit = settings.GOOGLE_PARTY_DETAILS_HARD_LIMIT
+            return limit, limit
         if not settings.GOOGLE_PLACES_PHOTOS_ENABLED:
             return 0, 0
         return settings.GOOGLE_PHOTO_SOFT_LIMIT, settings.GOOGLE_PHOTO_HARD_LIMIT

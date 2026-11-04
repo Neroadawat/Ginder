@@ -15,6 +15,7 @@ from sqlalchemy.ext.compiler import compiles
 
 from app.core.database import Base
 from app.models.admin import AdminSession, RestaurantAudit
+from app.models.external_api_usage import ExternalApiUsage
 from app.models.restaurant import Restaurant
 from app.models.user import User
 
@@ -39,7 +40,10 @@ async def test_database(url=None):
         engine = create_async_engine(url)
         async with engine.begin() as connection:
             await connection.execute(
-                text("TRUNCATE restaurant_audits, admin_sessions, restaurants, users CASCADE")
+                text(
+                    "TRUNCATE restaurant_audits, admin_sessions, external_api_usage, "
+                    "restaurants, users CASCADE"
+                )
             )
         return engine, async_sessionmaker(engine, expire_on_commit=False)
     engine = create_async_engine(url)
@@ -62,6 +66,7 @@ async def test_database(url=None):
                     Restaurant.__table__,
                     AdminSession.__table__,
                     RestaurantAudit.__table__,
+                    ExternalApiUsage.__table__,
                 ],
             )
         )

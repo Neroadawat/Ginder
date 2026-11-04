@@ -13,6 +13,7 @@ DataSource = Literal[
 CoverageStatus = Literal["full", "partial", "unsupported"]
 ExternalStatus = Literal[
     "not_needed",
+    "search_available",
     "available",
     "disabled",
     "filters_unsupported",
@@ -123,3 +124,4 @@ class SoloFilterRequest(BaseModel):
 
     # Requirement 5.3: keep only places open at the current local time.
     open_now: bool = False
+    google_fallback: bool = False
